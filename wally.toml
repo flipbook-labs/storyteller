@@ -1,0 +1,19 @@
+[package]
+name = "flipbook-labs/storyteller"
+version = "0.1.0"
+license = "MIT"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+exclude = ["*.spec.luau"]
+
+[dependencies]
+Sift = "csqrl/sift@0.0.8"
+ModuleLoader = "flipbook-labs/module-loader@0.6.1"
+
+# [dev-dependencies]
+React = "jsdotlua/react@17.0.2"
+ReactRoblox = "jsdotlua/react-roblox@17.0.2"
+Roact = "roblox/roact@1.4.4"
+Fusion = "elttob/fusion@0.2.0"
+Jest = "jsdotlua/jest@3.6.1-rc.2"
+JestGlobals = "jsdotlua/jest-globals@3.6.1-rc.2"
