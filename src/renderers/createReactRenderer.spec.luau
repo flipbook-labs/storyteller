@@ -3,7 +3,7 @@ local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local createReactRenderer = require("./createReactRenderer")
-local render = require("./render")
+local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect

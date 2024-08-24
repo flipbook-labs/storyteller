@@ -1,4 +1,4 @@
-local types = require("@root/Renderers/types")
+local types = require("@root/types")
 
 type Renderer = types.Renderer
 

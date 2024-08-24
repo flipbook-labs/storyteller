@@ -1,7 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local Roact = require("@pkg/Roact")
 local createRoactRenderer = require("./createRoactRenderer")
-local render = require("./render")
+local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect

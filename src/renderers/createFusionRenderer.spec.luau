@@ -2,7 +2,7 @@ local Fusion = require("@pkg/Fusion")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local createFusionRenderer = require("./createFusionRenderer")
-local render = require("./render")
+local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
