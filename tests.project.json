@@ -1,0 +1,14 @@
+{
+  "name": "Tests",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Packages": {
+        "$path": "Packages",
+        "Storyteller": {
+          "$path": "default.project.json"
+        }
+      }
+    }
+  }
+}

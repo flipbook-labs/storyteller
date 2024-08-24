@@ -1,6 +1,9 @@
 {
-  "name": "Storyteller",
+  "name": "Packages",
   "tree": {
-    "$path": "src"
+    "$path": "Packages",
+    "Storyteller": {
+      "$path": "src"
+    }
   }
 }
