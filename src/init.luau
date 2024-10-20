@@ -39,7 +39,6 @@ type API = {
 local api: API = {
 	isStorybookModule = require("./isStoryModule"),
 	isStoryModule = require("./isStoryModule"),
-	findStorybookModules = require("./findStorybookModules"),
 
 	loadStory = require("./loadStoryModule"),
 	render = require("./render"),
