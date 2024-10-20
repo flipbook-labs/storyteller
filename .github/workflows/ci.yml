@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: Roblox/setup-foreman@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install packages
+        run: lune run wally-install
+
+      - name: Lint
+        run: lune run lint
+
+      - name: Get model file name
+        run: |
+          name=$(jq -r .name default.project.json)
+          sha=${GITHUB_SHA:0:7}
+          echo "MODEL_FILE=$name-$sha.rbxm" >> $GITHUB_ENV
+
+      - name: Build
+        run: lune run build -- --target prod --output ${{ env.MODEL_FILE }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.MODEL_FILE }}
+          path: ${{ env.MODEL_FILE }}
+
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: Roblox/setup-foreman@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Lune typedefs
+        run: lune setup
+
+      - name: Install packages
+        run: lune run wally-install
+
+      - name: Run Luau analysis
+        run: lune run analyze
