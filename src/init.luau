@@ -10,13 +10,13 @@ export type StoryRenderer<T> = types.StoryRenderer<T>
 type API = {
 	isStorybookModule: (module: ModuleScript) -> boolean,
 	isStoryModule: (module: ModuleScript) -> boolean,
+
 	-- loadStorybooks: (loader: ModuleLoader.ModuleLoader, parent: Instance) -> { Storybook },
 	loadStory: <T>(
 		loader: ModuleLoader.ModuleLoader,
 		module: ModuleScript,
 		storybook: Storybook
 	) -> (Story<T>?, string?),
-	findStorybookModules: (parent: Instance) -> { ModuleScript },
 
 	render: <T>(
 		renderer: StoryRenderer<T>,
