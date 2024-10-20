@@ -1,28 +1,31 @@
 export type StudioTheme = "Light" | "Dark"
 
-export type Controls = {
+export type StoryControls = {
 	[string]: string | number | boolean,
 }
 
-export type Context<T> = {
-	theme: StudioTheme,
-	story: Story<T>,
-	storybook: Storybook,
+export type StoryProps<T> = {
 	container: Instance,
+	story: Story<T>,
+	theme: StudioTheme,
+	controls: StoryControls?,
 }
 
 export type StoryRenderer<T> = {
-	mount: (container: Instance, story: Story<T>, props: StoryProps<T>) -> (),
-
+	mount: (container: Instance, story: Story<T>, initialProps: StoryProps<T>) -> (),
 	unmount: (() -> ())?,
-	update: ((story: Story<T>, prevStory: Story<T>) -> ())?,
-	transformContext: ((context: Context<T>, prevContext: Context<T>?) -> Context<T>)?,
-	shouldUpdate: ((context: Context<T>, prevContext: Context<T>?) -> boolean)?,
+	update: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> ())?,
+	transformProps: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> StoryProps<T>)?,
+	shouldUpdate: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> boolean)?,
 }
 
 export type Storybook = {
 	storyRoots: { Instance },
+
 	name: string?,
+	packages: {
+		[string]: any,
+	}?,
 }
 
 export type Story<T> = {
@@ -32,37 +35,7 @@ export type Story<T> = {
 	storybook: Storybook,
 
 	summary: string?,
-	controls: Controls?,
+	controls: StoryControls?,
 }
 
-export type StoryProps<T> = {
-	controls: Controls,
-	story: Story<T>,
-	storybook: Storybook,
-	container: Instance,
-	theme: StudioTheme,
-}
-
-export type API = {
-	isStorybookModule: (module: ModuleScript) -> boolean,
-	isStoryModule: (module: ModuleScript) -> boolean,
-	loadStorybooks: (loader: unknown, parent: Instance) -> { Storybook },
-	loadStory: <T>(loader: unknown, module: ModuleScript, storybook: Storybook) -> (Story<T>?, string?),
-	render: <T, K>(
-		renderer: StoryRenderer<T>,
-		story: Story<K>,
-		container: Instance
-	) -> {
-		update: () -> (),
-		unmount: () -> (),
-	},
-
-	FusionRenderer: StoryRenderer<unknown>,
-	ReactRenderer: StoryRenderer<unknown>,
-	RoactRenderer: StoryRenderer<unknown>,
-	RobloxRenderer: StoryRenderer<unknown>,
-	DeveloperStorybookRenderer: StoryRenderer<unknown>,
-	HoarcekatRenderer: StoryRenderer<unknown>,
-}
-
-return {}
+return nil

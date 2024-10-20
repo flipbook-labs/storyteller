@@ -1,23 +1,25 @@
 local types = require("@root/types")
 
-type Renderer = types.Renderer
+type Story<T> = types.Story<T>
+type StoryRenderer<T> = types.StoryRenderer<T>
 
-local function createRobloxRenderer(): Renderer
-	local handle: GuiObject?
-	local currentElement
+local function createRobloxRenderer(): StoryRenderer<Instance>
+	local handle: Instance?
+	local currentStory: Story<Instance>
 
-	local function mount(container, element, context)
-		currentElement = element
+	local function mount(container, story, initialProps)
+		local element: Instance
 
-		if typeof(element) == "function" then
-			local args = if context and context.args then context.args else {}
-			element = element(args)
+		currentStory = story
+
+		if typeof(story.story) == "function" then
+			element = story.story(initialProps)
+		else
+			element = story.story
 		end
 
-		if typeof(element) == "Instance" and element:IsA("GuiObject") then
-			handle = element
-			element.Parent = container
-		end
+		handle = element
+		element.Parent = container
 	end
 
 	local function unmount()
@@ -26,11 +28,11 @@ local function createRobloxRenderer(): Renderer
 		end
 	end
 
-	local function update(context)
+	local function update(props)
 		if handle then
 			local container = handle.Parent
 			unmount()
-			mount(container, currentElement, context)
+			mount(container, currentStory, props)
 		end
 	end
 

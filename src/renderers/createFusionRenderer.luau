@@ -3,40 +3,42 @@ local Sift = require("@pkg/Sift")
 local createRobloxRenderer = require("@root/renderers/createRobloxRenderer")
 local types = require("@root/types")
 
-type Renderer = types.Renderer
+type StoryRenderer<T> = types.StoryRenderer<T>
 
 type Packages = {
 	Fusion: any,
 }
 
-local function createFusionRenderer(packages: Packages): Renderer
+local function createFusionRenderer(packages: Packages): StoryRenderer<unknown>
 	local Fusion = packages.Fusion
 	local robloxRenderer = createRobloxRenderer()
 
-	local function transformContext(context, prevContext)
-		if context.args and prevContext and prevContext.args then
-			local transformed = table.clone(context)
+	local function transformProps(props, prevProps)
+		if props.controls then
+			local transformed = table.clone(props)
 
-			transformed.args = Sift.Dictionary.map(transformed.args, function(arg, key)
-				-- Retain Fusion.Value identities and update the internal value with
-				-- the new arg's value
-				local prevArg = if prevContext.args then prevContext.args[key] else nil
-				if prevArg then
-					prevArg:set(arg)
-					return prevArg
+			transformed.controls = Sift.Dictionary.map(transformed.controls, function(arg, key)
+				-- Retain Fusion.Value identities and update the internal value
+				-- with the new arg's value
+				local prevControl = if prevProps and prevProps.controls then prevProps.controls[key] else nil
+				if prevControl then
+					prevControl:set(arg)
+					return prevControl
+				else
+					return Fusion.Value(arg)
 				end
-				return Fusion.Value(arg)
 			end)
 
 			return transformed
 		end
-		return context
+
+		return props
 	end
 
-	local function shouldUpdate(context, prevContext)
+	local function shouldUpdate(_props, prevProps)
 		-- Arg changes should never trigger a remount. We retain the Value
 		-- identities to Fusion can handle its update logic
-		if prevContext and not Sift.Dictionary.equals(context.args, prevContext.args) then
+		if prevProps then
 			return false
 		end
 		return true
@@ -46,7 +48,7 @@ local function createFusionRenderer(packages: Packages): Renderer
 		mount = robloxRenderer.mount,
 		unmount = robloxRenderer.unmount,
 		shouldUpdate = shouldUpdate,
-		transformContext = transformContext,
+		transformProps = transformProps,
 	}
 end
 

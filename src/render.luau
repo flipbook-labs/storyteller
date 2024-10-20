@@ -2,49 +2,53 @@ local Sift = require("@pkg/Sift")
 
 local types = require("@root/types")
 
-type Args = types.Args
-type Context = types.Context
-type Renderer = types.Renderer
+type Story<T> = types.Story<T>
+type StoryControls = types.StoryControls
+type StoryProps<T> = types.StoryProps<T>
+type StoryRenderer<T> = types.StoryRenderer<T>
 
-local function render<T>(renderer: Renderer, container: Instance, element: T, initialArgs: Args?)
-	local prevContext: Context?
+local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>, initialControls: StoryControls?)
+	local prevProps: StoryProps<T>?
 
-	local function renderOnce(args: Args?)
-		local context: Context = {
+	local function renderOnce(controls: StoryControls?)
+		local props: StoryProps<T> = {
 			container = container,
-			args = args,
+			story = story,
+			controls = if controls then controls else {},
+			theme = "Dark", -- TODO: Support theme changing
 		}
 
-		if renderer.transformContext then
-			context = renderer.transformContext(context, prevContext)
+		if renderer.transformProps then
+			props = renderer.transformProps(props, prevProps)
 		end
 
-		if not renderer.shouldUpdate or renderer.shouldUpdate(context, prevContext) then
-			renderer.mount(container, element, context)
+		if not renderer.shouldUpdate or renderer.shouldUpdate(props, prevProps) then
+			renderer.mount(container, story, props)
 		end
 
-		prevContext = context
+		prevProps = props
 	end
 
-	local function update(newArgs: Args?)
+	local function update(newControls: StoryControls?)
 		if renderer.update then
-			local context = Sift.Dictionary.join(prevContext, {
-				args = newArgs,
+			local props = Sift.Dictionary.join(prevProps, {
+				controls = newControls,
 			})
-			renderer.update(context)
+
+			renderer.update(props, prevProps)
 		else
-			renderOnce(newArgs)
+			renderOnce(newControls)
 		end
 	end
 
 	local function unmount()
 		if renderer.unmount then
-			renderer.unmount(prevContext)
+			renderer.unmount()
 		end
 		container:ClearAllChildren()
 	end
 
-	renderOnce(initialArgs)
+	renderOnce(initialControls)
 
 	return {
 		update = update,

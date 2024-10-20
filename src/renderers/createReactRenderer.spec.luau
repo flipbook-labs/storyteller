@@ -3,6 +3,7 @@ local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local createReactRenderer = require("./createReactRenderer")
+local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
@@ -11,17 +12,21 @@ local test = JestGlobals.test
 
 local act = ReactRoblox.act
 
-local function Button(props: { isDisabled: boolean? })
+local function ButtonStory(props: {
+	controls: {
+		isDisabled: boolean?,
+	},
+})
 	return React.createElement("TextButton", {
-		Text = if props.isDisabled then "Disabled" else "Enabled",
+		Text = if props.controls.isDisabled then "Disabled" else "Enabled",
 	})
 end
 
-local ButtonClassComponent = React.Component:extend("ButtonClassComponent")
+local ButtonStoryClassComponent = React.Component:extend("ButtonStoryClassComponent")
 
-function ButtonClassComponent:render()
+function ButtonStoryClassComponent:render()
 	return React.createElement("TextButton", {
-		Text = if self.props.isDisabled then "Disabled" else "Enabled",
+		Text = if self.props.controls.isDisabled then "Disabled" else "Enabled",
 	})
 end
 
@@ -38,7 +43,8 @@ beforeEach(function()
 end)
 
 test("render a functional componnet", function()
-	render(renderer, container, Button)
+	local story = createStory(ButtonStory)
+	render(renderer, container, story)
 
 	act(function()
 		task.wait()
@@ -53,7 +59,7 @@ test("render a functional componnet", function()
 end)
 
 test("render a class component", function()
-	render(renderer, container, ButtonClassComponent)
+	render(renderer, container, createStory(ButtonStoryClassComponent))
 
 	act(function()
 		task.wait()
@@ -67,8 +73,10 @@ test("render a class component", function()
 	expect(element.Text).toBe("Enabled")
 end)
 
-test("pass args as props", function()
-	render(renderer, container, Button, {
+test("pass controls as props", function()
+	local story = createStory(ButtonStory)
+
+	render(renderer, container, story, {
 		isDisabled = true,
 	})
 
@@ -77,13 +85,14 @@ test("pass args as props", function()
 	end)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
-
-	expect(button).toBeDefined()
+	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 end)
 
 test("update the component on arg changes", function()
-	local lifecycle = render(renderer, container, Button, {
+	local story = createStory(ButtonStory)
+
+	local lifecycle = render(renderer, container, story, {
 		isDisabled = true,
 	})
 
@@ -92,8 +101,7 @@ test("update the component on arg changes", function()
 	end)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
-
-	expect(button).toBeDefined()
+	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
 	lifecycle.update({
@@ -110,7 +118,9 @@ end)
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local lifecycle = render(renderer, container, Button, {
+	local story = createStory(ButtonStory)
+
+	local lifecycle = render(renderer, container, story, {
 		isDisabled = false,
 	})
 

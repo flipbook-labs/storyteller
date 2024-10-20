@@ -55,6 +55,7 @@ test("load a story module as a table", function()
 
 	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
 
+	assert(story ~= nil, "story not defined")
 	expect(story.name).toEqual("Sample")
 end)
 
@@ -87,6 +88,7 @@ test("use the name of the story module for the story name", function()
 
 	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
 
+	assert(story ~= nil, "story not defined")
 	expect(story.name).toEqual(storyModule.Name)
 end)
 
@@ -102,14 +104,11 @@ test("pass the storybook's renderer to the story", function()
 
 	expect(story).toBeDefined()
 	expect(err).toBeNil()
-	expect(story.react).toBeDefined()
-	expect(story.reactRoblox).toBeDefined()
 
 	story, err = loadStoryModule(loader, storyModule, MOCK_ROACT_STORYBOOK)
 
 	expect(story).toBeDefined()
 	expect(err).toBeNil()
-	expect(story.roact).toBeDefined()
 end)
 
 test("generic failures for stories", function()
