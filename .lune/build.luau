@@ -15,7 +15,8 @@ local function build()
 	compile(target)
 
 	if target == "prod" then
-		run("rm", { "-rf", `{project.BUILD_PATH}/**/*.spec.luau` })
+		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
+		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
 	end
 end
 
