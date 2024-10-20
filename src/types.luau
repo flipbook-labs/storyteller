@@ -1,7 +1,7 @@
 export type StudioTheme = "Light" | "Dark"
 
 export type StoryControls = {
-	[string]: string | number | boolean,
+	[string]: any,
 }
 
 export type StoryProps<T> = {

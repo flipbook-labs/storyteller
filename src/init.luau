@@ -28,7 +28,7 @@ type API = {
 		unmount: () -> (),
 	},
 
-	createFusionRenderer: ({ Fusion: unknown }) -> StoryRenderer<unknown>,
+	createFusionRenderer: ({ Fusion: unknown }) -> StoryRenderer<Instance>,
 	createReactRenderer: ({ React: unknown, ReactRoblox: unknown }) -> StoryRenderer<unknown>,
 	createRoactRenderer: ({ Roact: unknown }) -> StoryRenderer<unknown>,
 	createRobloxRenderer: () -> StoryRenderer<Instance>,
