@@ -6,6 +6,8 @@ return {
 	PACKAGES_PATH = "Packages",
 	LUNE_SCRIPTS_PATH = ".lune",
 
+	MODEL_FILENAME = "Storyteller.rbxm",
+
 	SOURCEMAP_PATH = "sourcemap.json",
 	DARKLUA_SOURCEMAP_PATH = "sourcemap-darklua.json",
 
