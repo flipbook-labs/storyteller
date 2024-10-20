@@ -1,50 +1,15 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 local t = require("@pkg/t")
 
 local types = require("@root/types")
 
-local Controls = t.map(t.string, t.union(t.string, t.number, t.boolean, t.map(t.number, t.any)))
-
-local Roact = t.interface({
-	createElement = t.callback,
-	mount = t.callback,
-	unmount = t.callback,
-})
-local React = t.interface({
-	createElement = t.callback,
-})
-local ReactRoblox = t.interface({
-	createRoot = t.callback,
-})
-local Storybook = t.interface({
-	storyRoots = t.array(t.Instance),
-
-	name = t.optional(t.string),
-	roact = t.optional(Roact),
-	react = t.optional(React),
-	reactRoblox = t.optional(ReactRoblox),
-})
-local RoactStorybook = t.union(
-	Storybook,
-	t.interface({
-		roact = t.optional(Roact),
-	})
-)
-local ReactStorybook = t.union(
-	Storybook,
-	t.interface({
-		react = t.optional(React),
-		reactRoblox = t.optional(ReactRoblox),
-	})
-)
 local StoryMeta = t.interface({
 	story = t.any,
 	name = t.optional(t.string),
 	summary = t.optional(t.string),
-	controls = t.optional(Controls),
-	roact = t.optional(Roact),
-	react = t.optional(React),
-	reactRoblox = t.optional(ReactRoblox),
+	controls = t.optional(t.map(t.string, t.any)),
+	packages = t.optional(t.map(t.string, t.any)),
 })
 
 local Errors = {
@@ -52,59 +17,45 @@ local Errors = {
 	Generic = "Failed to load story %q. Error: %s",
 }
 
-local function loadStoryModule(loader: any, module: ModuleScript, storybook: types.Storybook): (types.Story?, string?)
-	if not module then
-		return nil, "Did not receive a module to load"
-	end
-
+local function loadStoryModule<T>(
+	loader: ModuleLoader.ModuleLoader,
+	storyModule: ModuleScript,
+	storybook: types.Storybook
+): (types.Story<T>?, string?)
 	local success, result = pcall(function()
-		return loader:require(module)
+		return loader:require(storyModule)
 	end)
 
 	if not success then
-		return nil, Errors.Generic:format(module:GetFullName(), tostring(result))
+		return nil, Errors.Generic:format(storyModule:GetFullName(), tostring(result))
 	end
 
-	local story: types.Story
+	local story: types.Story<T>
 	if typeof(result) == "function" then
 		story = {
-			name = module.Name,
+			name = storyModule.Name,
 			story = result,
 			storybook = storybook,
-			source = module,
+			source = storyModule,
 		}
 	else
 		local isValid, message = StoryMeta(result)
 
 		if isValid then
-			local extraProps = {}
-			if ReactStorybook(storybook) then
-				local reactStorybook = storybook :: types.ReactStorybook
-				extraProps = {
-					react = reactStorybook.react,
-					reactRoblox = reactStorybook.reactRoblox,
-				}
-			elseif RoactStorybook(storybook) then
-				local roactStorybook = storybook :: types.RoactStorybook
-				extraProps = {
-					roact = roactStorybook.roact,
-				}
-			end
-
 			story = Sift.Dictionary.merge({
-				name = module.Name,
+				name = storyModule.Name,
 				storybook = storybook,
-				source = module,
-			}, extraProps, result)
+				source = storyModule,
+			}, result)
 		else
-			return nil, Errors.Generic:format(module:GetFullName(), message)
+			return nil, Errors.Generic:format(storyModule:GetFullName(), message)
 		end
 	end
 
 	if story then
 		return story, nil
 	else
-		return nil, Errors.MalformedStory:format(module:GetFullName())
+		return nil, Errors.MalformedStory:format(storyModule:GetFullName())
 	end
 end
 

@@ -2,6 +2,7 @@ local Fusion = require("@pkg/Fusion")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local createFusionRenderer = require("./createFusionRenderer")
+local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
@@ -11,11 +12,13 @@ local test = JestGlobals.test
 local New = Fusion.New
 type StateObject<T> = Fusion.StateObject<T>
 
-local function Button(props: {
-	isDisabled: StateObject<boolean>,
+local function ButtonStory(props: {
+	controls: {
+		isDisabled: StateObject<boolean>,
+	},
 })
 	return New("TextButton")({
-		Text = if props.isDisabled and props.isDisabled:get() then "Disabled" else "Enabled",
+		Text = if props.controls.isDisabled and props.controls.isDisabled:get() then "Disabled" else "Enabled",
 	})
 end
 
@@ -31,12 +34,14 @@ beforeEach(function()
 end)
 
 test("render a Fusion component", function()
-	render(renderer, container, Button)
+	local story = createStory(ButtonStory)
+	render(renderer, container, story)
 	expect(container:FindFirstChildWhichIsA("TextButton")).toBeDefined()
 end)
 
 test("unmount a Fusion component", function()
-	local lifecycle = render(renderer, container, Button)
+	local story = createStory(ButtonStory)
+	local lifecycle = render(renderer, container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -45,8 +50,10 @@ test("unmount a Fusion component", function()
 	expect(#container:GetChildren()).toBe(0)
 end)
 
-test("args are transformed into Values", function()
-	render(renderer, container, Button, {
+test("controls are transformed into Values", function()
+	local story = createStory(ButtonStory)
+
+	render(renderer, container, story, {
 		isDisabled = true,
 	})
 
@@ -58,7 +65,9 @@ end)
 test("update the component on arg changes", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local lifecycle = render(renderer, container, Button, {
+	local story = createStory(ButtonStory)
+
+	local lifecycle = render(renderer, container, story, {
 		isDisabled = true,
 	})
 

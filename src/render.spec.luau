@@ -1,4 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local createStory = require("@root/test-utils/createStory")
 local render = require("./render")
 local types = require("@root/types")
 
@@ -8,7 +9,7 @@ local expect = JestGlobals.expect
 local jest = JestGlobals.jest
 local test = JestGlobals.test
 
-type Renderer = types.Renderer
+type StoryRenderer<T> = types.StoryRenderer<T>
 
 local container: Instance
 local element = jest.fn()
@@ -25,7 +26,7 @@ end)
 test("call `mount` immediately", function()
 	local mockMount = jest.fn()
 
-	local mockRenderer: Renderer = {
+	local mockRenderer: StoryRenderer<unknown> = {
 		mount = mockMount,
 	}
 
@@ -38,7 +39,7 @@ test("returns a function to trigger a re-render", function()
 	local mockMount = jest.fn()
 	mockMount.mockReturnValue = Instance.new("ScreenGui")
 
-	local mockRenderer: Renderer = {
+	local mockRenderer: StoryRenderer<unknown> = {
 		mount = mockMount,
 	}
 
@@ -51,48 +52,49 @@ test("returns a function to trigger a re-render", function()
 	expect(mockMount).toHaveBeenCalledTimes(2)
 end)
 
-test("current context and prev context are passed to shouldUpdate", function()
-	local context, prevContext
+test("current props and prev props are passed to shouldUpdate", function()
+	local props, prevProps
 
-	local mockRenderer: Renderer = {
+	local mockRenderer: StoryRenderer<unknown> = {
 		mount = function() end,
-		shouldUpdate = function(_context, _prevContext)
-			context = _context
-			prevContext = _prevContext
+		shouldUpdate = function(_props, _prevProps)
+			props = _props
+			prevProps = _prevProps
 			return true
 		end,
 	}
 
 	local lifecycle = render(mockRenderer, container, element)
 
-	expect(context).toBeDefined()
-	expect(prevContext).toBeNil()
+	expect(props).toBeDefined()
+	expect(prevProps).toBeNil()
 
 	lifecycle.update()
 
-	expect(context).toBeDefined()
-	expect(prevContext).toBeDefined()
+	expect(props).toBeDefined()
+	expect(prevProps).toBeDefined()
 end)
 
-test("context is passed to shouldUpdate", function()
-	local context
+test("props are passed to shouldUpdate", function()
+	local props
 
-	local args = {
+	local controls = {
 		foo = true,
 	}
 
-	local mockRenderer: Renderer = {
-		shouldUpdate = function(_context)
-			context = _context
+	local mockRenderer: StoryRenderer<unknown> = {
+		shouldUpdate = function(_props)
+			props = _props
+			return true
 		end,
 		mount = function() end,
 	}
 
-	render(mockRenderer, container, element, args)
+	render(mockRenderer, container, element, controls)
 
-	expect(context).toEqual({
+	expect(props).toMatchObject({
 		container = container,
-		args = args,
+		controls = controls,
 	})
 end)
 
@@ -100,12 +102,14 @@ test("only rerender if shouldUpdate returns true", function()
 	local mockMount = jest.fn()
 	local mockShouldUpdate = jest.fn().mockReturnValue(true)
 
-	local mockRenderer: Renderer = {
+	local mockRenderer: StoryRenderer<unknown> = {
 		shouldUpdate = mockShouldUpdate,
 		mount = mockMount,
 	}
 
-	local lifecycle = render(mockRenderer, container, {})
+	local story = createStory(Instance.new("TextLabel"))
+
+	local lifecycle = render(mockRenderer, container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 
@@ -122,15 +126,15 @@ end)
 test("destroy all children of the container when rerendering if shouldUpdate is true", function()
 	local mockShouldUpdate = jest.fn().mockReturnValue(true)
 
-	local mockRenderer: Renderer = {
-		mount = function(container, element)
-			element.Parent = container
+	local mockRenderer: StoryRenderer<Instance> = {
+		mount = function(otherContainer, story)
+			(story.story :: Instance).Parent = otherContainer
 		end,
 		shouldUpdate = mockShouldUpdate,
 	}
 
-	local element = Instance.new("Folder")
-	local lifecycle = render(mockRenderer, container, element)
+	local story = createStory(Instance.new("Folder"))
+	local lifecycle = render(mockRenderer, container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -139,14 +143,14 @@ test("destroy all children of the container when rerendering if shouldUpdate is 
 	expect(#container:GetChildren()).toBe(0)
 end)
 
-test("prevContext is nil on the first render", function()
+test("prevProps is nil on the first render", function()
 	local renders = 0
 
 	local mockShouldUpdate = jest.fn().mockImplementation(function()
 		return true
 	end)
 
-	local mockRenderer: Renderer = {
+	local mockRenderer: StoryRenderer<unknown> = {
 		shouldUpdate = mockShouldUpdate,
 		mount = function()
 			renders += 1
@@ -156,8 +160,8 @@ test("prevContext is nil on the first render", function()
 
 	local lifecycle = render(mockRenderer, container, element)
 
-	local context = mockShouldUpdate.mock.lastCall[1]
-	expect(context).toBeDefined()
+	local props = mockShouldUpdate.mock.lastCall[1]
+	expect(props).toBeDefined()
 	--[[
 		Jest is sending back the second arg as a Symbol representing nil, which
 		doesn't match with toBeNil. There needs to be an upstream change before
@@ -169,5 +173,5 @@ test("prevContext is nil on the first render", function()
 	lifecycle.update()
 
 	expect(mockShouldUpdate.mock.lastCall[1]).toBeDefined()
-	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(context)
+	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(props)
 end)

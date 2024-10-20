@@ -1,15 +1,20 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
 local createRobloxRenderer = require("./createRobloxRenderer")
+local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-local function Button(args: { isDisabled: boolean? })
+local function ButtonStory(props: {
+	controls: {
+		isDisabled: boolean?,
+	},
+})
 	local button = Instance.new("TextButton")
-	button.Text = if args.isDisabled then "Disabled" else "Enabled"
+	button.Text = if props.controls.isDisabled then "Disabled" else "Enabled"
 
 	return button
 end
@@ -23,7 +28,9 @@ beforeEach(function()
 end)
 
 test("render a GuiObject", function()
-	render(renderer, container, Instance.new("TextLabel"))
+	local story = createStory(Instance.new("TextLabel"))
+
+	render(renderer, container, story)
 
 	local element = container:GetChildren()[1]
 
@@ -33,7 +40,9 @@ test("render a GuiObject", function()
 end)
 
 test("render a GuiObject with args", function()
-	render(renderer, container, Button, {
+	local story = createStory(ButtonStory)
+
+	render(renderer, container, story, {
 		isDisabled = true,
 	})
 
@@ -43,13 +52,15 @@ test("render a GuiObject with args", function()
 end)
 
 test("update the GuiObject on arg changes", function()
-	local lifecycle = render(renderer, container, Button, {
+	local story = createStory(ButtonStory)
+
+	local lifecycle = render(renderer, container, story, {
 		isDisabled = true,
 	})
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 
-	expect(button).toBeDefined()
+	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
 	lifecycle.update({
@@ -64,10 +75,10 @@ end)
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local lifecycle = render(renderer, container, Button, {
-		args = {
-			isDisabled = false,
-		},
+	local story = createStory(ButtonStory)
+
+	local lifecycle = render(renderer, container, story, {
+		isDisabled = false,
 	})
 
 	expect(#container:GetChildren()).toBe(1)

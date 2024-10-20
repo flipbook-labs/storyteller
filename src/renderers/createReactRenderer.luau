@@ -1,36 +1,33 @@
 local types = require("@root/types")
 
-type Renderer = types.Renderer
+type StoryRenderer<T> = types.StoryRenderer<T>
 
 type Packages = {
 	React: any,
 	ReactRoblox: any,
 }
 
-local function createReactRenderer(packages: Packages): Renderer
+local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 	local React = packages.React
 	local ReactRoblox = packages.ReactRoblox
 
 	local root
-	local currentElement
+	local currentStory
 
-	local function reactRender(element, context)
-		local props = if context then context.args else nil
-
-		currentElement = element
-
-		element = React.createElement(element, props)
+	local function reactRender(story, props)
+		local element = React.createElement(story.story, props)
+		currentStory = story
 		root:render(element)
 	end
 
-	local function mount(container, element, context)
+	local function mount(container, story, props)
 		root = ReactRoblox.createRoot(container)
-		reactRender(element, context)
+		reactRender(story, props)
 	end
 
-	local function update(newContext)
-		if currentElement then
-			reactRender(currentElement, newContext)
+	local function update(props)
+		if currentStory then
+			reactRender(currentStory, props)
 		end
 	end
 

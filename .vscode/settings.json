@@ -3,7 +3,7 @@
   "luau-lsp.require.mode": "relativeToFile",
   "luau-lsp.ignoreGlobs": [
     "**/_Index/**",
-    "**/build/**"
+    "**/dist/**"
   ],
   "luau-lsp.require.directoryAliases": {
     "@pkg": "./Packages",
