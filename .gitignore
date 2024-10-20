@@ -1,4 +1,5 @@
-# Darklua
+# Build artifacts
+.build
 dist
 
 # Rojo

@@ -13,6 +13,24 @@ assert(target == "dev" or target == "prod", `bad value for target (must be one o
 local output = if args.output then args.output else project.MODEL_FILENAME
 assert(typeof(output) == "string", `bad value for output (string expected, got {typeof(output)})`)
 
+local WALLY_BUILD_DIR = ".build/wally"
+
+local function buildWallyPackage()
+	run("rm", { "-rf", WALLY_BUILD_DIR })
+
+	run("mkdir", { "-p", WALLY_BUILD_DIR })
+
+	run("wally", { "package", "--output", `{WALLY_BUILD_DIR}/package.tar.gz` })
+
+	run("tar", { "-xf", "package.tar.gz" }, {
+		cwd = WALLY_BUILD_DIR,
+	})
+
+	run("rm", { "package.tar.gz" }, {
+		cwd = WALLY_BUILD_DIR,
+	})
+end
+
 local function build()
 	run("rm", { "-rf", project.BUILD_PATH })
 	compile(target)
@@ -23,6 +41,8 @@ local function build()
 	end
 
 	run("rojo", { "build", "-o", output })
+
+	buildWallyPackage()
 end
 
 build()
