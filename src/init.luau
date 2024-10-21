@@ -8,8 +8,8 @@ export type StoryProps<T> = types.StoryProps<T>
 export type StoryRenderer<T> = types.StoryRenderer<T>
 
 type API = {
-	isStorybookModule: (module: ModuleScript) -> boolean,
-	isStoryModule: (module: ModuleScript) -> boolean,
+	isStorybookModule: (instance: Instance) -> boolean,
+	isStoryModule: (instance: Instance) -> boolean,
 
 	-- loadStorybooks: (loader: ModuleLoader.ModuleLoader, parent: Instance) -> { Storybook },
 	loadStory: <T>(
@@ -34,8 +34,8 @@ type API = {
 	createReactRenderer: ({ React: unknown, ReactRoblox: unknown }) -> StoryRenderer<unknown>,
 	createRoactRenderer: ({ Roact: unknown }) -> StoryRenderer<unknown>,
 	createRobloxRenderer: () -> StoryRenderer<Instance>,
-	-- createDeveloperStorybookRenderer: StoryRenderer<unknown>,
-	-- createHoarcekatRenderer: StoryRenderer<unknown>,
+	-- createDeveloperStorybookRenderer: () -> StoryRenderer<unknown>,
+	-- createHoarcekatRenderer: () -> StoryRenderer<unknown>,
 }
 
 local api: API = {
