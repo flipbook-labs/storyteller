@@ -19,13 +19,15 @@ export type StoryRenderer<T> = {
 	shouldUpdate: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> boolean)?,
 }
 
+export type StoryPackages = {
+	[string]: any,
+}
+
 export type Storybook = {
 	storyRoots: { Instance },
 
 	name: string?,
-	packages: {
-		[string]: any,
-	}?,
+	packages: StoryPackages?,
 }
 
 export type Story<T> = {
@@ -33,6 +35,7 @@ export type Story<T> = {
 	story: T | (props: StoryProps<T>) -> T,
 	source: ModuleScript,
 	storybook: Storybook,
+	packages: StoryPackages?,
 
 	summary: string?,
 	controls: StoryControls?,

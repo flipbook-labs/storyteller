@@ -28,6 +28,8 @@ type API = {
 		unmount: () -> (),
 	},
 
+	createRendererForStory: <T>(story: Story<T>) -> StoryRenderer<T>,
+
 	createFusionRenderer: ({ Fusion: unknown }) -> StoryRenderer<Instance>,
 	createReactRenderer: ({ React: unknown, ReactRoblox: unknown }) -> StoryRenderer<unknown>,
 	createRoactRenderer: ({ Roact: unknown }) -> StoryRenderer<unknown>,
@@ -42,6 +44,7 @@ local api: API = {
 
 	loadStory = require("./loadStoryModule"),
 	render = require("./render"),
+	createRendererForStory = require("./createRendererForStory"),
 
 	createFusionRenderer = require("./renderers/createFusionRenderer"),
 	createReactRenderer = require("./renderers/createReactRenderer"),
