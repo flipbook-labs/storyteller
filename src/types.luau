@@ -1,3 +1,7 @@
+local t = require("@pkg/t")
+
+local types = {}
+
 export type StudioTheme = "Light" | "Dark"
 
 export type StoryControls = {
@@ -29,6 +33,11 @@ export type Storybook = {
 	name: string?,
 	packages: StoryPackages?,
 }
+types.IStorybook = t.interface({
+	storyRoots = t.array(t.Instance),
+	name = t.optional(t.string),
+	packages = t.optional(t.map(t.string, t.any)),
+})
 
 export type Story<T> = {
 	name: string,
@@ -40,5 +49,12 @@ export type Story<T> = {
 	summary: string?,
 	controls: StoryControls?,
 }
+types.IStory = t.interface({
+	story = t.any,
+	name = t.optional(t.string),
+	summary = t.optional(t.string),
+	controls = t.optional(t.map(t.string, t.any)),
+	packages = t.optional(t.map(t.string, t.any)),
+})
 
-return nil
+return types

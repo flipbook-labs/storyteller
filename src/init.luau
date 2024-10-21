@@ -30,6 +30,13 @@ type API = {
 
 	createRendererForStory: <T>(story: Story<T>) -> StoryRenderer<T>,
 
+	useStory: (
+		module: ModuleScript,
+		storybook: Storybook,
+		loader: ModuleLoader.ModuleLoader
+	) -> (Story<unknown>?, string?),
+	useStorybooks: (parent: Instance, loader: ModuleLoader.ModuleLoader) -> { ModuleScript },
+
 	createFusionRenderer: ({ Fusion: unknown }) -> StoryRenderer<Instance>,
 	createReactRenderer: ({ React: unknown, ReactRoblox: unknown }) -> StoryRenderer<unknown>,
 	createRoactRenderer: ({ Roact: unknown }) -> StoryRenderer<unknown>,
@@ -45,6 +52,9 @@ local api: API = {
 	loadStory = require("./loadStoryModule"),
 	render = require("./render"),
 	createRendererForStory = require("./createRendererForStory"),
+
+	useStory = require("./hooks/useStory"),
+	useStorybooks = require("./hooks/useStorybooks"),
 
 	createFusionRenderer = require("./renderers/createFusionRenderer"),
 	createReactRenderer = require("./renderers/createReactRenderer"),
