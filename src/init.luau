@@ -30,12 +30,12 @@ type API = {
 
 	createRendererForStory: <T>(story: Story<T>) -> StoryRenderer<T>,
 
+	useStorybooks: (parent: Instance, loader: ModuleLoader.ModuleLoader) -> { Storybook },
 	useStory: (
 		module: ModuleScript,
 		storybook: Storybook,
 		loader: ModuleLoader.ModuleLoader
 	) -> (Story<unknown>?, string?),
-	useStorybooks: (parent: Instance, loader: ModuleLoader.ModuleLoader) -> { ModuleScript },
 
 	createFusionRenderer: ({ Fusion: unknown }) -> StoryRenderer<Instance>,
 	createReactRenderer: ({ React: unknown, ReactRoblox: unknown }) -> StoryRenderer<unknown>,

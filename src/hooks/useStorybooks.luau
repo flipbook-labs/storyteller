@@ -5,7 +5,7 @@ local constants = require("@root/constants")
 local findStorybookModules = require("@root/findStorybookModules")
 local types = require("@root/types")
 
-local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader)
+local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader): { types.Storybook }
 	local storybooks, set = React.useState({})
 
 	local modules = React.useMemo(function()
@@ -17,7 +17,7 @@ local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader
 
 		for _, module in modules do
 			local wasRequired, result = pcall(function()
-				return loader:require(module :: ModuleScript)
+				return loader:require(module)
 			end)
 
 			if wasRequired then
