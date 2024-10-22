@@ -73,6 +73,24 @@ test("render a class component", function()
 	expect(element.Text).toBe("Enabled")
 end)
 
+test("render an element", function()
+	local story = createStory(React.createElement(ButtonStory, {
+		controls = {
+			isDisabled = true,
+		},
+	}))
+
+	render(renderer, container, story)
+
+	act(function()
+		task.wait()
+	end)
+
+	local button = container:FindFirstChildWhichIsA("TextButton")
+	assert(button, "no TextButton found")
+	expect(button.Text).toBe("Disabled")
+end)
+
 test("pass controls as props", function()
 	local story = createStory(ButtonStory)
 

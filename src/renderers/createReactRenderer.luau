@@ -14,8 +14,14 @@ local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 	local root
 	local currentStory
 
-	local function reactRender(story, props)
-		local element = React.createElement(story.story, props)
+	local function reactRender(story: types.Story<unknown>, props)
+		local element
+		if typeof(story.story) == "table" and not story.story.isReactComponent then
+			element = story.story
+		else
+			element = React.createElement(story.story, props)
+		end
+
 		currentStory = story
 		root:render(element)
 	end
