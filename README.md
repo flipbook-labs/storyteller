@@ -1,7 +1,6 @@
 
 # Storyteller
 
-[![Documentation](https://img.shields.io/badge/%20-Documentation-3ECC5F?logo=docusaurus&logoColor=fff)](https://flipbook-labs.github.io/flipbook)
 [![CI](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml/badge.svg)](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml)
 
 Storyteller is a library for the discovery and rendering of UI stories. It powers our storybook plugin [flipbook](https://github.com/flipbook-labs/flipbook)
@@ -26,7 +25,7 @@ Download a copy of the rbxm from the [latest release](https://github.com/flipboo
 
 ## Resources
 
-API documentation is available on [the official documentation website](https://roblox.github.io/scene-understanding-internal).
+API documentation will be available on [the official documentation website](https://flipbook-labs.github.io/storyteller).
 
 ## Contributing
 
