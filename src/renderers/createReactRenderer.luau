@@ -7,6 +7,13 @@ type Packages = {
 	ReactRoblox: any,
 }
 
+local function isReactElement(maybeElement: any): boolean
+	if typeof(maybeElement) == "table" then
+		return maybeElement["$$typeof"] and maybeElement.props and maybeElement.type
+	end
+	return false
+end
+
 local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 	local React = packages.React
 	local ReactRoblox = packages.ReactRoblox
@@ -14,8 +21,14 @@ local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 	local root
 	local currentStory
 
-	local function reactRender(story, props)
-		local element = React.createElement(story.story, props)
+	local function reactRender(story: types.Story<unknown>, props)
+		local element
+		if isReactElement(story.story) then
+			element = story.story
+		else
+			element = React.createElement(story.story, props)
+		end
+
 		currentStory = story
 		root:render(element)
 	end

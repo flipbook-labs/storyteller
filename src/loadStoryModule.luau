@@ -1,16 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
-local t = require("@pkg/t")
 
 local types = require("@root/types")
-
-local StoryMeta = t.interface({
-	story = t.any,
-	name = t.optional(t.string),
-	summary = t.optional(t.string),
-	controls = t.optional(t.map(t.string, t.any)),
-	packages = t.optional(t.map(t.string, t.any)),
-})
 
 local Errors = {
 	MalformedStory = "Story is malformed. Check the source of %q and make sure its properties are correct",
@@ -39,7 +30,7 @@ local function loadStoryModule<T>(
 			source = storyModule,
 		}
 	else
-		local isValid, message = StoryMeta(result)
+		local isValid, message = types.IStory(result)
 
 		if isValid then
 			story = Sift.Dictionary.merge({
