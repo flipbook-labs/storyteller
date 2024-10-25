@@ -23,7 +23,7 @@ local function createRobloxRenderer(): StoryRenderer<Instance>
 	end
 
 	local function unmount()
-		if handle then
+		if typeof(handle) == "Instance" then
 			handle:Destroy()
 		end
 	end
