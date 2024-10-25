@@ -20,15 +20,12 @@ local function buildWallyPackage()
 
 	run("mkdir", { "-p", WALLY_BUILD_DIR })
 
-	run("wally", { "package", "--output", `{WALLY_BUILD_DIR}/package.tar.gz` })
+	local archivePath = `{WALLY_BUILD_DIR}/package.tar.gz`
+	run("wally", { "package", "--output", archivePath })
 
-	run("tar", { "-xf", "package.tar.gz" }, {
-		cwd = WALLY_BUILD_DIR,
-	})
+	run("tar", { "-xvf", archivePath, "-C", WALLY_BUILD_DIR })
 
-	run("rm", { "package.tar.gz" }, {
-		cwd = WALLY_BUILD_DIR,
-	})
+	run("rm", { archivePath })
 end
 
 local function build()
