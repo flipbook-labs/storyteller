@@ -35,6 +35,7 @@ local function build()
 	if target == "prod" then
 		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
 		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
+		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
 	end
 
 	run("rojo", { "build", "-o", output })
