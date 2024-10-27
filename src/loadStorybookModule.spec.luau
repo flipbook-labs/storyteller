@@ -1,0 +1,78 @@
+local JestGlobals = require("@pkg/JestGlobals")
+local ModuleLoader = require("@pkg/ModuleLoader")
+
+local loadStorybookModule = require("./loadStorybookModule")
+
+local test = JestGlobals.test
+local expect = JestGlobals.expect
+
+local function createMockStorybookModule(source: string): ModuleScript
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Foo.storybook"
+	storybookModule.Source = source
+
+	return storybookModule
+end
+
+test("load a storybook module as a table", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+			return {
+				name = "Sample",
+				storyRoots = {
+					Instance.new("Folder")
+				}
+			}
+		]])
+
+	local storybook = loadStorybookModule(loader, storybookModule)
+
+	expect(storybook.name).toBe("Sample")
+	expect(#storybook.storyRoots).toBe(1)
+end)
+
+test("use the name of the storybook module by default", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+		return {
+			storyRoots = {}
+		}
+	]])
+	storybookModule.Name = "SampleStorybook.storybook"
+
+	local storybook = loadStorybookModule(loader, storybookModule)
+
+	expect(storybook.name).toBe("SampleStorybook")
+end)
+
+test("generic failures for storybook", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+		return {
+		}
+	]])
+
+	local success, result = pcall(function()
+		return loadStorybookModule(loader, storybookModule)
+	end)
+
+	expect(success).toBeFalsy()
+	expect(result).toMatch("failed to load storybook")
+end)
+
+test("malformed storybook", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+		return {
+			name = false,
+			storyRoots = "should be a table"
+		}
+	]])
+
+	local success, result = pcall(function()
+		return loadStorybookModule(loader, storybookModule)
+	end)
+
+	expect(success).toBeFalsy()
+	expect(result).toMatch("failed to load storybook")
+end)

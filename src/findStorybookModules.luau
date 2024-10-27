@@ -1,24 +1,14 @@
 local isStorybookModule = require("@root/isStorybookModule")
+local matchDescendants = require("@root/matchDescendants")
 
-local function hasPermission(instance: Instance)
-	local success = pcall(function()
-		return instance.Name
+local function findStorybookModules(parent: Instance): { ModuleScript }
+	local storybooks = matchDescendants(parent, function(descendant)
+		return isStorybookModule(descendant)
 	end)
-	return success
-end
 
-local function findStorybookModules(parent: Instance)
-	local storybooks: { ModuleScript } = {}
-
-	for _, descendant in parent:GetDescendants() do
-		if hasPermission(descendant) and isStorybookModule(descendant) then
-			-- Luau FIXME: isStorybookModule already narrows to ModuleScript,
-			-- but Luau doesn't pick up on it
-			table.insert(storybooks, descendant :: ModuleScript)
-		end
-	end
-
-	return storybooks
+	-- Luau FIXME: isStorybookModule already narrows to ModuleScript, but Luau
+	-- doesn't pick up on it
+	return (storybooks :: any) :: { ModuleScript }
 end
 
 return findStorybookModules
