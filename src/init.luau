@@ -46,20 +46,30 @@ type API = {
 }
 
 local api: API = {
+	-- Validation
 	isStorybookModule = require("./isStoryModule"),
 	isStoryModule = require("./isStoryModule"),
 
+	-- Discovery
+	findStorybookModules = require("./findStorybookModules"),
+	findStoryModulesForStorybook = require("./findStoryModulesForStorybook"),
+
+	-- Module loading
 	loadStory = require("./loadStoryModule"),
+	loadStoryModule = require("./loadStoryModule"),
+	loadStorybookModule = require("./loadStorybookModule"),
+
+	-- Rendering
 	render = require("./render"),
 	createRendererForStory = require("./createRendererForStory"),
-
-	useStory = require("./hooks/useStory"),
-	useStorybooks = require("./hooks/useStorybooks"),
-
 	createFusionRenderer = require("./renderers/createFusionRenderer"),
 	createReactRenderer = require("./renderers/createReactRenderer"),
 	createRoactRenderer = require("./renderers/createRoactRenderer"),
 	createRobloxRenderer = require("./renderers/createRobloxRenderer"),
+
+	-- Hooks
+	useStory = require("./hooks/useStory"),
+	useStorybooks = require("./hooks/useStorybooks"),
 }
 
 return api
