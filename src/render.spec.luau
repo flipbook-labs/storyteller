@@ -82,6 +82,8 @@ test("props are passed to shouldUpdate", function()
 		foo = true,
 	}
 
+	element.controls = controls
+
 	local mockRenderer: StoryRenderer<unknown> = {
 		shouldUpdate = function(_props)
 			props = _props
@@ -90,7 +92,7 @@ test("props are passed to shouldUpdate", function()
 		mount = function() end,
 	}
 
-	render(mockRenderer, container, element, controls)
+	render(mockRenderer, container, element)
 
 	expect(props).toMatchObject({
 		container = container,
