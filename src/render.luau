@@ -7,6 +7,18 @@ type StoryControls = types.StoryControls
 type StoryProps<T> = types.StoryProps<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 
+local function collapseControls(controls: StoryControls): StoryControls
+	return Sift.Dictionary.map(controls, function(control)
+		-- Array values are collapsed to their first element to be passed off to
+		-- the story as props
+		if Sift.List.is(control) then
+			return control[1]
+		else
+			return control
+		end
+	end)
+end
+
 local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
 	local prevProps: StoryProps<T>?
 
@@ -17,9 +29,10 @@ local function render<T>(renderer: StoryRenderer<T>, container: Instance, story:
 			theme = "Dark", -- TODO: Support theme changing
 		}
 
-		props.controls = if story.controls
-			then Sift.Dictionary.join(story.controls, if controls then controls else {})
-			else {}
+		props.controls = Sift.Dictionary.join(
+			if story.controls then collapseControls(story.controls) else nil,
+			if controls then controls else nil
+		)
 
 		if renderer.transformProps then
 			props = renderer.transformProps(props, prevProps)
