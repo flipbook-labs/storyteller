@@ -64,11 +64,10 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 	describeEach(storyModules)("%s", function(storyModule)
 		test("basic mount/unmount lifecycle", function()
 			local story, err = loadStoryModule(loader, storyModule, storybook)
-
 			assert(story, `bad story: {err}`)
 
 			local renderer = createRendererForStory(story)
-			local lifecycle = render(renderer, container, story, story.controls)
+			local lifecycle = render(renderer, container, story)
 
 			expect(#container:GetChildren()).toBe(1)
 
@@ -79,34 +78,30 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 		test("rerenders on control changes", function()
 			local story, err = loadStoryModule(loader, storyModule, storybook)
-
 			assert(story, `bad story: {err}`)
 
-			local renderer = createRendererForStory(story)
-			-- TODO: story.controls needs to act as a definition. The actual
-			-- controls that get passed in needs to account for array-based
-			-- controls and changes to controls by the user
-			local lifecycle = render(renderer, container, story, story.controls)
+			if story.controls then
+				local renderer = createRendererForStory(story)
+				local lifecycle = render(renderer, container, story)
 
-			expect(#container:GetChildren()).toBe(1)
+				expect(#container:GetChildren()).toBe(1)
 
-			lifecycle.update({
-				isDisabled = false,
-			})
+				local button = container:FindFirstChildWhichIsA("TextButton")
+				assert(button, "for conformance, each test story with controls must include a TextButton")
 
-			lifecycle.unmount()
+				expect(button.Text).toBe("Enabled")
 
-			expect(#container:GetChildren()).toBe(0)
+				lifecycle.update({
+					isDisabled = false,
+				})
+
+				expect(#container:GetChildren()).toBe(1)
+				expect(button.Text).toBe("Disabled")
+
+				lifecycle.unmount()
+
+				expect(#container:GetChildren()).toBe(0)
+			end
 		end)
 	end)
 end)
-
--- findStorybookModules
--- loadStorybookModule
--- for each storyModule
---     loadStoryModule
---     render
---     if controls then
---         change controls
---         rerender
---     unmount
