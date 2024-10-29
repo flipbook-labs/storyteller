@@ -1,7 +1,7 @@
 local Roact = require("@pkg/Roact")
 
-return function(target: Instance)
-	local root = Roact.createElement("TextLabel", {
+local function HoarcekatRoactComponent()
+	return Roact.createElement("TextLabel", {
 		Text = "Hoarcekat Story",
 		TextScaled = true,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -15,8 +15,10 @@ return function(target: Instance)
 			PaddingLeft = UDim.new(0, 8),
 		}),
 	})
+end
 
-	local tree = Roact.mount(root, target)
+return function(target: Instance)
+	local tree = Roact.mount(Roact.createElement(HoarcekatRoactComponent), target)
 
 	return function()
 		Roact.unmount(tree)

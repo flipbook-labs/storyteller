@@ -17,6 +17,10 @@ local test = JestGlobals.test
 
 local storybookModules = findStorybookModules(script.Parent.storybooks)
 
+local EXCLUDED_FROM_CONFORMANCE = {
+	script.Parent.storybooks["Hoarcekat.storybook"],
+}
+
 test("pin number of storybooks", function()
 	expect(#storybookModules).toBe(4)
 end)
@@ -33,6 +37,28 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 	afterEach(function()
 		loader:clear()
+	end)
+
+	test("storybook has necessary stories for conformance tests", function()
+		if table.find(EXCLUDED_FROM_CONFORMANCE, storybookModule) then
+			return
+		end
+
+		local numStoriesWithControls = 0
+
+		assert(#storyModules >= 2, "storybook must have at least 2 stories")
+
+		for _, storyModule in storyModules do
+			local story, err = loadStoryModule(loader, storyModule, storybook)
+			assert(story, `bad story: {err}`)
+
+			if story.controls then
+				numStoriesWithControls += 1
+			end
+		end
+
+		assert(numStoriesWithControls >= 1, "storybook must have at least one story with controls")
+		assert(#storyModules - numStoriesWithControls >= 1, "storybook must have at least one story without controls")
 	end)
 
 	describeEach(storyModules)("%s", function(storyModule)
