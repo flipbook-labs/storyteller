@@ -63,10 +63,11 @@ end)
 
 test("pass controls as props", function()
 	local story = createStory(ButtonStory)
-
-	render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	render(renderer, container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 
@@ -76,10 +77,11 @@ end)
 
 test("update the component on arg changes", function()
 	local story = createStory(ButtonStory)
-
-	local lifecycle = render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	local lifecycle = render(renderer, container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 

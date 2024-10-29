@@ -41,10 +41,11 @@ end)
 
 test("render a GuiObject with args", function()
 	local story = createStory(ButtonStory)
-
-	render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	render(renderer, container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
 	assert(element, "no element found")
@@ -53,10 +54,11 @@ end)
 
 test("update the GuiObject on arg changes", function()
 	local story = createStory(ButtonStory)
-
-	local lifecycle = render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	local lifecycle = render(renderer, container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 

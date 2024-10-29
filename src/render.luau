@@ -7,16 +7,19 @@ type StoryControls = types.StoryControls
 type StoryProps<T> = types.StoryProps<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 
-local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>, initialControls: StoryControls?)
+local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
 	local prevProps: StoryProps<T>?
 
 	local function renderOnce(controls: StoryControls?)
 		local props: StoryProps<T> = {
 			container = container,
 			story = story,
-			controls = if controls then controls else {},
 			theme = "Dark", -- TODO: Support theme changing
 		}
+
+		props.controls = if story.controls
+			then Sift.Dictionary.join(story.controls, if controls then controls else {})
+			else {}
 
 		if renderer.transformProps then
 			props = renderer.transformProps(props, prevProps)
@@ -48,7 +51,7 @@ local function render<T>(renderer: StoryRenderer<T>, container: Instance, story:
 		container:ClearAllChildren()
 	end
 
-	renderOnce(initialControls)
+	renderOnce()
 
 	return {
 		update = update,
