@@ -1,6 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local createRobloxRenderer = require("./createRobloxRenderer")
+local createLegacyFunctionalStoryRenderer = require("./createLegacyFunctionalStoryRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -8,15 +8,21 @@ local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-local function ButtonStory(props: {
-	controls: {
-		isDisabled: boolean?,
-	},
-})
+local function ButtonStory(
+	target: Instance,
+	props: {
+		controls: {
+			isDisabled: boolean?,
+		},
+	}
+)
 	local button = Instance.new("TextButton")
 	button.Text = if props.controls.isDisabled then "Disabled" else "Enabled"
+	button.Parent = target
 
-	return button
+	return function()
+		button:Destroy()
+	end
 end
 
 local container
@@ -24,11 +30,18 @@ local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	renderer = createRobloxRenderer()
+	renderer = createLegacyFunctionalStoryRenderer()
 end)
 
 test("render a GuiObject", function()
-	local story = createStory(Instance.new("TextLabel"))
+	local story = createStory(function(target)
+		local label = Instance.new("TextLabel")
+		label.Parent = target
+
+		return function()
+			label:Destroy()
+		end
+	end)
 
 	render(renderer, container, story)
 
@@ -78,9 +91,6 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createStory(ButtonStory)
-	story.controls = {
-		isDisabled = false,
-	}
 
 	local lifecycle = render(renderer, container, story)
 
