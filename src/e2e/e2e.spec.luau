@@ -1,5 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
+local ReactRoblox = require("@pkg/ReactRoblox")
 
 local createRendererForStory = require("@root/createRendererForStory")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
@@ -8,12 +9,12 @@ local loadStoryModule = require("@root/loadStoryModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local render = require("@root/render")
 
-local afterEach = JestGlobals.afterEach
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local describeEach = describe.each :: any
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local act = ReactRoblox.act
 
 local storybookModules = findStorybookModules(script.Parent.storybooks)
 
@@ -26,17 +27,23 @@ test("pin number of storybooks", function()
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
-	local loader = ModuleLoader.new()
-	local storybook = loadStorybookModule(loader, storybookModule)
+	-- FIXME: This is needed to get around a bug with React renders. I'm hoping
+	-- to keep this for now, but in the future this should really be a
+	-- ModuleLoader instance
+	local mockModuleLoader = (
+		{
+			require = function(_self, path)
+				return (require :: any)(path)
+			end,
+		} :: any
+	) :: ModuleLoader.ModuleLoader
+
+	local storybook = loadStorybookModule(mockModuleLoader, storybookModule)
 	local storyModules = findStoryModulesForStorybook(storybook)
 	local container
 
 	beforeEach(function()
 		container = Instance.new("Folder")
-	end)
-
-	afterEach(function()
-		loader:clear()
 	end)
 
 	test("storybook has necessary stories for conformance tests", function()
@@ -49,7 +56,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		assert(#storyModules >= 2, "storybook must have at least 2 stories")
 
 		for _, storyModule in storyModules do
-			local story, err = loadStoryModule(loader, storyModule, storybook)
+			local story, err = loadStoryModule(mockModuleLoader, storyModule, storybook)
 			assert(story, `bad story: {err}`)
 
 			if story.controls then
@@ -63,11 +70,18 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 	describeEach(storyModules)("%s", function(storyModule)
 		test("basic mount/unmount lifecycle", function()
-			local story, err = loadStoryModule(loader, storyModule, storybook)
+			local story, err = loadStoryModule(mockModuleLoader, storyModule, storybook)
 			assert(story, `bad story: {err}`)
 
 			local renderer = createRendererForStory(story)
+
 			local lifecycle = render(renderer, container, story)
+
+			if storybookModule == script.Parent.storybooks["React.storybook"] then
+				act(function()
+					task.wait()
+				end)
+			end
 
 			expect(#container:GetChildren()).toBe(1)
 
@@ -77,7 +91,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		end)
 
 		test("rerenders on control changes", function()
-			local story, err = loadStoryModule(loader, storyModule, storybook)
+			local story, err = loadStoryModule(mockModuleLoader, storyModule, storybook)
 			assert(story, `bad story: {err}`)
 
 			if story.controls then
