@@ -1,53 +1,49 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
+local constants = require("@root/constants")
 local types = require("@root/types")
 
-local Errors = {
-	MalformedStory = "Story is malformed. Check the source of %q and make sure its properties are correct",
-	Generic = "Failed to load story %q. Error: %s",
-}
+type Storybook = types.Storybook
+type Story<T> = types.Story<T>
 
 local function loadStoryModule<T>(
 	loader: ModuleLoader.ModuleLoader,
 	storyModule: ModuleScript,
-	storybook: types.Storybook
-): (types.Story<T>?, string?)
+	storybook: Storybook
+): Story<T>
 	local success, result = pcall(function()
 		return loader:require(storyModule)
 	end)
 
 	if not success then
-		return nil, Errors.Generic:format(storyModule:GetFullName(), tostring(result))
+		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
 	end
 
-	local story: types.Story<T>
+	-- Support for Hoarcekat stories
 	if typeof(result) == "function" then
-		story = {
-			name = storyModule.Name,
-			story = result,
-			storybook = storybook,
-			source = storyModule,
+		local callback = result
+		result = {
+			story = function(props)
+				return callback(props.container, props)
+			end,
 		}
-	else
-		local isValid, message = types.IStory(result)
-
-		if isValid then
-			story = Sift.Dictionary.merge({
-				name = storyModule.Name,
-				storybook = storybook,
-				source = storyModule,
-			}, result)
-		else
-			return nil, Errors.Generic:format(storyModule:GetFullName(), message)
-		end
 	end
 
-	if story then
-		return story, nil
-	else
-		return nil, Errors.MalformedStory:format(storyModule:GetFullName())
+	local isValid, message = types.IStory(result)
+
+	if not isValid then
+		error(
+			`Story is malformed. Check the source of {storyModule:GetFullName()} and make sure its properties are `
+				.. `correct. Error: {message}`
+		)
 	end
+
+	return Sift.Dictionary.merge({
+		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
+		storybook = storybook,
+		source = storyModule,
+	}, result)
 end
 
 return loadStoryModule

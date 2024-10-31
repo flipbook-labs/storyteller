@@ -15,11 +15,13 @@ local function useStory(
 	})
 
 	local loadStory = React.useCallback(function()
-		local story, err = loadStoryModule(loader, module, storybook)
+		local success, result = pcall(function()
+			loadStoryModule(loader, module, storybook)
+		end)
 
 		setState({
-			story = story,
-			err = err,
+			story = if success then result else nil,
+			err = if success then nil else result,
 		})
 	end, { loader, module, storybook } :: { unknown })
 

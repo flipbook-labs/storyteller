@@ -55,7 +55,6 @@ local api: API = {
 	findStoryModulesForStorybook = require("./findStoryModulesForStorybook"),
 
 	-- Module loading
-	loadStory = require("./loadStoryModule"),
 	loadStoryModule = require("./loadStoryModule"),
 	loadStorybookModule = require("./loadStorybookModule"),
 
