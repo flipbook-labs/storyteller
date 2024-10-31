@@ -9,7 +9,14 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local New = Fusion.New
+local Computed = Fusion.Computed
 type StateObject<T> = Fusion.StateObject<T>
+
+local function TextStory()
+	return New("TextLabel")({
+		Text = "Hello World",
+	})
+end
 
 local function ButtonStory(props: {
 	controls: {
@@ -17,7 +24,9 @@ local function ButtonStory(props: {
 	},
 })
 	return New("TextButton")({
-		Text = if props.controls.isDisabled and props.controls.isDisabled:get() then "Disabled" else "Enabled",
+		Text = Computed(function()
+			return if props.controls.isDisabled:get() then "Disabled" else "Enabled"
+		end),
 	})
 end
 
@@ -34,13 +43,16 @@ beforeEach(function()
 end)
 
 test("render a Fusion component", function()
-	local story = createFusionStory(ButtonStory)
+	local story = createFusionStory(TextStory)
+
 	render(container, story)
-	expect(container:FindFirstChildWhichIsA("TextButton")).toBeDefined()
+
+	expect(#container:GetChildren()).toBe(1)
+	expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 end)
 
 test("unmount a Fusion component", function()
-	local story = createFusionStory(ButtonStory)
+	local story = createStory(TextStory)
 	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
@@ -84,5 +96,12 @@ test("update the component on arg changes", function()
 	})
 
 	expect(#container:GetChildren()).toBe(1)
+
+	local prevElement = element
+	element = container:FindFirstChildWhichIsA("TextButton")
+	expect(element).toBe(prevElement)
+
+	task.wait()
+
 	expect(element.Text).toBe("Enabled")
 end)
