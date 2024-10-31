@@ -6,7 +6,6 @@ return {
 	story = function(props: Props)
 		local label = Instance.new("TextButton")
 		label.Text = "Hello World"
-		print("props", props)
 		label.Parent = props.container
 
 		return function()
