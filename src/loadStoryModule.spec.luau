@@ -89,7 +89,7 @@ test("use the name of the story module for the story name", function()
 	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
 
 	assert(story ~= nil, "story not defined")
-	expect(story.name).toEqual(storyModule.Name)
+	expect(story.name).toEqual("SampleName")
 end)
 
 test("pass the storybook's renderer to the story", function()
@@ -100,28 +100,27 @@ test("pass the storybook's renderer to the story", function()
 			}
 		]])
 
-	local story, err = loadStoryModule(loader, storyModule, MOCK_REACT_STORYBOOK)
+	local story = loadStoryModule(loader, storyModule, MOCK_REACT_STORYBOOK)
 
 	expect(story).toBeDefined()
-	expect(err).toBeNil()
 
-	story, err = loadStoryModule(loader, storyModule, MOCK_ROACT_STORYBOOK)
+	story = loadStoryModule(loader, storyModule, MOCK_ROACT_STORYBOOK)
 
 	expect(story).toBeDefined()
-	expect(err).toBeNil()
 end)
 
 test("generic failures for stories", function()
 	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
+			syntax error
 			return {
+
 			}
 		]])
 
-	local story, err = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
-
-	expect(story).toBeNil()
-	expect(err).toBeDefined()
+	expect(function()
+		loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+	end).toThrow("Failed to load story")
 end)
 
 test("malformed stories", function()
@@ -133,8 +132,7 @@ test("malformed stories", function()
 			}
 		]])
 
-	local story, err = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
-
-	expect(story).toBeNil()
-	expect(err).toBeDefined()
+	expect(function()
+		loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+	end).toThrow("Story is malformed")
 end)
