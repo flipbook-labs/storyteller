@@ -29,7 +29,6 @@ local function buildWallyPackage()
 end
 
 local function build()
-	run("rm", { "-rf", project.BUILD_PATH })
 	compile(target)
 
 	if target == "prod" then

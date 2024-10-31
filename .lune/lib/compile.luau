@@ -6,6 +6,7 @@ local run = require("./run")
 type Target = "prod" | "dev"
 
 local function compile(target: Target)
+	run("rm", { "-rf", project.BUILD_PATH })
 	fs.writeDir(project.BUILD_PATH)
 
 	run("rojo", {
