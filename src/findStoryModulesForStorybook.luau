@@ -4,7 +4,7 @@ local isStoryModule = require("@root/isStoryModule")
 local matchDescendants = require("@root/matchDescendants")
 local types = require("@root/types")
 
-local function findStoriesForStorybook(storybook: types.Storybook): { ModuleScript }
+local function findStoryModulesForStorybook(storybook: types.Storybook): { ModuleScript }
 	local storyModules = {}
 	for _, root in storybook.storyRoots do
 		storyModules = Sift.List.join(
@@ -17,4 +17,4 @@ local function findStoriesForStorybook(storybook: types.Storybook): { ModuleScri
 	return storyModules
 end
 
-return findStoriesForStorybook
+return findStoryModulesForStorybook
