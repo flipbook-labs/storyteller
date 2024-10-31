@@ -1,6 +1,5 @@
 local Sift = require("@pkg/Sift")
 
-local createRobloxRenderer = require("@root/renderers/createRobloxRenderer")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -13,16 +12,42 @@ type Packages = {
 
 local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local Fusion = packages.Fusion
-	local robloxRenderer = createRobloxRenderer()
 
-	local function mount(container: Instance, story: Story<Instance>, initialProps: StoryProps)
-		return robloxRenderer.mount(container, story, initialProps)
+	local handle: Instance?
+
+	local function mount(container: Instance, story: Story<Instance>, props: StoryProps)
+		if typeof(story.story) == "Instance" then
+			handle = story.story
+		elseif typeof(story.story) == "function" then
+			handle = story.story(props)
+		end
+
+		if handle then
+			handle.Parent = container
+		end
 	end
 
 	local function unmount()
-		if robloxRenderer.unmount then
-			robloxRenderer.unmount()
+		if handle then
+			handle:Destroy()
 		end
+	end
+
+	local function update(props: StoryProps, prevProps: StoryProps?)
+		-- Fusion needs to retain its Instance identity. Instead of remounting,
+		-- we leave `handle` alone and mutate the controls with the newly
+		-- updated values
+		if props.controls and prevProps and prevProps.controls then
+			for key, arg in props.controls do
+				local prevControl = prevProps.controls[key]
+
+				if prevControl then
+					prevControl:set(arg)
+				end
+			end
+		end
+
+		return nil
 	end
 
 	local function shouldUpdate(_props: StoryProps, prevProps: StoryProps?)
@@ -39,11 +64,9 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 			local transformed = table.clone(props)
 
 			transformed.controls = Sift.Dictionary.map(props.controls, function(arg, key)
-				-- Retain Fusion.Value identities and update the internal value
-				-- with the new arg's value
 				local prevControl = if prevProps and prevProps.controls then prevProps.controls[key] else nil
+
 				if prevControl then
-					prevControl:set(arg)
 					return prevControl
 				else
 					return Fusion.Value(arg)
@@ -51,14 +74,15 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 			end)
 
 			return transformed
+		else
+			return props
 		end
-
-		return props
 	end
 
 	return {
 		mount = mount,
 		unmount = unmount,
+		update = update,
 		shouldUpdate = shouldUpdate,
 		transformProps = transformProps,
 	}
