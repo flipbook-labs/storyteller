@@ -101,7 +101,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 				expect(#container:GetChildren()).toBe(1)
 
 				local button = container:FindFirstChildWhichIsA("TextButton")
-				assert(button, "for conformance, each test story with controls must include a TextButton")
+				assert(button, "for conformance, each story with controls must include a TextButton")
 
 				expect(button.Text).toBe("Enabled")
 
