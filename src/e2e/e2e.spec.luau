@@ -51,6 +51,8 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			act(function()
 				task.wait()
 			end)
+		elseif storybookModule == script.Parent.storybooks["Fusion.storybook"] then
+			task.wait()
 		end
 	end
 
