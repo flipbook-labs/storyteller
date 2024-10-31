@@ -46,6 +46,14 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		container = Instance.new("Folder")
 	end)
 
+	local function afterRender()
+		if storybookModule == script.Parent.storybooks["React.storybook"] then
+			act(function()
+				task.wait()
+			end)
+		end
+	end
+
 	test("storybook has necessary stories for conformance tests", function()
 		if table.find(EXCLUDED_FROM_CONFORMANCE, storybookModule) then
 			return
@@ -77,11 +85,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 			local lifecycle = render(renderer, container, story)
 
-			if storybookModule == script.Parent.storybooks["React.storybook"] then
-				act(function()
-					task.wait()
-				end)
-			end
+			afterRender()
 
 			expect(#container:GetChildren()).toBe(1)
 
@@ -98,6 +102,8 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 				local renderer = createRendererForStory(story)
 				local lifecycle = render(renderer, container, story)
 
+				afterRender()
+
 				expect(#container:GetChildren()).toBe(1)
 
 				local button = container:FindFirstChildWhichIsA("TextButton")
@@ -106,8 +112,10 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 				expect(button.Text).toBe("Enabled")
 
 				lifecycle.update({
-					isDisabled = false,
+					isDisabled = true,
 				})
+
+				afterRender()
 
 				expect(#container:GetChildren()).toBe(1)
 				expect(button.Text).toBe("Disabled")
