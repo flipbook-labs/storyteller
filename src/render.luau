@@ -1,5 +1,6 @@
 local Sift = require("@pkg/Sift")
 
+local createRendererForStory = require("@root/createRendererForStory")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -19,7 +20,9 @@ local function collapseControls(controls: StoryControls): StoryControls
 	end)
 end
 
-local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
+local function render<T>(container: Instance, story: Story<T>)
+	local renderer = createRendererForStory(story)
+
 	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)

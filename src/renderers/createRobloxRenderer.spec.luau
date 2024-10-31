@@ -1,6 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local createRobloxRenderer = require("./createRobloxRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -20,17 +19,15 @@ local function ButtonStory(props: {
 end
 
 local container
-local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	renderer = createRobloxRenderer()
 end)
 
 test("render a GuiObject", function()
 	local story = createStory(Instance.new("TextLabel"))
 
-	render(renderer, container, story)
+	render(container, story)
 
 	local element = container:GetChildren()[1]
 
@@ -45,7 +42,7 @@ test("render a GuiObject with args", function()
 		isDisabled = true,
 	}
 
-	render(renderer, container, story)
+	render(container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
 	assert(element, "no element found")
@@ -58,7 +55,7 @@ test("update the GuiObject on arg changes", function()
 		isDisabled = true,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 
@@ -82,7 +79,7 @@ test("lifecycle", function()
 		isDisabled = false,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 

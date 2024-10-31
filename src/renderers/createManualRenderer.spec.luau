@@ -1,6 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local createManualRenderer = require("./createManualRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -20,11 +19,9 @@ local function ButtonStory(props: {
 end
 
 local container
-local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	renderer = createManualRenderer()
 end)
 
 test("mounts and unmounts an Instance", function()
@@ -33,7 +30,7 @@ test("mounts and unmounts an Instance", function()
 		return label
 	end)
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -53,7 +50,7 @@ test("mounts and unmounts an Instance via cleanup function", function()
 		end
 	end)
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -68,7 +65,7 @@ test("mounts and unmounts an Instance implicitly", function()
 		label.Parent = props.container
 	end)
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -83,7 +80,7 @@ test("render a GuiObject with args", function()
 		isDisabled = true,
 	}
 
-	render(renderer, container, story)
+	render(container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
 	assert(element, "no element found")
@@ -96,7 +93,7 @@ test("update the GuiObject on arg changes", function()
 		isDisabled = true,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
 
@@ -117,7 +114,7 @@ test("lifecycle", function()
 
 	local story = createStory(ButtonStory)
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 

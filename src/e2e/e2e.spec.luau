@@ -2,7 +2,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local createRendererForStory = require("@root/createRendererForStory")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
 local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
@@ -81,9 +80,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			local story, err = loadStoryModule(mockModuleLoader, storyModule, storybook)
 			assert(story, `bad story: {err}`)
 
-			local renderer = createRendererForStory(story)
-
-			local lifecycle = render(renderer, container, story)
+			local lifecycle = render(container, story)
 
 			afterRender()
 
@@ -99,8 +96,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			assert(story, `bad story: {err}`)
 
 			if story.controls then
-				local renderer = createRendererForStory(story)
-				local lifecycle = render(renderer, container, story)
+				local lifecycle = render(container, story)
 
 				afterRender()
 
