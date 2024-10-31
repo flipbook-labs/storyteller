@@ -61,11 +61,6 @@ local api: API = {
 
 	-- Rendering
 	render = require("./render"),
-	createRendererForStory = require("./createRendererForStory"),
-	createFusionRenderer = require("./renderers/createFusionRenderer"),
-	createReactRenderer = require("./renderers/createReactRenderer"),
-	createRoactRenderer = require("./renderers/createRoactRenderer"),
-	createRobloxRenderer = require("./renderers/createRobloxRenderer"),
 
 	-- Hooks
 	useStory = require("./hooks/useStory"),
