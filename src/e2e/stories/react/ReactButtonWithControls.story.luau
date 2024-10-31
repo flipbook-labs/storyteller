@@ -1,5 +1,10 @@
 local React = require("@pkg/React")
-local ReactButton = require("./ReactButton")
+
+local function ReactButton(props)
+	return React.createElement("TextButton", {
+		Text = if props.isDisabled then "Disabled" else "Enabled",
+	})
+end
 
 local controls = {
 	isDisabled = false,

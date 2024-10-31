@@ -6,4 +6,6 @@ local function ReactTextLabel()
 	})
 end
 
-return ReactTextLabel
+return {
+	story = React.createElement(ReactTextLabel),
+}

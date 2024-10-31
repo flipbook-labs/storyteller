@@ -1,8 +1,7 @@
 local createFusionRenderer = require("@root/renderers/createFusionRenderer")
-local createLegacyFunctionalStoryRenderer = require("@root/renderers/createLegacyFunctionalStoryRenderer")
+local createManualRenderer = require("@root/renderers/createManualRenderer")
 local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
-local createRobloxRenderer = require("@root/renderers/createRobloxRenderer")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -20,16 +19,7 @@ local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 		end
 	end
 
-	-- For backwards compatability. The older format of functional stories takes
-	-- in the parent as the first argument, followed by props. This call to
-	-- debug.info lets us know how many args the function takes so we can
-	-- conditionally pass in the container to support older stories. This should
-	-- be removed in a future major version
-	if typeof(story.story) == "function" and debug.info(story.story, "a") >= 2 then
-		return createLegacyFunctionalStoryRenderer()
-	end
-
-	return createRobloxRenderer()
+	return createManualRenderer()
 end
 
 return createRendererForStory

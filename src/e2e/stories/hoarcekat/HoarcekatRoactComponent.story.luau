@@ -18,7 +18,8 @@ local function HoarcekatRoactComponent()
 end
 
 return function(target: Instance)
-	local tree = Roact.mount(Roact.createElement(HoarcekatRoactComponent), nil, target)
+	local root = Roact.createElement(HoarcekatRoactComponent)
+	local tree = Roact.mount(root, target)
 
 	return function()
 		Roact.unmount(tree)

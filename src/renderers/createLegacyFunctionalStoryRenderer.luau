@@ -4,6 +4,21 @@ type Story<T> = types.Story<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 type LegacyFunctionalStory = <T>(target: Instance, props: types.StoryProps) -> (() -> ())?
 
+--[[
+	Renders manual stories in the form:
+
+	```lua
+	story = function(target, props)
+		local gui = Instance.new("TextLabel")
+		gui.Text = props.controls.text
+		gui.Parent = target
+
+		return function()
+			gui:Destroy()
+		end
+	end
+	```
+]]
 local function createLegacyFunctionalStoryRenderer(): StoryRenderer<LegacyFunctionalStory>
 	local currentContainer
 	local currentStory

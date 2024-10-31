@@ -1,5 +1,10 @@
 local React = require("@pkg/React")
-local ReactTextLabel = require("./ReactTextLabel")
+
+local function ReactTextLabel()
+	return React.createElement("TextLabel", {
+		Text = "Hello, World!",
+	})
+end
 
 return {
 	story = function()
