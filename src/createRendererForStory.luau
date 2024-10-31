@@ -1,7 +1,7 @@
 local createFusionRenderer = require("@root/renderers/createFusionRenderer")
+local createManualRenderer = require("@root/renderers/createManualRenderer")
 local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
-local createRobloxRenderer = require("@root/renderers/createRobloxRenderer")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -18,7 +18,8 @@ local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 			return createFusionRenderer(packages)
 		end
 	end
-	return createRobloxRenderer()
+
+	return createManualRenderer()
 end
 
 return createRendererForStory

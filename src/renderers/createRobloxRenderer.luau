@@ -19,6 +19,7 @@ local function createRobloxRenderer(): StoryRenderer<Instance>
 		end
 
 		handle = element
+
 		element.Parent = container
 	end
 

@@ -1,6 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local createRobloxRenderer = require("./createRobloxRenderer")
+local createManualRenderer = require("./createManualRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -24,19 +24,57 @@ local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	renderer = createRobloxRenderer()
+	renderer = createManualRenderer()
 end)
 
-test("render a GuiObject", function()
-	local story = createStory(Instance.new("TextLabel"))
+test("mounts and unmounts an Instance", function()
+	local story = createStory(function()
+		local label = Instance.new("TextLabel")
+		return label
+	end)
 
-	render(renderer, container, story)
+	local lifecycle = render(renderer, container, story)
 
-	local element = container:GetChildren()[1]
+	expect(#container:GetChildren()).toBe(1)
 
-	assert(element, "no element found")
-	expect(typeof(element)).toBe("Instance")
-	assert(element:IsA("TextLabel"), "not a TextButton")
+	lifecycle.unmount()
+
+	expect(#container:GetChildren()).toBe(0)
+end)
+
+test("mounts and unmounts an Instance via cleanup function", function()
+	local story = createStory(function(props)
+		local label = Instance.new("TextLabel")
+
+		label.Parent = props.container
+
+		return function()
+			label:Destroy()
+		end
+	end)
+
+	local lifecycle = render(renderer, container, story)
+
+	expect(#container:GetChildren()).toBe(1)
+
+	lifecycle.unmount()
+
+	expect(#container:GetChildren()).toBe(0)
+end)
+
+test("mounts and unmounts an Instance implicitly", function()
+	local story = createStory(function(props)
+		local label = Instance.new("TextLabel")
+		label.Parent = props.container
+	end)
+
+	local lifecycle = render(renderer, container, story)
+
+	expect(#container:GetChildren()).toBe(1)
+
+	lifecycle.unmount()
+
+	expect(#container:GetChildren()).toBe(0)
 end)
 
 test("render a GuiObject with args", function()
@@ -78,9 +116,6 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createStory(ButtonStory)
-	story.controls = {
-		isDisabled = false,
-	}
 
 	local lifecycle = render(renderer, container, story)
 

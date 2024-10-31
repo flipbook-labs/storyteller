@@ -12,10 +12,11 @@ local test = JestGlobals.test
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 local container: Instance
-local element = jest.fn()
+local story: types.Story<TextLabel>
 
 beforeEach(function()
 	container = Instance.new("Folder")
+	story = createStory(Instance.new("TextLabel"))
 end)
 
 afterEach(function()
@@ -30,7 +31,7 @@ test("call `mount` immediately", function()
 		mount = mockMount,
 	}
 
-	render(mockRenderer, container, element)
+	render(mockRenderer, container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 end)
@@ -43,7 +44,7 @@ test("returns a function to trigger a re-render", function()
 		mount = mockMount,
 	}
 
-	local lifecycle = render(mockRenderer, container, element)
+	local lifecycle = render(mockRenderer, container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 
@@ -64,7 +65,7 @@ test("current props and prev props are passed to shouldUpdate", function()
 		end,
 	}
 
-	local lifecycle = render(mockRenderer, container, element)
+	local lifecycle = render(mockRenderer, container, story)
 
 	expect(props).toBeDefined()
 	expect(prevProps).toBeNil()
@@ -82,6 +83,8 @@ test("props are passed to shouldUpdate", function()
 		foo = true,
 	}
 
+	story.controls = controls
+
 	local mockRenderer: StoryRenderer<unknown> = {
 		shouldUpdate = function(_props)
 			props = _props
@@ -90,7 +93,7 @@ test("props are passed to shouldUpdate", function()
 		mount = function() end,
 	}
 
-	render(mockRenderer, container, element, controls)
+	render(mockRenderer, container, story)
 
 	expect(props).toMatchObject({
 		container = container,
@@ -106,8 +109,6 @@ test("only rerender if shouldUpdate returns true", function()
 		shouldUpdate = mockShouldUpdate,
 		mount = mockMount,
 	}
-
-	local story = createStory(Instance.new("TextLabel"))
 
 	local lifecycle = render(mockRenderer, container, story)
 
@@ -127,13 +128,12 @@ test("destroy all children of the container when rerendering if shouldUpdate is 
 	local mockShouldUpdate = jest.fn().mockReturnValue(true)
 
 	local mockRenderer: StoryRenderer<Instance> = {
-		mount = function(otherContainer, story)
-			(story.story :: Instance).Parent = otherContainer
+		mount = function(otherContainer, otherStory)
+			(otherStory.story :: Instance).Parent = otherContainer
 		end,
 		shouldUpdate = mockShouldUpdate,
 	}
 
-	local story = createStory(Instance.new("Folder"))
 	local lifecycle = render(mockRenderer, container, story)
 
 	expect(#container:GetChildren()).toBe(1)
@@ -158,7 +158,7 @@ test("prevProps is nil on the first render", function()
 		end,
 	}
 
-	local lifecycle = render(mockRenderer, container, element)
+	local lifecycle = render(mockRenderer, container, story)
 
 	local props = mockShouldUpdate.mock.lastCall[1]
 	expect(props).toBeDefined()
@@ -174,4 +174,26 @@ test("prevProps is nil on the first render", function()
 
 	expect(mockShouldUpdate.mock.lastCall[1]).toBeDefined()
 	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(props)
+end)
+
+test("array controls are collapsed to the first story", function()
+	story.controls = {
+		font = {
+			Enum.Font.BuilderSans,
+			Enum.Font.RobotoMono,
+			Enum.Font.Merriweather,
+		},
+	}
+
+	local font: Enum.Font?
+
+	local mockRenderer: StoryRenderer<Instance> = {
+		mount = function(_otherContainer, _otherStory, initialProps)
+			font = if initialProps.controls then initialProps.controls.font else nil
+		end,
+	}
+
+	render(mockRenderer, container, story)
+
+	expect(font).toBe(Enum.Font.BuilderSans)
 end)

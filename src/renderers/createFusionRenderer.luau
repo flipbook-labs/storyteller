@@ -4,7 +4,7 @@ local createRobloxRenderer = require("@root/renderers/createRobloxRenderer")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
-type StoryProps<T> = types.StoryProps<T>
+type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 type Packages = {
@@ -15,7 +15,7 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local Fusion = packages.Fusion
 	local robloxRenderer = createRobloxRenderer()
 
-	local function mount(container: Instance, story: Story<Instance>, initialProps: StoryProps<Instance>)
+	local function mount(container: Instance, story: Story<Instance>, initialProps: StoryProps)
 		return robloxRenderer.mount(container, story, initialProps)
 	end
 
@@ -25,7 +25,7 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		end
 	end
 
-	local function shouldUpdate(_props: StoryProps<Instance>, prevProps: StoryProps<Instance>?)
+	local function shouldUpdate(_props: StoryProps, prevProps: StoryProps?)
 		-- Arg changes should never trigger a remount. We retain the Value
 		-- identities to Fusion can handle its update logic
 		if prevProps then
@@ -34,7 +34,7 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		return true
 	end
 
-	local function transformProps(props: StoryProps<Instance>, prevProps: StoryProps<Instance>?)
+	local function transformProps(props: StoryProps, prevProps: StoryProps?)
 		if props.controls then
 			local transformed = table.clone(props)
 

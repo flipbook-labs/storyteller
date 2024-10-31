@@ -52,10 +52,11 @@ end)
 
 test("controls are transformed into Values", function()
 	local story = createStory(ButtonStory)
-
-	render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	render(renderer, container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
 	assert(element, "no element found")
@@ -66,10 +67,11 @@ test("update the component on arg changes", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createStory(ButtonStory)
-
-	local lifecycle = render(renderer, container, story, {
+	story.controls = {
 		isDisabled = true,
-	})
+	}
+
+	local lifecycle = render(renderer, container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
