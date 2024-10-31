@@ -4,7 +4,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 local createFusionRenderer = require("./createFusionRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
-local waitFor = require("@root/test-utils/waitFor")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
