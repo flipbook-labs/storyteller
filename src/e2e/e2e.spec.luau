@@ -118,6 +118,9 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 				afterRender()
 
 				expect(#container:GetChildren()).toBe(1)
+
+				button = container:FindFirstChildWhichIsA("TextButton")
+				assert(button, "after updating, the story no longer has a TextButton")
 				expect(button.Text).toBe("Disabled")
 
 				lifecycle.unmount()

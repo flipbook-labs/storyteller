@@ -42,9 +42,9 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		currentContainer:ClearAllChildren()
 	end
 
-	local function update(controls)
+	local function update(props)
 		unmount()
-		mount(currentContainer, currentStory, controls)
+		mount(currentContainer, currentStory, props)
 	end
 
 	return {
