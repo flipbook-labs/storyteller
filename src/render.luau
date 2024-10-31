@@ -4,7 +4,7 @@ local types = require("@root/types")
 
 type Story<T> = types.Story<T>
 type StoryControls = types.StoryControls
-type StoryProps<T> = types.StoryProps<T>
+type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 local function collapseControls(controls: StoryControls): StoryControls
@@ -20,10 +20,10 @@ local function collapseControls(controls: StoryControls): StoryControls
 end
 
 local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
-	local prevProps: StoryProps<T>?
+	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps<T> = {
+		local props: StoryProps = {
 			container = container,
 			story = story,
 			theme = "Dark", -- TODO: Support theme changing

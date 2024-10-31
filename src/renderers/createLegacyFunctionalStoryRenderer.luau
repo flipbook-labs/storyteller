@@ -2,7 +2,7 @@ local types = require("@root/types")
 
 type Story<T> = types.Story<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
-type LegacyFunctionalStory = <T>(target: Instance, props: types.StoryProps<T>) -> (() -> ())?
+type LegacyFunctionalStory = <T>(target: Instance, props: types.StoryProps) -> (() -> ())?
 
 local function createLegacyFunctionalStoryRenderer(): StoryRenderer<LegacyFunctionalStory>
 	local currentContainer

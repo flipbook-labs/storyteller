@@ -8,19 +8,18 @@ export type StoryControls = {
 	[string]: any,
 }
 
-export type StoryProps<T> = {
+export type StoryProps = {
 	container: Instance,
-	story: Story<T>,
 	theme: StudioTheme,
 	controls: StoryControls?,
 }
 
 export type StoryRenderer<T> = {
-	mount: (container: Instance, story: Story<T>, initialProps: StoryProps<T>) -> (),
+	mount: (container: Instance, story: Story<T>, initialProps: StoryProps) -> (),
 	unmount: (() -> ())?,
-	update: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> ())?,
-	transformProps: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> StoryProps<T>)?,
-	shouldUpdate: ((props: StoryProps<T>, prevProps: StoryProps<T>?) -> boolean)?,
+	update: ((props: StoryProps, prevProps: StoryProps?) -> ())?,
+	transformProps: ((props: StoryProps, prevProps: StoryProps?) -> StoryProps)?,
+	shouldUpdate: ((props: StoryProps, prevProps: StoryProps?) -> boolean)?,
 }
 
 export type StoryPackages = {
@@ -41,7 +40,7 @@ types.IStorybook = t.interface({
 
 export type Story<T> = {
 	name: string,
-	story: T | (props: StoryProps<T>) -> T,
+	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
 	storybook: Storybook,
 	packages: StoryPackages?,
