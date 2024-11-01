@@ -1,5 +1,9 @@
 local types = require("./types")
 
+--[=[
+	@class Storyteller
+]=]
+
 export type Story<T> = types.Story<T>
 export type StoryControls = types.StoryControls
 export type Storybook = types.Storybook

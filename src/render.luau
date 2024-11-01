@@ -19,6 +19,61 @@ local function collapseControls(controls: StoryControls): StoryControls
 	end)
 end
 
+--[=[
+	The final step. Once you have your Storybook, a Story to render, and the
+	renderer to use for the Story, this function will handle the lifecycle of
+	mounting, updating, and unmounting the Story for viewing.
+
+
+	:::info
+	We may update this function to make `renderer` an optional last argument in
+	the future so that `createRendererForStory` can be called implicitly.
+	Determining which renderer to use probably doesn’t need to be the consumer’s
+	job.
+	:::
+
+	Usage:
+
+	```lua
+	local ModuleLoader = require("@pkg/ModuleLoader")
+	local Storyteller = require("@pkg/Storyteller")
+
+	local loader = ModuleLoader.new()
+
+	local storybookModules = Storyteller.findStorybookModules(game)
+	assert(#storybookModules > 0, "no Storybook modules found")
+
+	local storybook
+	pcall(function()
+	storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
+	end)
+
+	if storybook then
+	local storyModules = Storyteller.findStoryModulesForStorybook(storybook)
+	assert(#storyModules > 0, "no Story modules found")
+
+	local story
+	pcall(function()
+		story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
+	end)
+
+	if story then
+		local renderer = Storyteller.createRendererForStory(story)
+		local lifecycle = Storyteller.render(renderer, container, story)
+
+		print(container:GetChildren())
+
+			lifecycle.unmount()
+
+		print(container:GetChildren())
+	end
+	end
+	```
+
+
+	@tag Rendering
+	@within Storyteller
+]=]
 local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
 	local prevProps: StoryProps?
 
