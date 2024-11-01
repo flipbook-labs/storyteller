@@ -1,7 +1,3 @@
----
-sidebar_position: 2
----
-
 # Writing Stories
 
 Before Storyteller can discover your Stories, you need a Storybook. This is the topmost configuration for each collection of Stories in your project.
@@ -73,10 +69,7 @@ return {
 }
 ```
 
-TODO: Define how manual stories work. We may need to introduce a breaking change to the function signature.
-
-```markdown
-Manual story
+## Manual story
 
 Return value is a function. `target` is not implicitly cleaned in this case
 ```lua
@@ -93,6 +86,7 @@ return {
 ```
 
 Return value is an Instance. Renderer will implicitly Parent the Instance to the container and call Destroy when unmounting
+
 ```lua
 return {
     story = function(props)
@@ -103,7 +97,8 @@ return {
 }
 ```
 
-No return value. Renderer will implicitly call ClearAllChildren on the container, but no other efforts will be made to cleanup side-effects of the story
+No return value. Renderer will implicitly call `ClearAllChildren` on the container, but no other efforts will be made to cleanup side-effects of the story
+
 ```lua
 return {
     story = function(props)
@@ -112,9 +107,10 @@ return {
 }
 ```
 
-UI Labs and Hoarcekat
+## UI Labs and Hoarcekat
+
 ```lua
-return function(target, props)
+return function(target: Instance, props: { [string]: any })
     local gui = Instance.new("TextLabel")
     gui.Parent = target
 
@@ -124,16 +120,14 @@ return function(target, props)
 end
 ```
 
-```
-
-# Controls
+## Controls
 
 TODO TODO TODO
 
-# Type Checking
+## Type Checking
 
 See [Story and Storybook typechecking](https://www.notion.so/Story-and-Storybook-typechecking-12f95b7912f8809b9842f96897b55438?pvs=21)
 
-# SurfaceGui and BillboardGui
+## SurfaceGui and BillboardGui
 
 https://github.com/flipbook-labs/flipbook/issues/230
