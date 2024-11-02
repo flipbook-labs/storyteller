@@ -14,6 +14,11 @@ export type StoryProps = {
 	controls: StoryControls?,
 }
 
+export type RenderLifecycle = {
+	update: (controls: StoryControls?) -> (),
+	unmount: () -> (),
+}
+
 export type StoryRenderer<T> = {
 	mount: (container: Instance, story: Story<T>, initialProps: StoryProps) -> (),
 	unmount: (() -> ())?,

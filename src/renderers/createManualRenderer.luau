@@ -21,7 +21,11 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		if typeof(story.story) == "Instance" then
 			result = story.story
 		elseif typeof(story.story) == "function" then
-			result = story.story(props)
+			if debug.info(story.story, "a") >= 2 then
+				result = story.story(container, props)
+			else
+				result = story.story(props)
+			end
 		end
 
 		if typeof(result) == "function" then

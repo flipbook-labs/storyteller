@@ -7,6 +7,7 @@ type Story<T> = types.Story<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
+type RenderLifecycle = types.RenderLifecycle
 
 local function collapseControls(controls: StoryControls): StoryControls
 	return Sift.Dictionary.map(controls, function(control)
@@ -73,7 +74,7 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: Story<T>)
+local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
