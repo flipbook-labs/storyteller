@@ -1,6 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local constants = require("@root/constants")
+local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
 local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.Storybook
@@ -13,6 +14,10 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 	local isStorybook, message = types.IStorybook(result)
 
 	assert(isStorybook, `failed to load storybook {module:GetFullName()}: {message}`)
+
+	if not result.packages then
+		result.packages = migrateLegacyPackages(result)
+	end
 
 	if not result.name then
 		result.name = module.Name:gsub(constants.STORYBOOK_NAME_PATTERN, "")

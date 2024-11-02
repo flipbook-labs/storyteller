@@ -3,6 +3,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 
 local loadStorybookModule = require("./loadStorybookModule")
 
+local describe = JestGlobals.describe
 local test = JestGlobals.test
 local expect = JestGlobals.expect
 
@@ -75,4 +76,30 @@ test("malformed storybook", function()
 
 	expect(success).toBeFalsy()
 	expect(result).toMatch("failed to load storybook")
+end)
+
+describe("legacy support", function()
+	test("packages attached to the storybook get grouped in `packages` object", function()
+		local loader = ModuleLoader.new()
+
+		local storybookModule = createMockStorybookModule([[
+			return {
+				storyRoots = {
+					Instance.new("Folder")
+				},
+				react = {},
+				reactRoblox = {},
+			}
+		]])
+
+		local storybook = loadStorybookModule(loader, storybookModule)
+
+		expect(storybook).toMatchObject({
+			storyRoots = expect.anything(),
+			packages = {
+				React = expect.anything(),
+				ReactRoblox = expect.anything(),
+			},
+		})
+	end)
 end)

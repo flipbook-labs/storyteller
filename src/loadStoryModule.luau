@@ -2,19 +2,12 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
 type Storybook = types.Storybook
 type Story<T> = types.Story<T>
-
-local function migrateLegacyPackages(storyOrStorybook: { [string]: any }): StoryPackages
-	return {
-		Roact = storyOrStorybook.roact,
-		React = storyOrStorybook.react,
-		ReactRoblox = storyOrStorybook.reactRoblox,
-	}
-end
 
 local function loadStoryModule<T>(
 	loader: ModuleLoader.ModuleLoader,
@@ -49,6 +42,9 @@ local function loadStoryModule<T>(
 	end
 
 	local packages = migrateLegacyPackages(result)
+	if not packages then
+		packages = storybook.packages
+	end
 
 	local story = Sift.Dictionary.merge({
 		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
