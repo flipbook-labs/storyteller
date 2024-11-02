@@ -7,7 +7,7 @@ local types = require("@root/types")
 type Story<T> = types.Story<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 
---[=[
+--[[
 	This function will do its best to determine which of the renderers to use
 	based off the Story’s properties.
 
@@ -16,7 +16,8 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 
 	@tag Rendering
 	@tag Story
-]=]
+	@within Storyteller
+]]
 local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 	local packages = if story.packages then story.packages else story.storybook.packages
 	if packages then
