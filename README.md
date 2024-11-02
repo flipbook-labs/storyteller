@@ -3,7 +3,15 @@
 
 [![CI](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml/badge.svg)](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml)
 
-Storyteller is a library for the discovery and rendering of UI stories. It powers our storybook plugin [flipbook](https://github.com/flipbook-labs/flipbook)
+Storyteller is a package for the discovery and rendering of UI stories and powers our storybook plugin [Flipbook](https://github.com/flipbook-labs/flipbook).
+
+The API for this package focuses around...
+1. Validation for the Story format and Storybook format
+2. Discvoery of valid ModuleScripts with `.story` and `.storybook` extensions
+3. Loading of Stories and Storybooks into a sandbox with cacheless module requiring
+4. Rendering stories into a container with lifecycle callbacks for updating and unmounting
+
+There also exist React hooks for ease of integration into storybook apps.
 
 ## Features
 
@@ -16,7 +24,7 @@ Storyteller is a library for the discovery and rendering of UI stories. It power
 
 ```toml
 [dependencies]
-Storyteller = "flipbook-labs/storyteller@0.1.0"
+Storyteller = "flipbook-labs/storyteller@0.2.0"
 ```
 
 ### Roblox Model
@@ -25,7 +33,7 @@ Download a copy of the rbxm from the [latest release](https://github.com/flipboo
 
 ## Resources
 
-API documentation will be available on [the official documentation website](https://flipbook-labs.github.io/storyteller).
+API documentation is available on [the official documentation website](https://flipbook-labs.github.io/storyteller).
 
 ## Contributing
 
