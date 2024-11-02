@@ -16,7 +16,6 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 
 	@tag Rendering
 	@tag Story
-	@within Storyteller
 ]=]
 local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 	local packages = if story.packages then story.packages else story.storybook.packages
