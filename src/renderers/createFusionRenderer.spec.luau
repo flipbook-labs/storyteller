@@ -1,7 +1,6 @@
 local Fusion = require("@pkg/Fusion")
 local JestGlobals = require("@pkg/JestGlobals")
 
-local createFusionRenderer = require("./createFusionRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -31,20 +30,22 @@ local function ButtonStory(props: {
 	})
 end
 
+local function createFusionStory(element)
+	return createStory(element, {
+		Fusion = Fusion,
+	})
+end
+
 local container
-local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-
-	renderer = createFusionRenderer({
-		Fusion = Fusion,
-	})
 end)
 
 test("render a Fusion component", function()
-	local story = createStory(TextStory)
-	render(renderer, container, story)
+	local story = createFusionStory(TextStory)
+
+	render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 	expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
@@ -52,7 +53,7 @@ end)
 
 test("unmount a Fusion component", function()
 	local story = createStory(TextStory)
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -62,12 +63,12 @@ test("unmount a Fusion component", function()
 end)
 
 test("controls are transformed into Values", function()
-	local story = createStory(ButtonStory)
+	local story = createFusionStory(ButtonStory)
 	story.controls = {
 		isDisabled = true,
 	}
 
-	render(renderer, container, story)
+	render(container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
 	assert(element, "no element found")
@@ -77,12 +78,12 @@ end)
 test("update the component on arg changes", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local story = createStory(ButtonStory)
+	local story = createFusionStory(ButtonStory)
 	story.controls = {
 		isDisabled = true,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 

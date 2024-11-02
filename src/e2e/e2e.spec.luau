@@ -2,7 +2,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local createRendererForStory = require("@root/createRendererForStory")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
 local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
@@ -80,8 +79,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 	describeEach(storyModules)("%s", function(storyModule)
 		test("basic mount/unmount lifecycle", function()
 			local story = loadStoryModule(mockModuleLoader, storyModule, storybook)
-			local renderer = createRendererForStory(story)
-			local lifecycle = render(renderer, container, story)
+			local lifecycle = render(container, story)
 
 			afterRender()
 
@@ -96,8 +94,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			local story = loadStoryModule(mockModuleLoader, storyModule, storybook)
 
 			if story.controls then
-				local renderer = createRendererForStory(story)
-				local lifecycle = render(renderer, container, story)
+				local lifecycle = render(container, story)
 
 				afterRender()
 

@@ -27,3 +27,11 @@ test("returns an array of instances that match the predicate", function()
 
 	container:Destroy()
 end)
+
+test("never throws when attempting to traverse services with higher security clearance", function()
+	expect(function()
+		matchDescendants(game, function(descendant)
+			return descendant:IsA("Instance")
+		end)
+	end).never.toThrow()
+end)

@@ -1,6 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local createStory = require("@root/test-utils/createStory")
-local render = require("./render")
 local types = require("@root/types")
 
 local afterEach = JestGlobals.afterEach
@@ -13,10 +12,18 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 
 local container: Instance
 local story: types.Story<TextLabel>
+local mockCreateRendererForStory = jest.fn()
+local render
 
 beforeEach(function()
 	container = Instance.new("Folder")
 	story = createStory(Instance.new("TextLabel"))
+
+	jest.mock(script.Parent.createRendererForStory, function()
+		return mockCreateRendererForStory
+	end)
+
+	render = require("./render")
 end)
 
 afterEach(function()
@@ -27,11 +34,11 @@ end)
 test("call `mount` immediately", function()
 	local mockMount = jest.fn()
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		mount = mockMount,
-	}
+	})
 
-	render(mockRenderer, container, story)
+	render(container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 end)
@@ -40,11 +47,11 @@ test("returns a function to trigger a re-render", function()
 	local mockMount = jest.fn()
 	mockMount.mockReturnValue = Instance.new("ScreenGui")
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		mount = mockMount,
-	}
+	})
 
-	local lifecycle = render(mockRenderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 
@@ -56,16 +63,16 @@ end)
 test("current props and prev props are passed to shouldUpdate", function()
 	local props, prevProps
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		mount = function() end,
 		shouldUpdate = function(_props, _prevProps)
 			props = _props
 			prevProps = _prevProps
 			return true
 		end,
-	}
+	})
 
-	local lifecycle = render(mockRenderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(props).toBeDefined()
 	expect(prevProps).toBeNil()
@@ -85,15 +92,15 @@ test("props are passed to shouldUpdate", function()
 
 	story.controls = controls
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = function(_props)
 			props = _props
 			return true
 		end,
 		mount = function() end,
-	}
+	})
 
-	render(mockRenderer, container, story)
+	render(container, story)
 
 	expect(props).toMatchObject({
 		container = container,
@@ -105,12 +112,12 @@ test("only rerender if shouldUpdate returns true", function()
 	local mockMount = jest.fn()
 	local mockShouldUpdate = jest.fn().mockReturnValue(true)
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = mockShouldUpdate,
 		mount = mockMount,
-	}
+	})
 
-	local lifecycle = render(mockRenderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(mockMount).toHaveBeenCalledTimes(1)
 
@@ -127,14 +134,14 @@ end)
 test("destroy all children of the container when rerendering if shouldUpdate is true", function()
 	local mockShouldUpdate = jest.fn().mockReturnValue(true)
 
-	local mockRenderer: StoryRenderer<Instance> = {
+	mockCreateRendererForStory.mockReturnValue({
 		mount = function(otherContainer, otherStory)
 			(otherStory.story :: Instance).Parent = otherContainer
 		end,
 		shouldUpdate = mockShouldUpdate,
-	}
+	})
 
-	local lifecycle = render(mockRenderer, container, story)
+	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -150,15 +157,15 @@ test("prevProps is nil on the first render", function()
 		return true
 	end)
 
-	local mockRenderer: StoryRenderer<unknown> = {
+	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = mockShouldUpdate,
 		mount = function()
 			renders += 1
 			return Instance.new("Folder")
 		end,
-	}
+	})
 
-	local lifecycle = render(mockRenderer, container, story)
+	local lifecycle = render(container, story)
 
 	local props = mockShouldUpdate.mock.lastCall[1]
 	expect(props).toBeDefined()
@@ -187,13 +194,13 @@ test("array controls are collapsed to the first story", function()
 
 	local font: Enum.Font?
 
-	local mockRenderer: StoryRenderer<Instance> = {
+	mockCreateRendererForStory.mockReturnValue({
 		mount = function(_otherContainer, _otherStory, initialProps)
 			font = if initialProps.controls then initialProps.controls.font else nil
 		end,
-	}
+	})
 
-	render(mockRenderer, container, story)
+	render(container, story)
 
 	expect(font).toBe(Enum.Font.BuilderSans)
 end)

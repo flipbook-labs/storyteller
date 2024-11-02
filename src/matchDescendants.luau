@@ -13,7 +13,11 @@ local function matchDescendants(parent: Instance, predicate: (descendant: Instan
 	end
 
 	for _, descendant in parent:GetDescendants() do
-		if predicate(descendant) then
+		local success, result = pcall(function()
+			return predicate(descendant)
+		end)
+
+		if success and result == true then
 			table.insert(matches, descendant)
 		end
 	end
