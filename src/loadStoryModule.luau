@@ -2,8 +2,10 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
+type StoryPackages = types.StoryPackages
 type Storybook = types.Storybook
 type Story<T> = types.Story<T>
 
@@ -39,11 +41,19 @@ local function loadStoryModule<T>(
 		)
 	end
 
-	return Sift.Dictionary.merge({
+	local packages = migrateLegacyPackages(result)
+	if not packages then
+		packages = storybook.packages
+	end
+
+	local story = Sift.Dictionary.merge({
 		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
 		storybook = storybook,
 		source = storyModule,
+		packages = packages,
 	}, result)
+
+	return story
 end
 
 return loadStoryModule
