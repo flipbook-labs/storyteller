@@ -77,6 +77,12 @@ const config: Config = {
           label: "API",
           position: "left"
 				},
+				{
+          type: 'docSidebar',
+          sidebarId: 'specs',
+          label: "Specs",
+          position: "left"
+				},
         {
           href: REPO_URL,
           label: 'GitHub',

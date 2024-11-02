@@ -4,25 +4,25 @@ sidebar_position: 5
 
 # Contributing
 
-# Onboarding
+## Onboarding
 
-# Building
+## Building
 
 ```lua
 lune run build
 ```
 
-# Running tests
+## Running tests
 
 ```lua
 lune run test
 ```
 
-# Adding new renderers
+## Adding new renderers
 
 [Story Renderer Spec](https://www.notion.so/Story-Renderer-Spec-4260feeab4574ad68f87006dee57cf75?pvs=21)
 
-# Creating releases
+## Creating releases
 
 Create GitHub release with tag
 
