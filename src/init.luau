@@ -1,8 +1,9 @@
 local types = require("./types")
 
+export type RenderLifecycle = types.RenderLifecycle
 export type Story<T> = types.Story<T>
-export type StoryControls = types.StoryControls
 export type Storybook = types.Storybook
+export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
 
