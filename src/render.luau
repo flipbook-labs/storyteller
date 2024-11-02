@@ -1,5 +1,6 @@
 local Sift = require("@pkg/Sift")
 
+local createRendererForStory = require("@root/createRendererForStory")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -45,36 +46,36 @@ end
 
 	local storybook
 	pcall(function()
-	storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
+		storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
 	end)
 
 	if storybook then
-	local storyModules = Storyteller.findStoryModulesForStorybook(storybook)
-	assert(#storyModules > 0, "no Story modules found")
+		local storyModules = Storyteller.findStoryModulesForStorybook(storybook)
+		assert(#storyModules > 0, "no Story modules found")
 
-	local story
-	pcall(function()
-		story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
-	end)
+		local story
+		pcall(function()
+			story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
+		end)
 
-	if story then
-		local renderer = Storyteller.createRendererForStory(story)
-		local lifecycle = Storyteller.render(renderer, container, story)
+		if story then
+			local lifecycle = Storyteller.render(container, story)
 
-		print(container:GetChildren())
+			print(container:GetChildren())
 
-			lifecycle.unmount()
+				lifecycle.unmount()
 
-		print(container:GetChildren())
-	end
+			print(container:GetChildren())
+		end
 	end
 	```
-
 
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(renderer: StoryRenderer<T>, container: Instance, story: Story<T>)
+local function render<T>(container: Instance, story: Story<T>)
+	local renderer = createRendererForStory(story)
+
 	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)

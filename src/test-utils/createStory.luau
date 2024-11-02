@@ -1,6 +1,6 @@
 local types = require("@root/types")
 
-local function createStory<T>(element: T): types.Story<T>
+local function createStory<T>(element: T, packages: types.StoryPackages?): types.Story<T>
 	return {
 		name = "Sample",
 		story = element,
@@ -8,6 +8,7 @@ local function createStory<T>(element: T): types.Story<T>
 		storybook = {
 			storyRoots = {},
 		},
+		packages = packages,
 	}
 end
 

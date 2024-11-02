@@ -25,10 +25,6 @@ return {
 
 	-- Rendering
 	render = require("./render"),
-	createRendererForStory = require("./createRendererForStory"),
-	createFusionRenderer = require("./renderers/createFusionRenderer"),
-	createReactRenderer = require("./renderers/createReactRenderer"),
-	createRoactRenderer = require("./renderers/createRoactRenderer"),
 
 	-- Hooks
 	useStory = require("./hooks/useStory"),

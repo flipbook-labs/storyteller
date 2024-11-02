@@ -2,7 +2,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local createReactRenderer = require("./createReactRenderer")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -11,6 +10,13 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local act = ReactRoblox.act
+
+local function createReactStory(element)
+	return createStory(element, {
+		React = React,
+		ReactRoblox = ReactRoblox,
+	})
+end
 
 local function ButtonStory(props: {
 	controls: {
@@ -31,20 +37,14 @@ function ButtonStoryClassComponent:render()
 end
 
 local container
-local renderer
 
 beforeEach(function()
 	container = Instance.new("Folder")
-
-	renderer = createReactRenderer({
-		React = React,
-		ReactRoblox = ReactRoblox,
-	})
 end)
 
 test("render a functional componnet", function()
-	local story = createStory(ButtonStory)
-	render(renderer, container, story)
+	local story = createReactStory(ButtonStory)
+	render(container, story)
 
 	act(function()
 		task.wait()
@@ -59,7 +59,7 @@ test("render a functional componnet", function()
 end)
 
 test("render a class component", function()
-	render(renderer, container, createStory(ButtonStoryClassComponent))
+	render(container, createReactStory(ButtonStoryClassComponent))
 
 	act(function()
 		task.wait()
@@ -74,13 +74,13 @@ test("render a class component", function()
 end)
 
 test("render an element", function()
-	local story = createStory(React.createElement(ButtonStory, {
+	local story = createReactStory(React.createElement(ButtonStory, {
 		controls = {
 			isDisabled = true,
 		},
 	}))
 
-	render(renderer, container, story)
+	render(container, story)
 
 	act(function()
 		task.wait()
@@ -92,12 +92,12 @@ test("render an element", function()
 end)
 
 test("pass controls as props", function()
-	local story = createStory(ButtonStory)
+	local story = createReactStory(ButtonStory)
 	story.controls = {
 		isDisabled = true,
 	}
 
-	render(renderer, container, story)
+	render(container, story)
 
 	act(function()
 		task.wait()
@@ -109,12 +109,12 @@ test("pass controls as props", function()
 end)
 
 test("update the component on arg changes", function()
-	local story = createStory(ButtonStory)
+	local story = createReactStory(ButtonStory)
 	story.controls = {
 		isDisabled = true,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	act(function()
 		task.wait()
@@ -138,12 +138,12 @@ end)
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local story = createStory(ButtonStory)
+	local story = createReactStory(ButtonStory)
 	story.controls = {
 		isDisabled = false,
 	}
 
-	local lifecycle = render(renderer, container, story)
+	local lifecycle = render(container, story)
 
 	act(function()
 		task.wait()
