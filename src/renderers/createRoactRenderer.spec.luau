@@ -95,6 +95,33 @@ test("update the component on arg changes", function()
 	expect(button.Text).toBe("Enabled")
 end)
 
+test("render a pre-created Roact element", function()
+	local function TextLabelStory()
+		return Roact.createElement("TextLabel", {
+			Text = "Hello, World",
+		})
+	end
+	local story = createRoactStory(Roact.createElement(TextLabelStory))
+
+	render(container, story)
+
+	local element = container:FindFirstChildOfClass("TextLabel")
+	assert(element, "no element found")
+	expect(element.Text).toBe("Hello, World")
+end)
+
+test("renders primitives", function()
+	local story = createRoactStory(Roact.createElement("TextLabel", {
+		Text = "Hello, World",
+	}))
+
+	render(container, story)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Hello, World")
+end)
+
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 

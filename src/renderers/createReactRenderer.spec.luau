@@ -135,6 +135,22 @@ test("update the component on arg changes", function()
 	expect(button.Text).toBe("Enabled")
 end)
 
+test("renders primitives", function()
+	local story = createReactStory(React.createElement("TextLabel", {
+		Text = "Hello, World",
+	}))
+
+	render(container, story)
+
+	act(function()
+		task.wait()
+	end)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Hello, World")
+end)
+
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
