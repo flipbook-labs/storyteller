@@ -6,23 +6,35 @@ type Packages = {
 	Roact: any,
 }
 
+local function isRoactElement(maybeElement: any): boolean
+	if typeof(maybeElement) == "table" then
+		return maybeElement.component and maybeElement.props
+	end
+	return false
+end
+
 local function createRoactRenderer(packages: Packages): StoryRenderer<unknown>
 	local Roact = packages.Roact
 	local tree
-	local currentElement
+	local currentComponent
 
 	local function mount(container, story, props)
-		if typeof(story.story) == "function" then
-			currentElement = Roact.createElement(story.story, props)
+		local element
+
+		if isRoactElement(story.story) then
+			currentComponent = story.story.component
+			element = story.story
 		else
-			currentElement = story.story
+			currentComponent = story.story
+			element = Roact.createElement(currentComponent, props)
 		end
-		tree = Roact.mount(currentElement, container, "RoactRenderer")
+
+		tree = Roact.mount(element, container, "RoactRenderer")
 	end
 
 	local function update(props)
-		if tree and currentElement then
-			local element = Roact.createElement(currentElement, props)
+		if tree and currentComponent then
+			local element = Roact.createElement(currentComponent, props)
 			Roact.update(tree, element)
 		end
 	end
