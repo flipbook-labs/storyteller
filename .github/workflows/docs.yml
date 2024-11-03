@@ -20,6 +20,9 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install moonwave-extractor
+        run: cargo install moonwave
+
       - name: Install dependencies
         run: npm ci
         working-directory: docs
