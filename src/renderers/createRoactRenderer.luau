@@ -12,9 +12,12 @@ local function createRoactRenderer(packages: Packages): StoryRenderer<unknown>
 	local currentElement
 
 	local function mount(container, story, props)
-		currentElement = story.story
-		local renderedElement = Roact.createElement(story.story, props)
-		tree = Roact.mount(renderedElement, container, "RoactRenderer")
+		if typeof(story.story) == "function" then
+			currentElement = Roact.createElement(story.story, props)
+		else
+			currentElement = story.story
+		end
+		tree = Roact.mount(currentElement, container, "RoactRenderer")
 	end
 
 	local function update(props)
