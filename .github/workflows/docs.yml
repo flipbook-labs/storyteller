@@ -44,6 +44,7 @@ jobs:
           path: docs/build
 
   deploy-docs:
+    if: github.event_name != 'pull_request'
     needs: [build-docs]
     permissions:
       pages: write
@@ -54,7 +55,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
-        if: github.event_name != 'pull_request'
         id: deployment
         uses: actions/deploy-pages@v4
 
