@@ -4,6 +4,20 @@ local constants = require("@root/constants")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
+--[=[
+	Loads the source of a Storybook module.
+
+	A [ModuleLoader](https://github.com/flipbook-labs/module-loader) instance
+	is required for handling the requiring of the module.
+
+	This function will throw if the return value of `storybookModule` does not
+	conform to [Storybook format](/docs/story-format#storybook), or if the
+	source has a syntax error that `require` would normally fail for.
+
+	@tag Storybook
+	@tag Module Loading
+	@within Storyteller
+]=]
 local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.Storybook
 	local wasRequired, result = pcall(function()
 		return loader:require(module)

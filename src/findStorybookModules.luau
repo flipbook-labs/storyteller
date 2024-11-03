@@ -1,6 +1,17 @@
 local isStorybookModule = require("@root/isStorybookModule")
 local matchDescendants = require("@root/matchDescendants")
 
+--[=[
+	Discovers all Storybook modules that are descendants of `parent`.
+
+	This is the first step in the discovery of Stories. Once you load a
+	Storybook, you can then use its `storyRoots` array to discover all the
+	Stories it manages.
+
+	@within Storyteller
+	@tag Storybook
+	@tag Discovery
+]=]
 local function findStorybookModules(parent: Instance): { ModuleScript }
 	local storybooks = matchDescendants(parent, function(descendant)
 		return isStorybookModule(descendant)

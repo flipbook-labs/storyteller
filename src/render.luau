@@ -21,6 +21,60 @@ local function collapseControls(controls: StoryControls): StoryControls
 	end)
 end
 
+--[=[
+	Render a Story to an [Instance] in the [DataModel].
+
+	After discovering, validating, and loading Story modules, rendering them is
+	the final step to getting stories visually presented to the user.
+
+	This function handles the lifecycle of mounting, updating, and unmounting
+	the Story. On each update controls can be passed down to the story for
+	live-reloading from user interaction.
+
+	**Usage:**
+
+	```lua
+	local ModuleLoader = require("@pkg/ModuleLoader")
+	local Storyteller = require("@pkg/Storyteller")
+
+	local loader = ModuleLoader.new()
+
+	-- At least one `.storybook` module must be present
+	local storybookModules = Storyteller.findStorybookModules(game)
+	assert(#storybookModules > 0, "no Storybook modules found")
+
+	local storybook
+	pcall(function()
+		storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
+	end)
+
+	if storybook then
+		-- At least one `.story` module must be a descendant of the Instances in
+		-- a Storybook's `storyRoots` array
+		local storyModules = Storyteller.findStoryModulesForStorybook(storybook)
+		assert(#storyModules > 0, "no Story modules found")
+
+		local story
+		pcall(function()
+			story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
+		end)
+
+		if story then
+			-- Finally, render the story to a container of your choosing
+			local lifecycle = Storyteller.render(container, story)
+
+			print(container:GetChildren())
+
+			lifecycle.unmount()
+
+			print(container:GetChildren())
+		end
+	end
+	```
+
+	@tag Rendering
+	@within Storyteller
+]=]
 local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
