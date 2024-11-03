@@ -1,4 +1,4 @@
-name: CI
+name: Docs
 
 on:
   push:
@@ -30,14 +30,6 @@ jobs:
       - name: Build docs
         run: npm run build
         working-directory: docs
-
-      - name: Deploy docs
-        if: github.event_name != 'pull_request'
-        run: npm run deploy --skip-build
-        working-directory: docs
-        env:
-          GIT_USER: github-actions[bot]
-          GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
