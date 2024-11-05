@@ -68,19 +68,13 @@ const config: Config = {
 			items: [
 				{
 					type: 'docSidebar',
-					sidebarId: 'docs',
+					sidebarId: 'primary',
 					position: 'left',
-					label: 'Docs',
+					label: 'Home',
 				},
 				{
 					to: "/api/",
 					label: "API",
-					position: "left"
-				},
-				{
-					type: 'docSidebar',
-					sidebarId: 'specs',
-					label: "Specs",
 					position: "left"
 				},
 				{
