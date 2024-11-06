@@ -2,6 +2,8 @@ local createFusionRenderer = require("@root/renderers/createFusionRenderer")
 local createManualRenderer = require("@root/renderers/createManualRenderer")
 local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
+local createRobloxInternalRenderer = require("@root/renderers/createRobloxInternalRenderer")
+local isReact = require("@root/roblox-internal/isReact")
 local types = require("@root/types")
 
 type Story<T> = types.Story<T>
@@ -21,6 +23,10 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 	local packages = if story.packages then story.packages else story.storybook.packages
 	if packages then
+		if isReact(packages.Roact) or packages.React and packages.ReactRoblox then
+			return createRobloxInternalRenderer(packages)
+		end
+
 		if packages.Roact then
 			return createRoactRenderer(packages)
 		elseif packages.React and packages.ReactRoblox then

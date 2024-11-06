@@ -31,11 +31,25 @@ export type StoryPackages = {
 	[string]: any,
 }
 
+type MapStory = (props: StoryProps) -> any
+
+type RobloxInternalStorybook = {
+	storyRoots: { Instance },
+
+	name: string?,
+	mapStory: ((story: any) -> (props: StoryProps) -> any)?,
+
+	roact: any,
+	react: any,
+	reactRoblox: any,
+}
+
 export type Storybook = {
 	storyRoots: { Instance },
 
 	name: string?,
 	packages: StoryPackages?,
+	-- mapStory: <T>((story: Story<T>) -> Story<T>)?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),

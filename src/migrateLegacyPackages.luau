@@ -1,3 +1,4 @@
+local isReact = require("@root/roblox-internal/isReact")
 local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
@@ -6,6 +7,7 @@ local function migrateLegacyPackages(storyOrStorybook: { [string]: any }): Story
 	if storyOrStorybook.roact or storyOrStorybook.react or storyOrStorybook.reactRoblox then
 		return {
 			Roact = storyOrStorybook.roact,
+			RoactCompat = if isReact(storyOrStorybook.roact) then storyOrStorybook.roact else nil,
 			React = storyOrStorybook.react,
 			ReactRoblox = storyOrStorybook.reactRoblox,
 		}
