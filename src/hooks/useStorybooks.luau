@@ -68,7 +68,10 @@ type UnavailableStorybook = {
 local function useStorybooks(
 	parent: Instance,
 	loader: ModuleLoader.ModuleLoader
-): { types.Storybook | UnavailableStorybook }
+): {
+	available: { types.Storybook },
+	unavailable: { UnavailableStorybook },
+}
 	local storybooks, setStorybooks = React.useState({})
 	local unavailableStorybooks, setUnavailableStorybooks = React.useState({} :: { UnavailableStorybook })
 
