@@ -38,7 +38,7 @@ local function loadStoryModule<T>(
 	end)
 
 	if not success then
-		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
+		error(`Failed to load story {storyModule:GetFullName()}:\n{result})`)
 	end
 
 	-- Support for Hoarcekat stories
@@ -56,7 +56,7 @@ local function loadStoryModule<T>(
 	if not isValid then
 		error(
 			`Story is malformed. Check the source of {storyModule:GetFullName()} and make sure its properties are `
-				.. `correct. Error: {message}`
+				.. `correct.\nerr: {message}`
 		)
 	end
 
