@@ -37,6 +37,13 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 		result.name = module.Name:gsub(constants.STORYBOOK_NAME_PATTERN, "")
 	end
 
+	-- selene: allow(global_usage)
+	if _G.ROBLOX_INTERNAL then
+		if result.group then
+			result.name = `{result.group} / {result.name}`
+		end
+	end
+
 	return result
 end
 
