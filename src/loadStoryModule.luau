@@ -51,6 +51,18 @@ local function loadStoryModule<T>(
 		}
 	end
 
+	-- selene: allow(global_usage)
+	if _G.ROBLOX_INTERNAL then
+		if result.stories and not result.story then
+			local randomSubstory
+			for _, substory in result.stories do
+				randomSubstory = substory
+				break
+			end
+			result.story = randomSubstory.story
+		end
+	end
+
 	local isValid, message = types.IStory(result)
 
 	if not isValid then
