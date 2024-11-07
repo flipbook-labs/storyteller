@@ -23,8 +23,11 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
 	local packages = if story.packages then story.packages else story.storybook.packages
 	if packages then
-		if isReact(packages.Roact) or packages.React and packages.ReactRoblox then
-			return createRobloxInternalRenderer(packages)
+		-- selene: allow(global_usage)
+		if _G.ROBLOX_INTERNAL then
+			if isReact(packages.Roact) or packages.React and packages.ReactRoblox then
+				return createRobloxInternalRenderer(packages)
+			end
 		end
 
 		if packages.Roact then
