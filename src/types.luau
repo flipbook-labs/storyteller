@@ -49,7 +49,7 @@ export type Storybook = {
 
 	name: string?,
 	packages: StoryPackages?,
-	-- mapStory: <T>((story: Story<T>) -> Story<T>)?,
+	mapStory: ((story: any) -> (props: StoryProps) -> any)?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),
