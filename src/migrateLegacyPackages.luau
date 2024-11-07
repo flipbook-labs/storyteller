@@ -7,8 +7,9 @@ local function migrateLegacyPackages(storyOrStorybook: { [string]: any }): Story
 	if storyOrStorybook.roact or storyOrStorybook.react or storyOrStorybook.reactRoblox then
 		return {
 			Roact = storyOrStorybook.roact,
-			RoactCompat = if isReact(storyOrStorybook.roact) then storyOrStorybook.roact else nil,
-			React = storyOrStorybook.react,
+			React = if storyOrStorybook.react
+				then storyOrStorybook.react
+				else if isReact(storyOrStorybook.roact) then storyOrStorybook.roact else nil,
 			ReactRoblox = storyOrStorybook.reactRoblox,
 		}
 	end
