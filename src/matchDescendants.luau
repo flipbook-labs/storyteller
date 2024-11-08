@@ -1,3 +1,5 @@
+local Prospector = require("@pkg/Prospector")
+
 local function hasPermission(instance: Instance)
 	local success = pcall(function()
 		return instance.Name
@@ -12,17 +14,11 @@ local function matchDescendants(parent: Instance, predicate: (descendant: Instan
 		return matches
 	end
 
-	for _, descendant in parent:GetDescendants() do
-		local success, result = pcall(function()
-			return predicate(descendant)
-		end)
-
-		if success and result == true then
-			table.insert(matches, descendant)
-		end
-	end
-
-	return matches
+	-- Before Prospector we were calling parent:GetDescendants() but because we
+	-- need to support the DataModel being passed in that case would allocate a
+	-- gigantic array. Prospector will traverse the hierarchy manually, which
+	-- takes longer but won't freeze up consumers
+	return Prospector.Collect.descendantsDFS(parent, predicate)
 end
 
 return matchDescendants
