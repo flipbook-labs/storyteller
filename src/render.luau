@@ -106,7 +106,7 @@ local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
 	local function update(newControls: StoryControls?)
 		if renderer.update then
 			local props = Sift.Dictionary.join(prevProps, {
-				controls = newControls,
+				controls = if newControls then collapseControls(newControls) else nil,
 			})
 
 			renderer.update(props, prevProps)
