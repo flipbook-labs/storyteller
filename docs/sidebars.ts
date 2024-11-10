@@ -13,7 +13,6 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
 	primary: [
 		'intro',
-		'getting-started',
 		{
 			type: 'category',
 			label: 'Reference',
@@ -38,8 +37,8 @@ const sidebars: SidebarsConfig = {
 				id: 'contributing/index',
 			},
 			items: [
-				'contributing/onboarding',
 				'contributing/story-renderers',
+				'contributing/creating-releases',
 			]
 		},
 	],

@@ -18,8 +18,8 @@ Your GitHub account must have permission to publish to the flipbook-labs org. To
 
 First run `wally login` locally and authenticate with your GitHub account.
 
-```bash
-# wally login
+```sh
+wally login
 [INFO ] Updating package index https://github.com/UpliftGames/wally-index...
 
 Go to https://github.com/login/device
