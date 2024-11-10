@@ -1,7 +1,3 @@
----
-sidebar_position: 5
----
-
 # Contributing
 
 Thank you for your interest in contributing to Storyteller! This guide will help you get your environment setup so you can have the best possible development experience.
