@@ -20,7 +20,7 @@ export type RenderLifecycle = {
 }
 
 export type StoryRenderer<T> = {
-	mount: (container: Instance, story: Story<T>, initialProps: StoryProps) -> (),
+	mount: (container: Instance, story: LoadedStory<T>, initialProps: StoryProps) -> (),
 	unmount: (() -> ())?,
 	update: ((props: StoryProps, prevProps: StoryProps?) -> ())?,
 	transformProps: ((props: StoryProps, prevProps: StoryProps?) -> StoryProps)?,
@@ -43,7 +43,7 @@ types.IStorybook = t.interface({
 	packages = t.optional(t.map(t.string, t.any)),
 })
 
-export type Story<T> = {
+export type LoadedStory<T> = {
 	name: string,
 	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
@@ -52,6 +52,15 @@ export type Story<T> = {
 
 	summary: string?,
 	controls: StoryControls?,
+}
+
+export type Story<T> = {
+	story: T | (props: StoryProps) -> T,
+
+	controls: StoryControls?,
+	name: string?,
+	packages: StoryPackages?,
+	summary: string?,
 }
 types.IStory = t.interface({
 	story = t.any,

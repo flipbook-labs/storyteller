@@ -60,9 +60,9 @@ local function useStory(
 	module: ModuleScript,
 	storybook: types.Storybook,
 	loader: ModuleLoader.ModuleLoader
-): (types.Story<unknown>?, string?)
+): (types.LoadedStory<unknown>?, string?)
 	local state, setState = React.useState({} :: {
-		story: types.Story<unknown>?,
+		story: types.LoadedStory<unknown>?,
 		err: string?,
 	})
 

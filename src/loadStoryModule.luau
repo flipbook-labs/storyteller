@@ -7,7 +7,7 @@ local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
 type Storybook = types.Storybook
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 
 --[=[
 	Loads the source of a Story module.
@@ -32,7 +32,7 @@ local function loadStoryModule<T>(
 	loader: ModuleLoader.ModuleLoader,
 	storyModule: ModuleScript,
 	storybook: Storybook
-): Story<T>
+): LoadedStory<T>
 	local success, result = pcall(function()
 		return loader:require(storyModule)
 	end)
