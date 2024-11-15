@@ -58,7 +58,7 @@ local types = require("@root/types")
 ]=]
 local function useStory(
 	module: ModuleScript,
-	storybook: types.Storybook,
+	storybook: types.LoadedStorybook,
 	loader: ModuleLoader.ModuleLoader
 ): (types.LoadedStory<unknown>?, string?)
 	local state, setState = React.useState({} :: {

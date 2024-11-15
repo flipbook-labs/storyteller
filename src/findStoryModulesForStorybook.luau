@@ -13,7 +13,7 @@ local types = require("@root/types")
 	@within Storyteller
 	@since 0.1.0
 ]=]
-local function findStoryModulesForStorybook(storybook: types.Storybook): { ModuleScript }
+local function findStoryModulesForStorybook(storybook: types.LoadedStorybook): { ModuleScript }
 	local storyModules = {}
 	for _, root in storybook.storyRoots do
 		storyModules = Sift.List.join(

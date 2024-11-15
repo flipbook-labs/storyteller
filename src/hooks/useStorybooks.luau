@@ -60,7 +60,7 @@ local types = require("@root/types")
 	@tag Storybook
 	@within Storyteller
 ]=]
-local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader): { types.Storybook }
+local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader): { types.LoadedStorybook }
 	local storybooks, setStorybooks = React.useState({})
 
 	local loadStorybooks = React.useCallback(function()

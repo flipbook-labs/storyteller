@@ -43,15 +43,11 @@ types.IStorybook = t.interface({
 	packages = t.optional(t.map(t.string, t.any)),
 })
 
-export type LoadedStory<T> = {
+export type LoadedStorybook = {
 	name: string,
-	story: T | (props: StoryProps) -> T,
-	source: ModuleScript,
-	storybook: Storybook,
-	packages: StoryPackages?,
+	storyRoots: { Instance },
 
-	summary: string?,
-	controls: StoryControls?,
+	packages: StoryPackages?,
 }
 
 export type Story<T> = {
@@ -69,5 +65,16 @@ types.IStory = t.interface({
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
 })
+
+export type LoadedStory<T> = {
+	name: string,
+	story: T | (props: StoryProps) -> T,
+	source: ModuleScript,
+	storybook: Storybook,
+	packages: StoryPackages?,
+
+	summary: string?,
+	controls: StoryControls?,
+}
 
 return types
