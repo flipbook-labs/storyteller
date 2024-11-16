@@ -18,7 +18,7 @@ local types = require("@root/types")
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.Storybook
+local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.LoadedStorybook
 	local wasRequired, result = pcall(function()
 		return loader:require(module)
 	end)

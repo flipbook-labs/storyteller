@@ -4,7 +4,7 @@ local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
 local types = require("@root/types")
 
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 --[[
@@ -18,7 +18,7 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 	@tag Story
 	@within Storyteller
 ]]
-local function createRendererForStory<T>(story: Story<T>): StoryRenderer<any>
+local function createRendererForStory<T>(story: LoadedStory<T>): StoryRenderer<any>
 	local packages = if story.packages then story.packages else story.storybook.packages
 	if packages then
 		if packages.Roact then

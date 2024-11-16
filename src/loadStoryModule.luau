@@ -6,8 +6,8 @@ local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
-type Storybook = types.Storybook
-type Story<T> = types.Story<T>
+type LoadedStorybook = types.LoadedStorybook
+type LoadedStory<T> = types.LoadedStory<T>
 
 --[=[
 	Loads the source of a Story module.
@@ -31,8 +31,8 @@ type Story<T> = types.Story<T>
 local function loadStoryModule<T>(
 	loader: ModuleLoader.ModuleLoader,
 	storyModule: ModuleScript,
-	storybook: Storybook
-): Story<T>
+	storybook: LoadedStorybook
+): LoadedStory<T>
 	local success, result = pcall(function()
 		return loader:require(storyModule)
 	end)

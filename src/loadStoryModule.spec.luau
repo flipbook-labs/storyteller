@@ -9,11 +9,13 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 local expect = JestGlobals.expect
 
-local MOCK_PLAIN_STORYBOOK: types.Storybook = {
+local MOCK_PLAIN_STORYBOOK: types.LoadedStorybook = {
+	name = "Plain Storybook",
 	storyRoots = {},
 }
 
-local MOCK_ROACT_STORYBOOK: types.Storybook = {
+local MOCK_ROACT_STORYBOOK: types.LoadedStorybook = {
+	name = "Roact Storybook",
 	storyRoots = {},
 	packages = {
 		Roact = {
@@ -24,7 +26,8 @@ local MOCK_ROACT_STORYBOOK: types.Storybook = {
 	},
 }
 
-local MOCK_REACT_STORYBOOK: types.Storybook = {
+local MOCK_REACT_STORYBOOK: types.LoadedStorybook = {
+	name = "React Storybook",
 	storyRoots = {},
 	packages = {
 		React = {
@@ -141,7 +144,8 @@ describe("legacy support", function()
 	test("packages attached to the story get grouped in `packages` object", function()
 		local loader = ModuleLoader.new()
 
-		local storybook: types.Storybook = {
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
 			storyRoots = {},
 		}
 
@@ -167,7 +171,8 @@ describe("legacy support", function()
 	test("packages attached to the story take precedence over the storybook", function()
 		local loader = ModuleLoader.new()
 
-		local storybook: types.Storybook = {
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
 			storyRoots = {},
 			packages = {
 				Roact = {},

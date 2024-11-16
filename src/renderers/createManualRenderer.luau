@@ -1,7 +1,7 @@
 local types = require("@root/types")
 
 type StoryProps = types.StoryProps
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 type CleanupFn = () -> ()
@@ -12,7 +12,7 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 	local currentStory
 	local cleanup: (() -> ())?
 
-	local function mount(container: Instance, story: Story<ManualStory>, props: StoryProps)
+	local function mount(container: Instance, story: LoadedStory<ManualStory>, props: StoryProps)
 		currentContainer = container
 		currentStory = story
 
