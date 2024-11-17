@@ -41,8 +41,10 @@ local function loadStoryModule<T>(
 		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
 	end
 
+	local isLegacyStory = typeof(result) == "function"
+
 	-- Support for Hoarcekat stories
-	if typeof(result) == "function" then
+	if isLegacyStory then
 		local callback = result
 		result = {
 			story = function(props)
@@ -60,19 +62,22 @@ local function loadStoryModule<T>(
 		)
 	end
 
-	local packages = migrateLegacyPackages(result)
+	local story: types.Story<T> = result
+
+	local packages = migrateLegacyPackages(story)
 	if not packages then
 		packages = storybook.packages
 	end
 
-	local story = Sift.Dictionary.merge({
+	local loadedStory: types.LoadedStory<T> = {
 		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
 		storybook = storybook,
 		source = storyModule,
-		packages = packages,
-	}, result)
+		story = story.story,
+		packages = if isLegacyStory then {} else packages,
+	}
 
-	return story
+	return Sift.Dictionary.merge(loadedStory, story)
 end
 
 return loadStoryModule
