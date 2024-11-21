@@ -38,7 +38,7 @@ local function loadStoryModule<T>(
 	end)
 
 	if not success then
-		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
+		error(`Failed to load story {storyModule:GetFullName()}:\n{result})`)
 	end
 
 	local isLegacyStory = typeof(result) == "function"
@@ -53,12 +53,27 @@ local function loadStoryModule<T>(
 		}
 	end
 
+	-- selene: allow(global_usage)
+	if _G.ROBLOX_INTERNAL then
+		-- TODO: We need support for substories to be compatible with Developer
+		-- Storybook. In the meantime we're just selecting a randomly accessed
+		-- one
+		if result.stories and not result.story then
+			local randomSubstory
+			for _, substory in result.stories do
+				randomSubstory = substory
+				break
+			end
+			result.story = randomSubstory.story
+		end
+	end
+
 	local isValid, message = types.IStory(result)
 
 	if not isValid then
 		error(
 			`Story is malformed. Check the source of {storyModule:GetFullName()} and make sure its properties are `
-				.. `correct. Error: {message}`
+				.. `correct.\nerr: {message}`
 		)
 	end
 
