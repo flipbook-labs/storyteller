@@ -3,7 +3,7 @@ local Sift = require("@pkg/Sift")
 local createRendererForStory = require("@root/createRendererForStory")
 local types = require("@root/types")
 
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
@@ -75,7 +75,7 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
+local function render<T>(container: Instance, story: LoadedStory<T>): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?

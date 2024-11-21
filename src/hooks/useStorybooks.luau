@@ -7,7 +7,7 @@ local types = require("@root/types")
 
 type UnavailableStorybook = {
 	problem: string,
-	storybook: types.Storybook,
+	storybook: types.LoadedStorybook,
 }
 
 --[=[
@@ -69,7 +69,7 @@ local function useStorybooks(
 	parent: Instance,
 	loader: ModuleLoader.ModuleLoader
 ): {
-	available: { types.Storybook },
+	available: { types.LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
 	local storybooks, setStorybooks = React.useState({})
@@ -80,7 +80,7 @@ local function useStorybooks(
 		local newUnavailableStorybooks: { UnavailableStorybook } = {}
 
 		for _, storybookModule in findStorybookModules(parent) do
-			local storybook: types.Storybook?
+			local storybook: types.LoadedStorybook?
 			local success, result = pcall(function()
 				storybook = loadStorybookModule(loader, storybookModule)
 			end)

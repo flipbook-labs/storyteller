@@ -25,7 +25,8 @@ test("find all story modules for a storybook", function()
 		container = folder
 	end
 
-	local storybook: types.Storybook = {
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
 		storyRoots = {
 			container,
 		},

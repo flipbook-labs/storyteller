@@ -11,7 +11,7 @@ local test = JestGlobals.test
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 local container: Instance
-local story: types.Story<TextLabel>
+local story: types.LoadedStory<TextLabel>
 local mockCreateRendererForStory = jest.fn()
 local render
 

@@ -2,7 +2,7 @@ local Sift = require("@pkg/Sift")
 
 local types = require("@root/types")
 
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
@@ -15,7 +15,7 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 
 	local handle: Instance?
 
-	local function mount(container: Instance, story: Story<Instance>, props: StoryProps)
+	local function mount(container: Instance, story: LoadedStory<Instance>, props: StoryProps)
 		if typeof(story.story) == "Instance" then
 			handle = story.story
 		elseif typeof(story.story) == "function" then
