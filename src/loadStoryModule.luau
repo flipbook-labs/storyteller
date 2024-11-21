@@ -55,6 +55,9 @@ local function loadStoryModule<T>(
 
 	-- selene: allow(global_usage)
 	if _G.ROBLOX_INTERNAL then
+		-- TODO: We need support for substories to be compatible with Developer
+		-- Storybook. In the meantime we're just selecting a randomly accessed
+		-- one
 		if result.stories and not result.story then
 			local randomSubstory
 			for _, substory in result.stories do
