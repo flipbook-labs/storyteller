@@ -2,6 +2,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
 local findStorybookModules = require("@root/findStorybookModules")
+local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
@@ -82,18 +83,25 @@ local function useStorybooks(parent: Instance, loader: ModuleLoader.ModuleLoader
 	end, { parent, loader } :: { unknown })
 
 	React.useEffect(function()
-		local conn = loader.loadedModuleChanged:Connect(function(other)
-			if types.IStorybook(other) then
+		local function reloadIfStorybook(instance: Instance)
+			if isStorybookModule(instance) then
 				loadStorybooks()
 			end
-		end)
+		end
+
+		local connections = {
+			loader.loadedModuleChanged:Connect(reloadIfStorybook),
+			parent.DescendantAdded:Connect(reloadIfStorybook),
+		}
 
 		loadStorybooks()
 
 		return function()
-			conn:Disconnect()
+			for _, conn in connections do
+				conn:Disconnect()
+			end
 		end
-	end, { loadStorybooks, loader } :: { unknown })
+	end, { loadStorybooks, loader, parent } :: { unknown })
 
 	return storybooks
 end
