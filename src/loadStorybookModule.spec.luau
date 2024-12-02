@@ -46,6 +46,20 @@ test("use the name of the storybook module by default", function()
 	expect(storybook.name).toBe("SampleStorybook")
 end)
 
+test("nameless storybook", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+		return {
+			storyRoots = {}
+		}
+	]])
+	storybookModule.Name = ".storybook"
+
+	local storybook = loadStorybookModule(loader, storybookModule)
+
+	expect(storybook.name).toBe("Unnamed Storybook")
+end)
+
 test("generic failures for storybook", function()
 	local loader = ModuleLoader.new()
 	local storybookModule = createMockStorybookModule([[

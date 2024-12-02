@@ -34,7 +34,12 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 	end
 
 	if not result.name then
-		result.name = module.Name:gsub(constants.STORYBOOK_NAME_PATTERN, "")
+		local name = module.Name:gsub(constants.STORYBOOK_NAME_PATTERN, "")
+		if name == "" then
+			result.name = "Unnamed Storybook"
+		else
+			result.name = name
+		end
 	end
 
 	return result
