@@ -18,9 +18,6 @@ local loader: ModuleLoader.ModuleLoader
 local container: Folder
 local storybookModule: ModuleScript
 
--- TODO: Create a hierarchy of Storybooks
--- TODO: Test that a storybook change (like to its name or packages) will re-render
-
 beforeEach(function()
 	loader = ModuleLoader.new()
 
