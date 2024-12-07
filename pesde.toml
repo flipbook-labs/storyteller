@@ -5,6 +5,8 @@ authors = ["Marin Minnerly"]
 repository = "https://github.com/flipbook-labs/storyteller"
 license = "MIT"
 
+includes = ["dist/", "pesde.toml", "README.md", "LICENSE"]
+
 [target]
 environment = "roblox"
 lib = "dist/init.luau"
