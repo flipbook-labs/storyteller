@@ -37,7 +37,7 @@ local function buildPesdePackage()
 	run("pesde", { "publish", "--dry-run" })
 
 	local archivePath = "package.tar.gz"
-	run("unzip", { archivePath, "-d", PESDE_BUILD_DIR })
+	run("tar", { "-xzf", archivePath, "-C", PESDE_BUILD_DIR })
 	run("rm", { archivePath })
 end
 
