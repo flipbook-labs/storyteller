@@ -1,0 +1,36 @@
+name = "flipbook_labs/storyteller"
+version = "0.5.0"
+description = "Discovery and rendering of UI stories in Roblox"
+authors = ["Marin Minnerly"]
+repository = "https://github.com/flipbook-labs/storyteller"
+license = "MIT"
+
+includes = ["dist/", "pesde.toml", "README.md", "LICENSE"]
+
+[target]
+environment = "roblox"
+lib = "dist/init.luau"
+build_files = ["dist"]
+
+[scripts]
+roblox_sync_config_generator = ".pesde/roblox_sync_config_generator.luau"
+sourcemap_generator = ".pesde/sourcemap_generator.luau"
+
+[indices]
+default = "https://github.com/daimond113/pesde-index"
+
+[wally_indices]
+default = "https://github.com/UpliftGames/wally-index"
+
+[dependencies]
+Sift = { wally = "wally#csqrl/sift", version = "^0.0.9" }
+ModuleLoader = { wally = "wally#flipbook-labs/module-loader", version = "^0.6.2" }
+t = { wally = "wally#osyrisrblx/t", version = "^3.1.1" }
+React = { wally = "wally#jsdotlua/react", version = "^17.2.0" }
+
+[dev_dependencies]
+ReactRoblox = { wally = "wally#jsdotlua/react-roblox", version = "^17.2.0" }
+Roact = { wally = "wally#roblox/roact", version = "^1.4.4" }
+Fusion = { wally = "wally#elttob/fusion", version = "^0.2.0" }
+Jest = { wally = "wally#jsdotlua/jest", version = "^3.6.1-rc.2" }
+JestGlobals = { wally = "wally#jsdotlua/jest-globals", version = "^3.6.1-rc.2" }

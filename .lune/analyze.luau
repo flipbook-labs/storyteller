@@ -23,7 +23,7 @@ run("luau-lsp", {
 	`--sourcemap={project.SOURCEMAP_PATH}`,
 	`--defs={globalDefsPath}`,
 	"--settings=./.vscode/settings.json",
-	"--ignore=**/_Index/**",
+	"--ignore=**/.pesde/**",
 	project.SOURCE_PATH,
 	project.LUNE_SCRIPTS_PATH,
 })

@@ -14,6 +14,7 @@ local output = if args.output then args.output else project.MODEL_FILENAME
 assert(typeof(output) == "string", `bad value for output (string expected, got {typeof(output)})`)
 
 local WALLY_BUILD_DIR = ".build/wally"
+local PESDE_BUILD_DIR = ".build/pesde"
 
 local function buildWallyPackage()
 	run("rm", { "-rf", WALLY_BUILD_DIR })
@@ -25,6 +26,18 @@ local function buildWallyPackage()
 
 	run("unzip", { archivePath, "-d", WALLY_BUILD_DIR })
 
+	run("rm", { archivePath })
+end
+
+local function buildPesdePackage()
+	run("rm", { "-rf", PESDE_BUILD_DIR })
+
+	run("mkdir", { "-p", PESDE_BUILD_DIR })
+
+	run("pesde", { "publish", "--dry-run" })
+
+	local archivePath = "package.tar.gz"
+	run("tar", { "-xzf", archivePath, "-C", PESDE_BUILD_DIR })
 	run("rm", { archivePath })
 end
 
@@ -40,6 +53,7 @@ local function build()
 	run("rojo", { "build", "-o", output })
 
 	buildWallyPackage()
+	buildPesdePackage()
 end
 
 build()
