@@ -18,6 +18,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install pesde
+        uses: 0x5eal/semver-luau/.github/actions/setup-pesde@main
+
+      - name: Install packages
+        run: pesde install
+
       - name: Get model file name
         run: |
           name=$(jq -r .name default.project.json)

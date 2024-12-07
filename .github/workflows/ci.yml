@@ -16,6 +16,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install pesde
+        uses: 0x5eal/semver-luau/.github/actions/setup-pesde@main
+
+      - name: Install packages
+        run: pesde install
+
       - name: Install packages
         run: lune run wally-install
 
@@ -44,6 +50,12 @@ jobs:
       - uses: CompeyDev/setup-rokit@v0.1.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pesde
+        uses: 0x5eal/semver-luau/.github/actions/setup-pesde@main
+
+      - name: Install packages
+        run: pesde install
 
       - name: Setup Lune typedefs
         run: lune setup
