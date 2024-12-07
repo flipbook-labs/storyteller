@@ -36,6 +36,13 @@ jobs:
         if: ${{ github.event.release }}
         run: wally publish
 
+      - name: Login to Pesde registry
+        run: pesde auth login --token ${{ secrets.PESDE_REGISTRY_TOKEN }}
+
+      - name: Publish to Pesde
+        if: ${{ github.event.release }}
+        run: pesde publish
+
       - uses: softprops/action-gh-release@v1
         if: ${{ github.event.release }}
         with:
