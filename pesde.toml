@@ -28,7 +28,7 @@ ModuleLoader = { wally = "wally#flipbook-labs/module-loader", version = "^0.6.2"
 t = { wally = "wally#osyrisrblx/t", version = "^3.1.1" }
 React = { wally = "wally#jsdotlua/react", version = "^17.2.0" }
 
-[dev-dependencies]
+[dev_dependencies]
 ReactRoblox = { wally = "wally#jsdotlua/react-roblox", version = "^17.2.0" }
 Roact = { wally = "wally#roblox/roact", version = "^1.4.4" }
 Fusion = { wally = "wally#elttob/fusion", version = "^0.2.0" }
