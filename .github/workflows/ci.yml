@@ -22,9 +22,6 @@ jobs:
       - name: Install packages
         run: pesde install
 
-      - name: Install packages
-        run: lune run wally-install
-
       - name: Lint
         run: lune run lint
 
@@ -59,9 +56,6 @@ jobs:
 
       - name: Setup Lune typedefs
         run: lune setup
-
-      - name: Install packages
-        run: lune run wally-install
 
       - name: Run Luau analysis
         run: lune run analyze
