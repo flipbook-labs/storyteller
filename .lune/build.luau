@@ -34,11 +34,10 @@ local function buildPesdePackage()
 
 	run("mkdir", { "-p", PESDE_BUILD_DIR })
 
-	local archivePath = `{PESDE_BUILD_DIR}/package.zip`
 	run("pesde", { "publish", "--dry-run" })
 
+	local archivePath = "package.tar.gz"
 	run("unzip", { archivePath, "-d", PESDE_BUILD_DIR })
-
 	run("rm", { archivePath })
 end
 
