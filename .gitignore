@@ -12,6 +12,7 @@ globalTypes.d.luau
 
 # Pesde
 roblox_packages
+pesde.lock
 
 # Wally
 /DevPackages
