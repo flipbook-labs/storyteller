@@ -29,6 +29,11 @@ local function createRoactRenderer(packages: Packages): StoryRenderer<unknown>
 			element = Roact.createElement(currentComponent, props)
 		end
 
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+		if mapStory then
+			element = Roact.createElement(mapStory(story.story), props, element)
+		end
+
 		tree = Roact.mount(element, container, "RoactRenderer")
 	end
 
