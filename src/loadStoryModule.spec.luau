@@ -58,8 +58,12 @@ test("load a story module as a table", function()
 
 	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
 
-	assert(story ~= nil, "story not defined")
-	expect(story.name).toEqual("Sample")
+	expect(story).toEqual({
+		name = "Sample",
+		source = expect.anything(),
+		story = expect.any("function"),
+		storybook = MOCK_PLAIN_STORYBOOK,
+	})
 end)
 
 test("handle Hoarcekat stories", function()
