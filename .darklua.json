@@ -15,11 +15,6 @@
         "indexing_style": "property"
       }
     },
-    {
-      "rule": "inject_global_value",
-      "identifier": "ROBLOX_INTERNAL",
-      "env": "ROBLOX_INTERNAL"
-    },
     "compute_expression",
     "remove_unused_if_branch",
     "remove_unused_while",

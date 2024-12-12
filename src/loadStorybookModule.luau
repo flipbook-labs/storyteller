@@ -42,11 +42,8 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 		end
 	end
 
-	-- selene: allow(global_usage)
-	if _G.ROBLOX_INTERNAL then
-		if result.group then
-			result.name = `{result.group} / {result.name}`
-		end
+	if result.group then
+		result.name = `{result.group} / {result.name}`
 	end
 
 	return result
