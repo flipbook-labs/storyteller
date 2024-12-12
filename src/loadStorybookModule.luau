@@ -23,7 +23,7 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 		return loader:require(module)
 	end)
 
-	assert(wasRequired, `failed to load storybook:\n{result}`)
+	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
 
 	local isStorybook, message = types.IStorybook(result)
 
