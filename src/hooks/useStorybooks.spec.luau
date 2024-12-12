@@ -42,10 +42,34 @@ test("loads storybook modules", function()
 
 	local storybooks = get()
 
-	expect(storybooks).toEqual({
+	expect(storybooks.available).toEqual({
 		{
 			name = "Sample",
 			storyRoots = expect.anything(),
+		},
+	})
+end)
+
+test("storybooks with syntax errors are marked unavailable", function()
+	storybookModule.Source = [[
+		return {
+			syntax error
+		}
+	]]
+
+	local get = renderHook(function()
+		return useStorybooks(container, loader)
+	end)
+
+	local storybooks = get()
+
+	expect(storybooks.unavailable).toEqual({
+		{
+			problem = expect.any("string"),
+			storybook = {
+				name = storybookModule.Name,
+				storyRoots = {},
+			},
 		},
 	})
 end)
@@ -67,7 +91,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks).toEqual({
+	expect(storybooks.available).toEqual({
 		{
 			name = "Sample",
 			storyRoots = expect.anything(),
@@ -80,7 +104,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	storybooks = get()
 
-	expect(storybooks).toEqual({
+	expect(storybooks.available).toEqual({
 		{
 			name = "Sample",
 			storyRoots = expect.anything(),
@@ -104,7 +128,7 @@ test.skip("removing a storybook from the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks).toEqual({})
+	expect(storybooks.available).toEqual({})
 end)
 
 test("re-renders on module changes", function()
@@ -114,7 +138,7 @@ test("re-renders on module changes", function()
 
 	local storybooks = get()
 
-	expect(storybooks).toEqual({
+	expect(storybooks.available).toEqual({
 		{
 			name = "Sample",
 			storyRoots = expect.anything(),
@@ -134,7 +158,7 @@ test("re-renders on module changes", function()
 
 	storybooks = get()
 
-	expect(storybooks).toEqual({
+	expect(storybooks.available).toEqual({
 		{
 			name = "New Name",
 			storyRoots = expect.anything(),
