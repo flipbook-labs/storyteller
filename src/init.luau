@@ -15,6 +15,8 @@ local types = require("./types")
 	@class Storyteller
 ]=]
 
+local useStorybooks = require("./hooks/useStorybooks")
+
 export type RenderLifecycle = types.RenderLifecycle
 export type Story<T> = types.Story<T>
 export type LoadedStory<T> = types.LoadedStory<T>
@@ -23,6 +25,7 @@ export type LoadedStorybook = types.LoadedStorybook
 export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
+export type UnavailableStorybook = useStorybooks.UnavailableStorybook
 
 return {
 	-- Validation
@@ -42,5 +45,5 @@ return {
 
 	-- Hooks
 	useStory = require("./hooks/useStory"),
-	useStorybooks = require("./hooks/useStorybooks"),
+	useStorybooks = useStorybooks,
 }

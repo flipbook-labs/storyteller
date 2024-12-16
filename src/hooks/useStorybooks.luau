@@ -6,7 +6,7 @@ local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
-type UnavailableStorybook = {
+export type UnavailableStorybook = {
 	problem: string,
 	storybook: types.LoadedStorybook,
 }
