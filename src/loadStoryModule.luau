@@ -62,7 +62,11 @@ local function loadStoryModule<T>(
 			randomSubstory = substory
 			break
 		end
-		result.story = randomSubstory.story
+		if typeof(randomSubstory) == "table" then
+			result.story = randomSubstory.story
+		else
+			result.story = randomSubstory
+		end
 	end
 
 	local isValid, message = types.IStory(result)
