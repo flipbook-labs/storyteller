@@ -22,8 +22,6 @@ local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 	local currentStory
 
 	local function reactRender(story: types.LoadedStory<unknown>, props)
-		local mapStory = if story.storybook then story.storybook.mapStory else nil
-
 		local element
 		if isReactElement(story.story) then
 			element = story.story
@@ -31,8 +29,9 @@ local function createReactRenderer(packages: Packages): StoryRenderer<unknown>
 			element = React.createElement(story.story, props)
 		end
 
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
 		if mapStory then
-			element = React.createElement(mapStory(story), props, element)
+			element = React.createElement(mapStory(story.story), props, element)
 		end
 
 		currentStory = story
