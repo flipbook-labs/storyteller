@@ -30,6 +30,20 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
 
+	-- Interop with some older storybooks. Ideally this shouldn't be merged
+	if not result.storyRoots then
+		if result.storyRoot then
+			-- Some storybooks use `storyRoot: Instance` instead of a
+			-- `storyRoots` array.
+			result.storyRoots = { result.storyRoot }
+			result.storyRoot = nil
+		else
+			-- Some storybooks like AppChat don't supply a storyRoots array.
+			-- Looks like the default behavior should be to use the parent
+			result.storyRoots = { module.Parent }
+		end
+	end
+
 	local isStorybook, message = types.IStorybook(result)
 
 	assert(isStorybook, `failed to load storybook {module:GetFullName()}:\n{message}`)
