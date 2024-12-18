@@ -64,6 +64,7 @@ export type LoadedStorybook = {
 	name: string,
 	storyRoots: { Instance },
 	loader: ModuleLoader,
+	source: ModuleScript,
 
 	packages: StoryPackages?,
 }

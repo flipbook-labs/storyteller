@@ -50,6 +50,7 @@ beforeEach(function()
 	storybook = {
 		name = "Storybook",
 		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		storyRoots = { container },
 	}
 end)

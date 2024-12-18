@@ -10,6 +10,7 @@ local function createStory<T>(element: T, packages: types.StoryPackages?): types
 		storybook = {
 			name = "Storybook",
 			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
 			storyRoots = {},
 		},
 		packages = packages,

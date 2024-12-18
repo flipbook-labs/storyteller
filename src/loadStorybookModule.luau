@@ -51,6 +51,7 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		result.name = `{result.group} / {result.name}`
 	end
 
+	result.source = module
 	result.loader = loader
 
 	return result

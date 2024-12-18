@@ -20,12 +20,14 @@ beforeEach(function()
 		name = "Plain Storybook",
 		storyRoots = {},
 		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 	}
 
 	mockRoactStorybook = {
 		name = "Roact Storybook",
 		storyRoots = {},
 		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		packages = {
 			Roact = {
 				createElement = jest.fn(),
@@ -39,6 +41,7 @@ beforeEach(function()
 		name = "React Storybook",
 		storyRoots = {},
 		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		packages = {
 			React = {
 				createElement = jest.fn(),
@@ -159,6 +162,7 @@ describe("legacy support", function()
 			name = "Storybook",
 			storyRoots = {},
 			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
 		}
 
 		local storyModule = createMockStoryModule([[
@@ -185,6 +189,7 @@ describe("legacy support", function()
 			name = "Storybook",
 			storyRoots = {},
 			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
 			},

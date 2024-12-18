@@ -29,6 +29,7 @@ test("find all story modules for a storybook", function()
 	local storybook: types.LoadedStorybook = {
 		name = "Storybook",
 		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			container,
 		},
