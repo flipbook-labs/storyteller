@@ -34,25 +34,14 @@ export type StoryPackages = {
 	[string]: any,
 }
 
-type MapStory = (props: StoryProps) -> any
-
-type RobloxInternalStorybook = {
-	storyRoots: { Instance },
-
-	name: string?,
-	mapStory: ((story: any) -> (props: StoryProps) -> any)?,
-
-	roact: any,
-	react: any,
-	reactRoblox: any,
-}
+type MapStoryFn = (story: any) -> (props: StoryProps) -> any
 
 export type Storybook = {
 	storyRoots: { Instance },
 
 	name: string?,
 	packages: StoryPackages?,
-	mapStory: ((story: any) -> (props: StoryProps) -> any)?,
+	mapStory: MapStoryFn?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),
@@ -66,7 +55,13 @@ export type LoadedStorybook = {
 	loader: ModuleLoader,
 	source: ModuleScript,
 
+	mapStory: MapStoryFn?,
 	packages: StoryPackages?,
+}
+
+export type UnavailableStorybook = {
+	problem: string,
+	storybook: LoadedStorybook,
 }
 
 export type Story<T> = {

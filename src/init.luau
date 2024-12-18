@@ -22,10 +22,10 @@ export type Story<T> = types.Story<T>
 export type LoadedStory<T> = types.LoadedStory<T>
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
+export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-export type UnavailableStorybook = useStorybooks.UnavailableStorybook
 
 return {
 	-- Validation

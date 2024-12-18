@@ -1,19 +1,20 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local Sift = require("@pkg/Sift")
 
 local findStorybookModules = require("@root/findStorybookModules")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
+local useCallback = React.useCallback
+local useEffect = React.useEffect
 local useRef = React.useRef
 local useState = React.useState
-local useCallback = React.useCallback
 
-export type UnavailableStorybook = {
-	problem: string,
-	storybook: types.LoadedStorybook,
-}
+type ModuleLoader = ModuleLoader.ModuleLoader
+type LoadedStorybook = types.LoadedStorybook
+type UnavailableStorybook = types.UnavailableStorybook
 
 --[=[
 	Performs all the discovery and loading of Storybook modules that would
@@ -36,9 +37,8 @@ export type UnavailableStorybook = {
 
 	local function StorybookList(props: {
 		parent: Instance,
-		loader: ModuleLoader,
 	})
-		local storybooks = Storyteller.useStorybooks(props.parent, props.loader)
+		local storybooks = Storyteller.useStorybooks(props.parent)
 
 		local children = {}
 		for index, storybook in storybooks do
@@ -71,80 +71,100 @@ export type UnavailableStorybook = {
 	@within Storyteller
 ]=]
 local function useStorybooks(parent: Instance): {
-	available: { types.LoadedStorybook },
+	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
-	local storybooks, setStorybooks = useState({})
+	local connections = useRef({} :: { RBXScriptConnection })
+	local storybooks, setStorybooks = useState({} :: { LoadedStorybook })
 	local unavailableStorybooks, setUnavailableStorybooks = useState({} :: { UnavailableStorybook })
 
-	local loaders = useRef({} :: { [ModuleScript]: ModuleLoader.ModuleLoader })
+	local loadStorybook = useCallback(function(storybookModule: ModuleScript, loader: ModuleLoader)
+		local storybook: LoadedStorybook?
+		local success, result = pcall(function()
+			storybook = loadStorybookModule(storybookModule, loader)
+		end)
 
-	local getOrCreateLoader = useCallback(function(storybookModule: ModuleScript)
-		local existingLoader = loaders.current[storybookModule]
-		if existingLoader then
-			return existingLoader
+		-- TODO: The logic to add/update storybooks at their index is nasty.
+		-- Revise this before merging
+		if success and storybook then
+			setStorybooks(function(prev)
+				local new = table.clone(prev)
+				local index = Sift.List.findWhere(new, function(other)
+					return other.source == storybookModule
+				end)
+
+				if index then
+					new[index] = storybook
+				else
+					table.insert(new, storybook)
+				end
+
+				return new
+			end)
 		else
-			local loader = ModuleLoader.new()
-			loaders.current[storybookModule] = loader
-			return loader
+			local unavailableStorybook: UnavailableStorybook = {
+				problem = result,
+				storybook = {
+					name = storybookModule.Name,
+					loader = loader,
+					source = storybookModule,
+					storyRoots = {},
+				},
+			}
+
+			setUnavailableStorybooks(function(prev)
+				local new = table.clone(prev)
+				local index = Sift.List.findWhere(new, function(other)
+					return other.storybook.source == storybookModule
+				end)
+
+				if index then
+					new[index] = unavailableStorybook
+				else
+					table.insert(new, unavailableStorybook)
+				end
+
+				return new
+			end)
 		end
 	end, {})
 
-	local loadStorybooks = useCallback(function()
-		local newStorybooks = {}
-		local newUnavailableStorybooks: { UnavailableStorybook } = {}
+	local loadAllStorybooks = useCallback(function()
+		setStorybooks({})
+		setUnavailableStorybooks({})
 
 		for _, storybookModule in findStorybookModules(parent) do
-			local loader = getOrCreateLoader(storybookModule)
+			local loader = ModuleLoader.new()
 
-			-- TODO: Do we need to clear the loader first?
+			table.insert(
+				connections.current,
+				loader.loadedModuleChanged:Connect(function()
+					loader:clear()
+					loadStorybook(storybookModule, loader)
+				end)
+			)
 
-			local storybook: types.LoadedStorybook?
-			local success, result = pcall(function()
-				storybook = loadStorybookModule(storybookModule, loader)
-			end)
-
-			if success then
-				table.insert(newStorybooks, storybook)
-			else
-				table.insert(newUnavailableStorybooks, {
-					problem = result,
-					storybook = {
-						name = storybookModule.Name,
-						loader = loader,
-						storyRoots = {},
-					},
-				})
-			end
+			loadStorybook(storybookModule, loader)
 		end
+	end, { parent })
 
-		setStorybooks(newStorybooks)
-		setUnavailableStorybooks(newUnavailableStorybooks)
-	end, { parent, getOrCreateLoader } :: { unknown })
-
-	React.useEffect(function()
+	useEffect(function()
 		local function reloadIfStorybook(instance: Instance)
 			if isStorybookModule(instance) then
-				loadStorybooks()
+				loadAllStorybooks()
 			end
 		end
 
-		local connections = {
-			parent.DescendantAdded:Connect(reloadIfStorybook),
-		}
+		table.insert(connections.current, parent.DescendantAdded:Connect(reloadIfStorybook))
 
-		for _, loader in loaders.current do
-			table.insert(connections, loader.loadedModuleChanged:Connect(reloadIfStorybook))
-		end
-
-		loadStorybooks()
+		loadAllStorybooks()
 
 		return function()
-			for _, conn in connections do
-				conn:Disconnect()
+			for _, connection in connections.current do
+				connection:Disconnect()
 			end
 		end
-	end, { loadStorybooks, parent } :: { unknown })
+	end, { parent } :: { unknown })
 
 	return {
 		available = storybooks,

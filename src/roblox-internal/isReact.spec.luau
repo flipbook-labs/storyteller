@@ -13,14 +13,14 @@ test("React is React", function()
 	expect(isReact(React)).toBeTruthy()
 end)
 
-test("RoactCompat is not React", function()
+test("RoactCompat is React", function()
 	expect(isReact(RoactCompat)).toBeTruthy()
 end)
 
 test("ReactRoblox is not React", function()
-	expect(isReact(ReactRoblox)).toBeTruthy()
+	expect(isReact(ReactRoblox)).toBeFalsy()
 end)
 
 test("legacy Roact is not React", function()
-	expect(isReact(Roact)).toBeTruthy()
+	expect(isReact(Roact)).toBeFalsy()
 end)
