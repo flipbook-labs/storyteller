@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
@@ -14,13 +13,10 @@ local act = ReactRoblox.act
 
 type LoadedStorybook = types.LoadedStorybook
 
-local loader: ModuleLoader.ModuleLoader
 local container: Folder
 local storybookModule: ModuleScript
 
 beforeEach(function()
-	loader = ModuleLoader.new()
-
 	container = Instance.new("Folder")
 
 	storybookModule = Instance.new("ModuleScript")
@@ -37,7 +33,7 @@ end)
 
 test("loads storybook modules", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
@@ -58,7 +54,7 @@ test("storybooks with syntax errors are marked unavailable", function()
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
@@ -86,7 +82,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
@@ -119,7 +115,7 @@ end)
 -- TOOD: Update useStorybooks so this test can pass
 test.skip("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	act(function()
@@ -133,7 +129,7 @@ end)
 
 test("re-renders on module changes", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()

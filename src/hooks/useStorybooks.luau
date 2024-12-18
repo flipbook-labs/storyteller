@@ -6,6 +6,10 @@ local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
+local useRef = React.useRef
+local useState = React.useState
+local useCallback = React.useCallback
+
 export type UnavailableStorybook = {
 	problem: string,
 	storybook: types.LoadedStorybook,
@@ -66,24 +70,38 @@ export type UnavailableStorybook = {
 	@tag Storybook
 	@within Storyteller
 ]=]
-local function useStorybooks(
-	parent: Instance,
-	loader: ModuleLoader.ModuleLoader
-): {
+local function useStorybooks(parent: Instance): {
 	available: { types.LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
-	local storybooks, setStorybooks = React.useState({})
-	local unavailableStorybooks, setUnavailableStorybooks = React.useState({} :: { UnavailableStorybook })
+	local storybooks, setStorybooks = useState({})
+	local unavailableStorybooks, setUnavailableStorybooks = useState({} :: { UnavailableStorybook })
 
-	local loadStorybooks = React.useCallback(function()
+	local loaders = useRef({} :: { [ModuleScript]: ModuleLoader.ModuleLoader })
+
+	local getOrCreateLoader = useCallback(function(storybookModule: ModuleScript)
+		local existingLoader = loaders.current[storybookModule]
+		if existingLoader then
+			return existingLoader
+		else
+			local loader = ModuleLoader.new()
+			loaders.current[storybookModule] = loader
+			return loader
+		end
+	end, {})
+
+	local loadStorybooks = useCallback(function()
 		local newStorybooks = {}
 		local newUnavailableStorybooks: { UnavailableStorybook } = {}
 
 		for _, storybookModule in findStorybookModules(parent) do
+			local loader = getOrCreateLoader(storybookModule)
+
+			-- TODO: Do we need to clear the loader first?
+
 			local storybook: types.LoadedStorybook?
 			local success, result = pcall(function()
-				storybook = loadStorybookModule(loader, storybookModule)
+				storybook = loadStorybookModule(storybookModule, loader)
 			end)
 
 			if success then
@@ -93,6 +111,7 @@ local function useStorybooks(
 					problem = result,
 					storybook = {
 						name = storybookModule.Name,
+						loader = loader,
 						storyRoots = {},
 					},
 				})
@@ -101,7 +120,7 @@ local function useStorybooks(
 
 		setStorybooks(newStorybooks)
 		setUnavailableStorybooks(newUnavailableStorybooks)
-	end, { parent, loader } :: { unknown })
+	end, { parent, getOrCreateLoader } :: { unknown })
 
 	React.useEffect(function()
 		local function reloadIfStorybook(instance: Instance)
@@ -111,9 +130,12 @@ local function useStorybooks(
 		end
 
 		local connections = {
-			loader.loadedModuleChanged:Connect(reloadIfStorybook),
 			parent.DescendantAdded:Connect(reloadIfStorybook),
 		}
+
+		for _, loader in loaders.current do
+			table.insert(connections, loader.loadedModuleChanged:Connect(reloadIfStorybook))
+		end
 
 		loadStorybooks()
 
@@ -122,7 +144,7 @@ local function useStorybooks(
 				conn:Disconnect()
 			end
 		end
-	end, { loadStorybooks, loader, parent } :: { unknown })
+	end, { loadStorybooks, parent } :: { unknown })
 
 	return {
 		available = storybooks,
