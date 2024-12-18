@@ -22,7 +22,13 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local currentStory
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 		local element
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
 
 		if isRoactElement(story.story) then
 			currentComponent = (story.story :: any).component
@@ -32,7 +38,6 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 			element = Roact.createElement(currentComponent, props)
 		end
 
-		local mapStory = if story.storybook then story.storybook.mapStory else nil
 		if mapStory then
 			element = Roact.createElement(mapStory(story.story), props, element)
 		end

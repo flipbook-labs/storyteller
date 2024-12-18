@@ -35,6 +35,7 @@ export type StoryPackages = {
 }
 
 type MapStoryFn = (story: any) -> (props: StoryProps) -> any
+type MapDefinitionFn = (story: any) -> any
 
 export type Storybook = {
 	storyRoots: { Instance },
@@ -42,6 +43,7 @@ export type Storybook = {
 	name: string?,
 	packages: StoryPackages?,
 	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),
@@ -56,6 +58,7 @@ export type LoadedStorybook = {
 	source: ModuleScript,
 
 	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 	packages: StoryPackages?,
 }
 
