@@ -4,6 +4,9 @@ local constants = require("@root/constants")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
+type LoadedStorybook = types.LoadedStorybook
+type ModuleLoader = ModuleLoader.ModuleLoader
+
 --[=[
 	Loads the source of a Storybook module.
 
@@ -18,7 +21,9 @@ local types = require("@root/types")
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.LoadedStorybook
+local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
+	local loader = if providedLoader then providedLoader else ModuleLoader.new()
+
 	local wasRequired, result = pcall(function()
 		return loader:require(module)
 	end)
@@ -41,6 +46,9 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 			result.name = name
 		end
 	end
+
+	result.source = module
+	result.loader = loader
 
 	return result
 end

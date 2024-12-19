@@ -1,4 +1,3 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
@@ -28,13 +27,9 @@ type LoadedStory<T> = types.LoadedStory<T>
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStoryModule<T>(
-	loader: ModuleLoader.ModuleLoader,
-	storyModule: ModuleScript,
-	storybook: LoadedStorybook
-): LoadedStory<T>
+local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedStorybook): LoadedStory<T>
 	local success, result = pcall(function()
-		return loader:require(storyModule)
+		return storybook.loader:require(storyModule)
 	end)
 
 	if not success then

@@ -1,11 +1,19 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local Sift = require("@pkg/Sift")
 
 local findStorybookModules = require("@root/findStorybookModules")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
+local useCallback = React.useCallback
+local useEffect = React.useEffect
+local useRef = React.useRef
+local useState = React.useState
+
+type ModuleLoader = ModuleLoader.ModuleLoader
+type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = {
 	problem: string,
 	storybook: types.LoadedStorybook,
@@ -32,9 +40,8 @@ type UnavailableStorybook = {
 
 	local function StorybookList(props: {
 		parent: Instance,
-		loader: ModuleLoader,
 	})
-		local storybooks = Storyteller.useStorybooks(props.parent, props.loader)
+		local storybooks = Storyteller.useStorybooks(props.parent)
 
 		local children = {}
 		for index, storybook in storybooks do
@@ -66,63 +73,121 @@ type UnavailableStorybook = {
 	@tag Storybook
 	@within Storyteller
 ]=]
-local function useStorybooks(
-	parent: Instance,
-	loader: ModuleLoader.ModuleLoader
-): {
-	available: { types.LoadedStorybook },
+local function useStorybooks(parent: Instance): {
+	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
-	local storybooks, setStorybooks = React.useState({})
-	local unavailableStorybooks, setUnavailableStorybooks = React.useState({} :: { UnavailableStorybook })
+	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
+	local storybooks, setStorybooks = useState({} :: { LoadedStorybook })
+	local unavailableStorybooks, setUnavailableStorybooks = useState({} :: { UnavailableStorybook })
 
-	local loadStorybooks = React.useCallback(function()
-		local newStorybooks = {}
-		local newUnavailableStorybooks: { UnavailableStorybook } = {}
+	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
+		local existing = storybookConnections.current[storybookModule]
+		if existing then
+			return existing
+		else
+			local new = {}
+			storybookConnections.current[storybookModule] = new
+			return new
+		end
+	end, {})
 
-		for _, storybookModule in findStorybookModules(parent) do
-			local storybook: types.LoadedStorybook?
+	local loadStorybook = useCallback(function(storybookModule: ModuleScript)
+		local connections = getOrCreateConnectionObject(storybookModule)
+		local loader = ModuleLoader.new()
+
+		local reloadStorybook
+
+		local function load()
+			for _, connection in connections do
+				connection:Disconnect()
+			end
+
+			local storybook: LoadedStorybook?
 			local success, result = pcall(function()
-				storybook = loadStorybookModule(loader, storybookModule)
+				storybook = loadStorybookModule(storybookModule, loader)
 			end)
 
-			if success then
-				table.insert(newStorybooks, storybook)
+			table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
+			table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
+
+			-- TODO: The logic to add/update storybooks at their index is nasty.
+			-- Revise this before merging
+			if success and storybook then
+				setStorybooks(function(prev)
+					local new = table.clone(prev)
+					local index = Sift.List.findWhere(new, function(other: LoadedStorybook)
+						return other.source == storybookModule
+					end)
+
+					if index then
+						new[index] = storybook
+					else
+						table.insert(new, storybook)
+					end
+
+					return new
+				end)
 			else
-				table.insert(newUnavailableStorybooks, {
+				local unavailableStorybook: UnavailableStorybook = {
 					problem = result,
 					storybook = {
 						name = storybookModule.Name,
+						loader = loader,
+						source = storybookModule,
 						storyRoots = {},
 					},
-				})
+				}
+
+				setUnavailableStorybooks(function(prev)
+					local new = table.clone(prev)
+					local index = Sift.List.findWhere(new, function(other: UnavailableStorybook)
+						return other.storybook.source == storybookModule
+					end)
+
+					if index then
+						new[index] = unavailableStorybook
+					else
+						table.insert(new, unavailableStorybook)
+					end
+
+					return new
+				end)
 			end
 		end
 
-		setStorybooks(newStorybooks)
-		setUnavailableStorybooks(newUnavailableStorybooks)
-	end, { parent, loader } :: { unknown })
+		function reloadStorybook(instance: Instance)
+			if instance == storybookModule and isStorybookModule(instance) then
+				for _, connection in connections do
+					connection:Disconnect()
+				end
 
-	React.useEffect(function()
-		local function reloadIfStorybook(instance: Instance)
-			if isStorybookModule(instance) then
-				loadStorybooks()
+				loader:clear()
+				load()
 			end
 		end
 
-		local connections = {
-			loader.loadedModuleChanged:Connect(reloadIfStorybook),
-			parent.DescendantAdded:Connect(reloadIfStorybook),
-		}
+		load()
+	end, {})
 
-		loadStorybooks()
+	useEffect(function()
+		setStorybooks({})
+		setUnavailableStorybooks({})
+
+		local storybookModules = findStorybookModules(parent)
+
+		for _, storybookModule in storybookModules do
+			task.spawn(loadStorybook, storybookModule)
+		end
 
 		return function()
-			for _, conn in connections do
-				conn:Disconnect()
+			for _, connections in storybookConnections.current do
+				for _, connection in connections do
+					connection:Disconnect()
+				end
 			end
 		end
-	end, { loadStorybooks, loader, parent } :: { unknown })
+	end, { parent } :: { unknown })
 
 	return {
 		available = storybooks,

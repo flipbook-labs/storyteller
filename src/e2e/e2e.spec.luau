@@ -37,7 +37,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		} :: any
 	) :: ModuleLoader.ModuleLoader
 
-	local storybook = loadStorybookModule(mockModuleLoader, storybookModule)
+	local storybook = loadStorybookModule(storybookModule, mockModuleLoader)
 	local storyModules = findStoryModulesForStorybook(storybook)
 	local container
 
@@ -65,7 +65,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		assert(#storyModules >= 2, "storybook must have at least 2 stories")
 
 		for _, storyModule in storyModules do
-			local story = loadStoryModule(mockModuleLoader, storyModule, storybook)
+			local story = loadStoryModule(storyModule, storybook)
 
 			if story.controls then
 				numStoriesWithControls += 1
@@ -78,7 +78,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 	describeEach(storyModules)("%s", function(storyModule)
 		test("basic mount/unmount lifecycle", function()
-			local story = loadStoryModule(mockModuleLoader, storyModule, storybook)
+			local story = loadStoryModule(storyModule, storybook)
 			local lifecycle = render(container, story)
 
 			afterRender()
@@ -91,7 +91,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		end)
 
 		test("rerenders on control changes", function()
-			local story = loadStoryModule(mockModuleLoader, storyModule, storybook)
+			local story = loadStoryModule(storyModule, storybook)
 
 			if story.controls then
 				local lifecycle = render(container, story)

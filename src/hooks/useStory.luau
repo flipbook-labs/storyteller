@@ -1,4 +1,3 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
 local loadStoryModule = require("@root/loadStoryModule")
@@ -28,11 +27,10 @@ local types = require("@root/types")
 		parent: Instance,
 		storyModule: ModuleScript,
 		storybook: Storybook,
-		loader: ModuleLoader,
 	})
 		local ref = useRef(nil :: Frame?)
 
-		local story = Storyteller.useStory(props.storyModule, props.storybook, props.loader)
+		local story = Storyteller.useStory(props.storyModule, props.storybook)
 
 		useEffect(function()
 			if ref.current then
@@ -54,32 +52,27 @@ local types = require("@root/types")
 	@tag React
 	@tag Story
 	@within Storyteller
-
 ]=]
-local function useStory(
-	module: ModuleScript,
-	storybook: types.LoadedStorybook,
-	loader: ModuleLoader.ModuleLoader
-): (types.LoadedStory<unknown>?, string?)
+local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
 	local state, setState = React.useState({} :: {
 		story: types.LoadedStory<unknown>?,
 		err: string?,
 	})
 
-	local loadStory = React.useCallback(function()
-		local story
-		local success, err = pcall(function()
-			story = loadStoryModule(loader, module, storybook)
-		end)
-
-		setState({
-			story = if success then story else nil,
-			err = if not success then err else nil,
-		})
-	end, { loader, module, storybook } :: { unknown })
-
 	React.useEffect(function()
-		local conn = loader.loadedModuleChanged:Connect(function(other)
+		local function loadStory()
+			local story
+			local success, err = pcall(function()
+				story = loadStoryModule(module, storybook)
+			end)
+
+			setState({
+				story = if success then story else nil,
+				err = if not success then err else nil,
+			})
+		end
+
+		local conn = storybook.loader.loadedModuleChanged:Connect(function(other)
 			if other == module then
 				loadStory()
 			end
@@ -90,7 +83,7 @@ local function useStory(
 		return function()
 			conn:Disconnect()
 		end
-	end, { module, loadStory, loader } :: { unknown })
+	end, { module, storybook } :: { unknown })
 
 	return state.story, state.err
 end
