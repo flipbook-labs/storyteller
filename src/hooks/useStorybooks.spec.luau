@@ -42,7 +42,7 @@ test("loads storybook modules", function()
 		{
 			name = "Sample",
 		},
-	})
+	} :: any)
 end)
 
 test("storybooks with syntax errors are marked unavailable", function()
@@ -65,7 +65,7 @@ test("storybooks with syntax errors are marked unavailable", function()
 				name = storybookModule.Name,
 			},
 		},
-	})
+	} :: any)
 end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
@@ -89,7 +89,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 		{
 			name = "Sample",
 		},
-	})
+	} :: any)
 
 	act(function()
 		newStorybookModule.Parent = container
@@ -104,7 +104,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 		{
 			name = "Foo",
 		},
-	})
+	} :: any)
 end)
 
 -- TOOD: Update useStorybooks so this test can pass
@@ -122,7 +122,7 @@ test.skip("removing a storybook from the DM triggers a re-render", function()
 	expect(storybooks.available).toEqual({})
 end)
 
-test.only("re-renders on module changes", function()
+test("re-renders on module changes", function()
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
@@ -133,7 +133,7 @@ test.only("re-renders on module changes", function()
 		{
 			name = "Sample",
 		},
-	})
+	} :: any)
 
 	act(function()
 		storybookModule.Source = [[
@@ -152,5 +152,5 @@ test.only("re-renders on module changes", function()
 		{
 			name = "New Name",
 		},
-	})
+	} :: any)
 end)
