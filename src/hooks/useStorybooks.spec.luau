@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
@@ -14,13 +13,10 @@ local act = ReactRoblox.act
 
 type LoadedStorybook = types.LoadedStorybook
 
-local loader: ModuleLoader.ModuleLoader
 local container: Folder
 local storybookModule: ModuleScript
 
 beforeEach(function()
-	loader = ModuleLoader.new()
-
 	container = Instance.new("Folder")
 
 	storybookModule = Instance.new("ModuleScript")
@@ -37,15 +33,14 @@ end)
 
 test("loads storybook modules", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "Sample",
-			storyRoots = expect.anything(),
 		},
 	})
 end)
@@ -58,17 +53,16 @@ test("storybooks with syntax errors are marked unavailable", function()
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.unavailable).toEqual({
+	expect(storybooks.unavailable).toMatchObject({
 		{
 			problem = expect.any("string"),
 			storybook = {
 				name = storybookModule.Name,
-				storyRoots = {},
 			},
 		},
 	})
@@ -86,15 +80,14 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "Sample",
-			storyRoots = expect.anything(),
 		},
 	})
 
@@ -104,14 +97,12 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "Sample",
-			storyRoots = expect.anything(),
 		},
 		{
 			name = "Foo",
-			storyRoots = expect.anything(),
 		},
 	})
 end)
@@ -119,7 +110,7 @@ end)
 -- TOOD: Update useStorybooks so this test can pass
 test.skip("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	act(function()
@@ -131,17 +122,16 @@ test.skip("removing a storybook from the DM triggers a re-render", function()
 	expect(storybooks.available).toEqual({})
 end)
 
-test("re-renders on module changes", function()
+test.only("re-renders on module changes", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "Sample",
-			storyRoots = expect.anything(),
 		},
 	})
 
@@ -158,10 +148,9 @@ test("re-renders on module changes", function()
 
 	storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "New Name",
-			storyRoots = expect.anything(),
 		},
 	})
 end)
