@@ -14,15 +14,12 @@ local act = ReactRoblox.act
 
 type LoadedStorybook = types.LoadedStorybook
 
-local loader: ModuleLoader.ModuleLoader
 local container: Folder
 local componentModule: ModuleScript
 local storyModule: ModuleScript
-local storybook: types.LoadedStorybook
+local storybook: LoadedStorybook
 
 beforeEach(function()
-	loader = ModuleLoader.new()
-
 	container = Instance.new("Folder")
 
 	componentModule = Instance.new("ModuleScript")
@@ -52,13 +49,15 @@ beforeEach(function()
 
 	storybook = {
 		name = "Storybook",
+		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		storyRoots = { container },
 	}
 end)
 
 test("loads a story module", function()
 	local get = renderHook(function()
-		return useStory(storyModule, storybook, loader)
+		return useStory(storyModule, storybook)
 	end)
 
 	local story, err = get()
@@ -77,7 +76,7 @@ test("handles story errors", function()
 	storyModule.Source = "syntax error" .. storyModule.Source
 
 	local get = renderHook(function()
-		return useStory(storyModule, storybook, loader)
+		return useStory(storyModule, storybook)
 	end)
 
 	local story, err = get()
@@ -88,7 +87,7 @@ end)
 
 test("re-renders on module changes", function()
 	local get = renderHook(function()
-		return useStory(storyModule, storybook, loader)
+		return useStory(storyModule, storybook)
 	end)
 
 	local story, _err = get()
@@ -118,7 +117,7 @@ end)
 
 test("reloads on dependency changes", function()
 	local get = renderHook(function()
-		return useStory(storyModule, storybook, loader)
+		return useStory(storyModule, storybook)
 	end)
 
 	local story = get()

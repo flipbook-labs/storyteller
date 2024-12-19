@@ -4,6 +4,9 @@ local constants = require("@root/constants")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
+type LoadedStorybook = types.LoadedStorybook
+type ModuleLoader = ModuleLoader.ModuleLoader
+
 --[=[
 	Loads the source of a Storybook module.
 
@@ -18,16 +21,32 @@ local types = require("@root/types")
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: ModuleScript): types.LoadedStorybook
+local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
+	local loader = if providedLoader then providedLoader else ModuleLoader.new()
+
 	local wasRequired, result = pcall(function()
 		return loader:require(module)
 	end)
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
 
+	-- Interop with some older storybooks. Ideally this shouldn't be merged
+	if not result.storyRoots then
+		if result.storyRoot then
+			-- Some storybooks use `storyRoot: Instance` instead of a
+			-- `storyRoots` array.
+			result.storyRoots = { result.storyRoot }
+			result.storyRoot = nil
+		else
+			-- Some storybooks like AppChat don't supply a storyRoots array.
+			-- Looks like the default behavior should be to use the parent
+			result.storyRoots = { module.Parent }
+		end
+	end
+
 	local isStorybook, message = types.IStorybook(result)
 
-	assert(isStorybook, `failed to load storybook {module:GetFullName()}: {message}`)
+	assert(isStorybook, `failed to load storybook {module:GetFullName()}:\n{message}`)
 
 	if not result.packages then
 		result.packages = migrateLegacyPackages(result)
@@ -41,6 +60,13 @@ local function loadStorybookModule(loader: ModuleLoader.ModuleLoader, module: Mo
 			result.name = name
 		end
 	end
+
+	if result.group then
+		result.name = `{result.group} / {result.name}`
+	end
+
+	result.source = module
+	result.loader = loader
 
 	return result
 end

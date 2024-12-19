@@ -37,7 +37,6 @@ end
 	local ModuleLoader = require("@pkg/ModuleLoader")
 	local Storyteller = require("@pkg/Storyteller")
 
-	local loader = ModuleLoader.new()
 
 	-- At least one `.storybook` module must be present
 	local storybookModules = Storyteller.findStorybookModules(game)
@@ -45,7 +44,7 @@ end
 
 	local storybook
 	pcall(function()
-		storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
+		storybook = Storyteller.loadStorybookModule(storybookModules[1])
 	end)
 
 	if storybook then
@@ -56,7 +55,7 @@ end
 
 		local story
 		pcall(function()
-			story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
+			story = Storyteller.loadStoryModule(storyModules[1], storybook)
 		end)
 
 		if story then
@@ -81,11 +80,11 @@ local function render<T>(container: Instance, story: LoadedStory<T>): RenderLife
 	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps = {
+		local props: StoryProps = Sift.Dictionary.join(story.props or {}, {
 			container = container,
 			story = story,
 			theme = "Dark", -- TODO: Support theme changing
-		}
+		})
 
 		props.controls = Sift.Dictionary.join(
 			if story.controls then collapseControls(story.controls) else nil,

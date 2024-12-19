@@ -26,7 +26,7 @@ test("load a storybook module as a table", function()
 			}
 		]])
 
-	local storybook = loadStorybookModule(loader, storybookModule)
+	local storybook = loadStorybookModule(storybookModule, loader)
 
 	expect(storybook.name).toBe("Sample")
 	expect(#storybook.storyRoots).toBe(1)
@@ -41,7 +41,7 @@ test("use the name of the storybook module by default", function()
 	]])
 	storybookModule.Name = "SampleStorybook.storybook"
 
-	local storybook = loadStorybookModule(loader, storybookModule)
+	local storybook = loadStorybookModule(storybookModule, loader)
 
 	expect(storybook.name).toBe("SampleStorybook")
 end)
@@ -55,7 +55,7 @@ test("nameless storybook", function()
 	]])
 	storybookModule.Name = ".storybook"
 
-	local storybook = loadStorybookModule(loader, storybookModule)
+	local storybook = loadStorybookModule(storybookModule, loader)
 
 	expect(storybook.name).toBe("Unnamed Storybook")
 end)
@@ -68,7 +68,7 @@ test("generic failures for storybook", function()
 	]])
 
 	local success, result = pcall(function()
-		return loadStorybookModule(loader, storybookModule)
+		return loadStorybookModule(storybookModule, loader)
 	end)
 
 	expect(success).toBeFalsy()
@@ -85,7 +85,7 @@ test("malformed storybook", function()
 	]])
 
 	local success, result = pcall(function()
-		return loadStorybookModule(loader, storybookModule)
+		return loadStorybookModule(storybookModule, loader)
 	end)
 
 	expect(success).toBeFalsy()
@@ -106,7 +106,7 @@ describe("legacy support", function()
 			}
 		]])
 
-		local storybook = loadStorybookModule(loader, storybookModule)
+		local storybook = loadStorybookModule(storybookModule, loader)
 
 		expect(storybook).toMatchObject({
 			storyRoots = expect.anything(),

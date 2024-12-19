@@ -1,4 +1,7 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
+
+type ModuleLoader = ModuleLoader.ModuleLoader
 
 local types = {}
 
@@ -31,11 +34,16 @@ export type StoryPackages = {
 	[string]: any,
 }
 
+type MapStoryFn = (story: any) -> (props: StoryProps) -> any
+type MapDefinitionFn = (story: any) -> any
+
 export type Storybook = {
 	storyRoots: { Instance },
 
 	name: string?,
 	packages: StoryPackages?,
+	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),
@@ -46,8 +54,17 @@ types.IStorybook = t.interface({
 export type LoadedStorybook = {
 	name: string,
 	storyRoots: { Instance },
+	loader: ModuleLoader,
+	source: ModuleScript,
 
+	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 	packages: StoryPackages?,
+}
+
+export type UnavailableStorybook = {
+	problem: string,
+	storybook: LoadedStorybook,
 }
 
 export type Story<T> = {
@@ -57,6 +74,7 @@ export type Story<T> = {
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
+	props: { [string]: any }?,
 }
 types.IStory = t.interface({
 	story = t.any,
@@ -70,11 +88,12 @@ export type LoadedStory<T> = {
 	name: string,
 	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
-	storybook: Storybook,
+	storybook: LoadedStorybook,
 	packages: StoryPackages?,
 
 	summary: string?,
 	controls: StoryControls?,
+	props: { [string]: any }?,
 }
 
 return types
