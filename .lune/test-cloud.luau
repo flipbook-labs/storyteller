@@ -6,12 +6,11 @@ local project = require("../project")
 local run = require("./lib/run")
 
 local args = parseArgs(process.args)
-
 local apiKey = assert(args.apiKey, "--apiKey must be supplied with a valid Open Cloud API key")
 
 local testPlaceFile = "test-place.rbxl"
-compile("dev")
 
+compile("dev")
 run("rojo", { "build", project.ROJO_TESTS_PROJECT, "-o", testPlaceFile })
 
 local output, success = run("python3", {
