@@ -74,7 +74,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	newStorybookModule.Source = [[
 		return {
 			storyRoots = {
-				script.Parent
+				Instance.new("Folder")
 			}
 		}
 	]]
@@ -85,30 +85,30 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "Sample",
-		},
+		}),
 	})
 
 	act(function()
 		newStorybookModule.Parent = container
+		task.wait()
 	end)
 
 	storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "Sample",
-		},
-		{
+		}),
+		expect.objectContaining({
 			name = "Foo",
-		},
+		}),
 	})
 end)
 
--- TOOD: Update useStorybooks so this test can pass
-test.skip("removing a storybook from the DM triggers a re-render", function()
+test("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
@@ -122,17 +122,17 @@ test.skip("removing a storybook from the DM triggers a re-render", function()
 	expect(storybooks.available).toEqual({})
 end)
 
-test.only("re-renders on module changes", function()
+test("re-renders on module changes", function()
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "Sample",
-		},
+		}),
 	})
 
 	act(function()
@@ -140,7 +140,7 @@ test.only("re-renders on module changes", function()
 			return {
 				name = "New Name",
 				storyRoots = {
-					script.Parent
+					Instance.new("Folder")
 				}
 			}
 		]]
@@ -148,9 +148,9 @@ test.only("re-renders on module changes", function()
 
 	storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "New Name",
-		},
+		}),
 	})
 end)
