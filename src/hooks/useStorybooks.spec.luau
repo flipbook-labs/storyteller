@@ -107,8 +107,7 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	} :: any)
 end)
 
--- TOOD: Update useStorybooks so this test can pass
-test.skip("removing a storybook from the DM triggers a re-render", function()
+test("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
