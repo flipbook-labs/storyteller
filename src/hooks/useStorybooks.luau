@@ -11,6 +11,7 @@ local useCallback = React.useCallback
 local useEffect = React.useEffect
 local useRef = React.useRef
 local useState = React.useState
+local useMemo = React.useMemo
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 type LoadedStorybook = types.LoadedStorybook
@@ -75,8 +76,7 @@ local function useStorybooks(parent: Instance): {
 	unavailable: { UnavailableStorybook },
 }
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
-	local storybooks, setStorybooks = useState({} :: { LoadedStorybook })
-	local unavailableStorybooks, setUnavailableStorybooks = useState({} :: { UnavailableStorybook })
+	local storybooks, setStorybooks = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
 
 	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
 		local existing = storybookConnections.current[storybookModule]
@@ -96,10 +96,6 @@ local function useStorybooks(parent: Instance): {
 		local reloadStorybook
 
 		local function load()
-			for _, connection in connections do
-				connection:Disconnect()
-			end
-
 			local storybook: LoadedStorybook?
 			local success, result = pcall(function()
 				storybook = loadStorybookModule(storybookModule, loader)
@@ -108,59 +104,44 @@ local function useStorybooks(parent: Instance): {
 			table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
 			table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
 
-			-- TODO: The logic to add/update storybooks at their index is nasty.
-			-- Revise this before merging
-			if success and storybook then
-				setStorybooks(function(prev)
-					local new = table.clone(prev)
-					local index = Sift.List.findWhere(new, function(other: LoadedStorybook)
-						return other.source == storybookModule
-					end)
+			setStorybooks(function(prev)
+				local new = table.clone(prev)
 
-					if index then
-						new[index] = storybook
-					else
-						table.insert(new, storybook)
-					end
+				if success and storybook then
+					new[storybookModule] = storybook
+				else
+					local unavailableStorybook: UnavailableStorybook = {
+						problem = result,
+						storybook = {
+							name = storybookModule.Name,
+							loader = loader,
+							source = storybookModule,
+							storyRoots = {},
+						},
+					}
+					new[storybookModule] = unavailableStorybook
+				end
 
-					return new
-				end)
-			else
-				local unavailableStorybook: UnavailableStorybook = {
-					problem = result,
-					storybook = {
-						name = storybookModule.Name,
-						loader = loader,
-						source = storybookModule,
-						storyRoots = {},
-					},
-				}
-
-				setUnavailableStorybooks(function(prev)
-					local new = table.clone(prev)
-					local index = Sift.List.findWhere(new, function(other: UnavailableStorybook)
-						return other.storybook.source == storybookModule
-					end)
-
-					if index then
-						new[index] = unavailableStorybook
-					else
-						table.insert(new, unavailableStorybook)
-					end
-
-					return new
-				end)
-			end
+				return new
+			end)
 		end
 
 		function reloadStorybook(instance: Instance)
-			if instance == storybookModule and isStorybookModule(instance) then
-				for _, connection in connections do
-					connection:Disconnect()
-				end
+			if instance == storybookModule then
+				if instance.Parent ~= nil and isStorybookModule(instance) then
+					for _, connection in connections do
+						connection:Disconnect()
+					end
 
-				loader:clear()
-				load()
+					loader:clear()
+					load()
+				else
+					setStorybooks(function(prev)
+						local new = table.clone(prev)
+						new[storybookModule] = nil
+						return new
+					end)
+				end
 			end
 		end
 
@@ -169,7 +150,6 @@ local function useStorybooks(parent: Instance): {
 
 	useEffect(function()
 		setStorybooks({})
-		setUnavailableStorybooks({})
 
 		local storybookModules = findStorybookModules(parent)
 
@@ -177,7 +157,15 @@ local function useStorybooks(parent: Instance): {
 			task.spawn(loadStorybook, storybookModule)
 		end
 
+		local conn = parent.DescendantAdded:Connect(function(descendant)
+			if isStorybookModule(descendant) then
+				loadStorybook(descendant :: ModuleScript)
+			end
+		end)
+
 		return function()
+			conn:Disconnect()
+
 			for _, connections in storybookConnections.current do
 				for _, connection in connections do
 					connection:Disconnect()
@@ -186,10 +174,23 @@ local function useStorybooks(parent: Instance): {
 		end
 	end, { parent } :: { unknown })
 
-	return {
-		available = storybooks,
-		unavailable = unavailableStorybooks,
-	}
+	return useMemo(function()
+		local available: { LoadedStorybook } = {}
+		local unavailable: { UnavailableStorybook } = {}
+
+		for _, storybook in storybooks do
+			if storybook["problem"] == nil then
+				table.insert(available, storybook :: LoadedStorybook)
+			else
+				table.insert(unavailable, storybook :: UnavailableStorybook)
+			end
+		end
+
+		return {
+			available = available,
+			unavailable = unavailable,
+		}
+	end, { storybooks })
 end
 
 return useStorybooks

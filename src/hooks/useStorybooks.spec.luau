@@ -70,7 +70,7 @@ end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
 	local newStorybookModule = Instance.new("ModuleScript")
-	newStorybookModule.Name = "Foo.storybook"
+	newStorybookModule.Name = "BOO.storybook"
 	newStorybookModule.Source = [[
 		return {
 			storyRoots = {
@@ -98,14 +98,14 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toEqual(expect.arrayContaining({
 		expect.objectContaining({
 			name = "Sample",
 		}),
 		expect.objectContaining({
-			name = "Foo",
+			name = "BOO",
 		}),
-	})
+	}))
 end)
 
 test("removing a storybook from the DM triggers a re-render", function()
@@ -115,6 +115,7 @@ test("removing a storybook from the DM triggers a re-render", function()
 
 	act(function()
 		storybookModule:Destroy()
+		task.wait()
 	end)
 
 	local storybooks = get()
@@ -144,6 +145,7 @@ test("re-renders on module changes", function()
 				}
 			}
 		]]
+		task.wait()
 	end)
 
 	storybooks = get()
