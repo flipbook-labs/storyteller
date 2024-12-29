@@ -54,38 +54,43 @@ local types = require("@root/types")
 	@within Storyteller
 ]=]
 local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	local state, setState = React.useState({} :: {
-		story: types.LoadedStory<unknown>?,
-		err: string?,
-	})
+	local story, setStory = React.useState(nil :: types.LoadedStory<unknown>?)
+	local err, setErr = React.useState(nil :: string?)
 
 	React.useEffect(function()
 		local function loadStory()
-			local story
-			local success, err = pcall(function()
-				story = loadStoryModule(module, storybook)
+			local newStory
+			local success, result = pcall(function()
+				newStory = loadStoryModule(module, storybook)
 			end)
 
-			setState({
-				story = if success then story else nil,
-				err = if not success then err else nil,
-			})
+			setStory(if success then newStory else nil)
+			setErr(if success then nil else result)
 		end
 
-		local conn = storybook.loader.loadedModuleChanged:Connect(function(other)
-			if other == module then
-				loadStory()
-			end
-		end)
+		local connections: { RBXScriptConnection } = {}
+
+		table.insert(
+			connections,
+			storybook.loader.loadedModuleChanged:Connect(function(other)
+				if other == module then
+					loadStory()
+				end
+			end)
+		)
+
+		table.insert(connections, module:GetPropertyChangedSignal("Source"):Connect(loadStory))
 
 		loadStory()
 
 		return function()
-			conn:Disconnect()
+			for _, connection in connections do
+				connection:Disconnect()
+			end
 		end
 	end, { module, storybook } :: { unknown })
 
-	return state.story, state.err
+	return story, err
 end
 
 return useStory

@@ -90,10 +90,12 @@ test("re-renders on module changes", function()
 		return useStory(storyModule, storybook)
 	end)
 
-	local story, _err = get()
+	local story, err = get()
 
-	assert(story ~= nil, "story is undefined")
-	expect(story.name).toBe("Sample")
+	expect(err).toBeUndefined()
+	expect(story).toEqual(expect.objectContaining({
+		name = "Sample",
+	}))
 
 	storyModule.Source = [[
 		local Component = require(script.Parent.Component)
@@ -109,10 +111,12 @@ test("re-renders on module changes", function()
 		task.wait()
 	end)
 
-	story, _err = get()
+	story, err = get()
 
-	assert(story ~= nil, "story is undefined")
-	expect(story.name).toBe("Foo")
+	expect(err).toBeUndefined()
+	expect(story).toEqual(expect.objectContaining({
+		name = "Foo",
+	}))
 end)
 
 test("reloads on dependency changes", function()
