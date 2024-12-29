@@ -42,7 +42,7 @@ test("loads storybook modules", function()
 		{
 			name = "Sample",
 		},
-	} :: any)
+	})
 end)
 
 test("storybooks with syntax errors are marked unavailable", function()
@@ -65,16 +65,16 @@ test("storybooks with syntax errors are marked unavailable", function()
 				name = storybookModule.Name,
 			},
 		},
-	} :: any)
+	})
 end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
 	local newStorybookModule = Instance.new("ModuleScript")
-	newStorybookModule.Name = "Foo.storybook"
+	newStorybookModule.Name = "BOO.storybook"
 	newStorybookModule.Source = [[
 		return {
 			storyRoots = {
-				script.Parent
+				Instance.new("Folder")
 			}
 		}
 	]]
@@ -85,26 +85,27 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "Sample",
-		},
-	} :: any)
+		}),
+	})
 
 	act(function()
 		newStorybookModule.Parent = container
+		task.wait()
 	end)
 
 	storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual(expect.arrayContaining({
+		expect.objectContaining({
 			name = "Sample",
-		},
-		{
-			name = "Foo",
-		},
-	} :: any)
+		}),
+		expect.objectContaining({
+			name = "BOO",
+		}),
+	}))
 end)
 
 test("removing a storybook from the DM triggers a re-render", function()
@@ -114,6 +115,7 @@ test("removing a storybook from the DM triggers a re-render", function()
 
 	act(function()
 		storybookModule:Destroy()
+		task.wait()
 	end)
 
 	local storybooks = get()
@@ -128,28 +130,29 @@ test("re-renders on module changes", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "Sample",
-		},
-	} :: any)
+		}),
+	})
 
 	act(function()
 		storybookModule.Source = [[
 			return {
 				name = "New Name",
 				storyRoots = {
-					script.Parent
+					Instance.new("Folder")
 				}
 			}
 		]]
+		task.wait()
 	end)
 
 	storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
+	expect(storybooks.available).toEqual({
+		expect.objectContaining({
 			name = "New Name",
-		},
-	} :: any)
+		}),
+	})
 end)
