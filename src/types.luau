@@ -1,4 +1,7 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
+
+type ModuleLoader = ModuleLoader.ModuleLoader
 
 local types = {}
 
@@ -46,6 +49,8 @@ types.IStorybook = t.interface({
 export type LoadedStorybook = {
 	name: string,
 	storyRoots: { Instance },
+	loader: ModuleLoader,
+	source: ModuleScript,
 
 	packages: StoryPackages?,
 }
@@ -70,7 +75,7 @@ export type LoadedStory<T> = {
 	name: string,
 	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
-	storybook: Storybook,
+	storybook: LoadedStorybook,
 	packages: StoryPackages?,
 
 	summary: string?,

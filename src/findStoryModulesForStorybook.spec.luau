@@ -1,4 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local ModuleLoader = require("@pkg/ModuleLoader")
 
 local findStoryModulesForStorybook = require("./findStoryModulesForStorybook")
 local types = require("@root/types")
@@ -27,6 +28,8 @@ test("find all story modules for a storybook", function()
 
 	local storybook: types.LoadedStorybook = {
 		name = "Storybook",
+		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			container,
 		},

@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
@@ -14,13 +13,10 @@ local act = ReactRoblox.act
 
 type LoadedStorybook = types.LoadedStorybook
 
-local loader: ModuleLoader.ModuleLoader
 local container: Folder
 local storybookModule: ModuleScript
 
 beforeEach(function()
-	loader = ModuleLoader.new()
-
 	container = Instance.new("Folder")
 
 	storybookModule = Instance.new("ModuleScript")
@@ -37,15 +33,14 @@ end)
 
 test("loads storybook modules", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
+	expect(storybooks.available).toMatchObject({
 		{
 			name = "Sample",
-			storyRoots = expect.anything(),
 		},
 	})
 end)
@@ -58,17 +53,16 @@ test("storybooks with syntax errors are marked unavailable", function()
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
-	expect(storybooks.unavailable).toEqual({
+	expect(storybooks.unavailable).toMatchObject({
 		{
 			problem = expect.any("string"),
 			storybook = {
 				name = storybookModule.Name,
-				storyRoots = {},
 			},
 		},
 	})
@@ -76,54 +70,52 @@ end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
 	local newStorybookModule = Instance.new("ModuleScript")
-	newStorybookModule.Name = "Foo.storybook"
+	newStorybookModule.Name = "BOO.storybook"
 	newStorybookModule.Source = [[
 		return {
 			storyRoots = {
-				script.Parent
+				Instance.new("Folder")
 			}
 		}
 	]]
 
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
 	expect(storybooks.available).toEqual({
-		{
+		expect.objectContaining({
 			name = "Sample",
-			storyRoots = expect.anything(),
-		},
+		}),
 	})
 
 	act(function()
 		newStorybookModule.Parent = container
+		task.wait()
 	end)
 
 	storybooks = get()
 
-	expect(storybooks.available).toEqual({
-		{
+	expect(storybooks.available).toEqual(expect.arrayContaining({
+		expect.objectContaining({
 			name = "Sample",
-			storyRoots = expect.anything(),
-		},
-		{
-			name = "Foo",
-			storyRoots = expect.anything(),
-		},
-	})
+		}),
+		expect.objectContaining({
+			name = "BOO",
+		}),
+	}))
 end)
 
--- TOOD: Update useStorybooks so this test can pass
-test.skip("removing a storybook from the DM triggers a re-render", function()
+test("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	act(function()
 		storybookModule:Destroy()
+		task.wait()
 	end)
 
 	local storybooks = get()
@@ -133,16 +125,15 @@ end)
 
 test("re-renders on module changes", function()
 	local get = renderHook(function()
-		return useStorybooks(container, loader)
+		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
 
 	expect(storybooks.available).toEqual({
-		{
+		expect.objectContaining({
 			name = "Sample",
-			storyRoots = expect.anything(),
-		},
+		}),
 	})
 
 	act(function()
@@ -150,18 +141,18 @@ test("re-renders on module changes", function()
 			return {
 				name = "New Name",
 				storyRoots = {
-					script.Parent
+					Instance.new("Folder")
 				}
 			}
 		]]
+		task.wait()
 	end)
 
 	storybooks = get()
 
 	expect(storybooks.available).toEqual({
-		{
+		expect.objectContaining({
 			name = "New Name",
-			storyRoots = expect.anything(),
-		},
+		}),
 	})
 end)
