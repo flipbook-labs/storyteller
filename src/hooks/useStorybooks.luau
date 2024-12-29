@@ -1,6 +1,5 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
-local Sift = require("@pkg/Sift")
 
 local findStorybookModules = require("@root/findStorybookModules")
 local isStorybookModule = require("@root/isStorybookModule")
