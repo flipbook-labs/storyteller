@@ -15,8 +15,6 @@ local types = require("./types")
 	@class Storyteller
 ]=]
 
-local useStorybooks = require("./hooks/useStorybooks")
-
 export type RenderLifecycle = types.RenderLifecycle
 export type Story<T> = types.Story<T>
 export type LoadedStory<T> = types.LoadedStory<T>
@@ -45,5 +43,5 @@ return {
 
 	-- Hooks
 	useStory = require("./hooks/useStory"),
-	useStorybooks = useStorybooks,
+	useStorybooks = require("./hooks/useStorybooks"),
 }
