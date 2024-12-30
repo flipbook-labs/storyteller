@@ -55,6 +55,11 @@ export type LoadedStorybook = {
 	packages: StoryPackages?,
 }
 
+export type UnavailableStorybook = {
+	problem: string,
+	storybook: LoadedStorybook,
+}
+
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
