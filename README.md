@@ -24,7 +24,7 @@ There also exist React hooks for ease of integration into storybook apps.
 
 ```toml
 [dependencies]
-Storyteller = "flipbook-labs/storyteller@0.3.0"
+Storyteller = "flipbook-labs/storyteller@0.7.0"
 ```
 
 ### Roblox Model
