@@ -1,6 +1,6 @@
 [package]
 name = "flipbook-labs/storyteller"
-version = "0.6.0"
+version = "0.7.0"
 license = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
