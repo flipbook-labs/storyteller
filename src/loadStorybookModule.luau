@@ -30,12 +30,13 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
 
-	-- Interop with some older storybooks. Ideally this shouldn't be merged
-	if not result.storyRoots and result.storyRoot then
-		-- Some storybooks use `storyRoot: Instance` instead of a
-		-- `storyRoots` array.
-		result.storyRoots = { result.storyRoot }
-		result.storyRoot = nil
+	do -- Roblox internal. This behavior may be removed without notice.
+		if not result.storyRoots and result.storyRoot then
+			-- Some storybooks use `storyRoot: Instance` instead of a
+			-- `storyRoots` array.
+			result.storyRoots = { result.storyRoot }
+			result.storyRoot = nil
+		end
 	end
 
 	local isStorybook, message = types.IStorybook(result)
@@ -55,8 +56,10 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		end
 	end
 
-	if result.group then
-		result.name = `{result.group} / {result.name}`
+	do -- Roblox internal. This behavior may be removed without notice.
+		if result.group then
+			result.name = `{result.group} / {result.name}`
+		end
 	end
 
 	result.source = module
