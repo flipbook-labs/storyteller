@@ -48,19 +48,21 @@ local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedSt
 		}
 	end
 
-	-- TODO: We need support for substories to be compatible with Developer
-	-- Storybook. In the meantime we're just selecting a randomly accessed
-	-- one
-	if result.stories and not result.story then
-		local randomSubstory
-		for _, substory in result.stories do
-			randomSubstory = substory
-			break
-		end
-		if typeof(randomSubstory) == "table" then
-			result.story = randomSubstory.story
-		else
-			result.story = randomSubstory
+	do -- Roblox internal. This behavior may be substantially changed or removed
+		-- We need support for substories to be compatible with Developer
+		-- Storybook. In the meantime we're just selecting a randomly accessed
+		-- one, but ideally we should be able to render them all out
+		if result.stories and not result.story then
+			local randomSubstory
+			for _, substory in result.stories do
+				randomSubstory = substory
+				break
+			end
+			if typeof(randomSubstory) == "table" then
+				result.story = randomSubstory.story
+			else
+				result.story = randomSubstory
+			end
 		end
 	end
 
