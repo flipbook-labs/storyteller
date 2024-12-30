@@ -14,10 +14,7 @@ local useMemo = React.useMemo
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 type LoadedStorybook = types.LoadedStorybook
-type UnavailableStorybook = {
-	problem: string,
-	storybook: types.LoadedStorybook,
-}
+type UnavailableStorybook = types.UnavailableStorybook
 
 --[=[
 	Performs all the discovery and loading of Storybook modules that would

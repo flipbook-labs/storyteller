@@ -117,3 +117,17 @@ describe("legacy support", function()
 		})
 	end)
 end)
+
+describe("roblox internal", function()
+	test("map storyRoot (single instance) to storyRoots (array of instances)", function()
+		local storybookModule = createMockStorybookModule([[
+			return {
+				storyRoot = Instance.new("Folder"),
+			}
+		]])
+
+		local storybook = loadStorybookModule(storybookModule)
+
+		expect(#storybook.storyRoots).toBe(1)
+	end)
+end)
