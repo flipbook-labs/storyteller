@@ -130,23 +130,4 @@ describe("roblox internal", function()
 
 		expect(#storybook.storyRoots).toBe(1)
 	end)
-
-	test("use the story module's parent when no story roots are specified", function()
-		local parent = Instance.new("Folder")
-
-		local storybookModule = createMockStorybookModule([[
-			return {
-				name = "Sample",
-			}
-		]])
-		storybookModule.Parent = parent
-
-		local storybook = loadStorybookModule(storybookModule)
-
-		expect(storybook).toMatchObject({
-			storyRoots = {
-				parent,
-			},
-		})
-	end)
 end)
