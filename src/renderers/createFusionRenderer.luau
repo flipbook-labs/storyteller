@@ -67,7 +67,7 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		if props.controls then
 			local transformed = table.clone(props)
 
-			if not scope and Fusion.scoped then
+			if not scope and rawget(Fusion, "scoped") then
 				-- Fusion V3
 				scope = Fusion:scoped()
 			end
