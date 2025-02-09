@@ -18,13 +18,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install pesde
+        uses: 0x5eal/semver-luau/.github/actions/setup-pesde@main
+
+      - name: Install packages
+        run: pesde install
+
       - name: Get model file name
         run: |
           name=$(jq -r .name default.project.json)
           echo "MODEL_FILE=$name.rbxm" >> $GITHUB_ENV
-
-      - name: Install packages
-        run: lune run wally-install
 
       - name: Build
         run: lune run build -- --target prod --output ${{ env.MODEL_FILE }}
@@ -35,6 +38,13 @@ jobs:
       - name: Publish to Wally
         if: ${{ github.event.release }}
         run: wally publish
+
+      - name: Login to Pesde registry
+        run: pesde auth login --token ${{ secrets.PESDE_REGISTRY_TOKEN }}
+
+      - name: Publish to Pesde
+        if: ${{ github.event.release }}
+        run: pesde publish
 
       - uses: softprops/action-gh-release@v1
         if: ${{ github.event.release }}
