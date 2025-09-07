@@ -48,6 +48,7 @@ const config: Config = {
 				docs: {
 					sidebarPath: './sidebars.ts',
 					editUrl: REPO_URL,
+					routeBasePath: '/',
 				},
 				theme: {
 					customCss: './src/css/custom.css',

@@ -1,3 +1,7 @@
+---
+slug: /
+---
+
 # Introduction
 
 Storyteller is a package for the discovery and rendering of UI stories and powers our storybook plugin [Flipbook](https://github.com/flipbook-labs/flipbook).
