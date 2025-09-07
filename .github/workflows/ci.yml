@@ -17,7 +17,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install packages
-        run: lune run wally-install
+        run: lune run install
 
       - name: Lint
         run: lune run lint
@@ -49,7 +49,7 @@ jobs:
         run: lune setup
 
       - name: Install packages
-        run: lune run wally-install
+        run: lune run install
 
       - name: Run Luau analysis
         run: lune run analyze
@@ -65,7 +65,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install packages
-        run: lune run wally-install
+        run: lune run install
 
       - name: Run tests
         run: lune run test-cloud -- --apiKey ${{ secrets.ROBLOX_API_KEY }}
