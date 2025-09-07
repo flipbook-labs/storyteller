@@ -3,6 +3,7 @@
 	"aliases": {
 		"pkg": "./Packages",
 		"root": "./src",
+		"repo": ".",
 		"lune": "~/.lune/.typedefs/0.9.4/"
 	}
 }

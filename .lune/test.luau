@@ -5,6 +5,8 @@ local dotenv = require("./lib/dotenv")
 local parseArgs = require("./lib/parseArgs")
 local run = require("./lib/run")
 
+local project = require("@repo/project")
+
 dotenv()
 
 local args = parseArgs(process.args)
@@ -28,8 +30,8 @@ local success, err = pcall(function()
 		".lune/tasks/run-tests.luau",
 	}, {
 		env = {
-			ROBLOX_UNIVERSE_ID = process.env.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
-			ROBLOX_PLACE_ID = process.env.ROBLOX_UNIT_TESTING_PLACE_ID,
+			ROBLOX_UNIVERSE_ID = project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
+			ROBLOX_PLACE_ID = project.ROBLOX_UNIT_TESTING_PLACE_ID,
 			ROBLOX_API_KEY = tostring(apiKey),
 		},
 		stdio = "forward",

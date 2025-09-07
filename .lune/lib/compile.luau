@@ -1,6 +1,6 @@
 local fs = require("@lune/fs")
 
-local project = require("../../project")
+local project = require("@repo/project")
 local run = require("./run")
 
 type Target = "prod" | "dev"
