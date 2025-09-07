@@ -27,7 +27,7 @@ jobs:
         run: lune run install
 
       - name: Build
-        run: lune run build -- --target prod --output ${{ env.MODEL_FILE }}
+        run: lune run build --target prod --output ${{ env.MODEL_FILE }}
 
       - name: Login to Wally registry
         run: wally login --token ${{ secrets.WALLY_REGISTRY_TOKEN }}
