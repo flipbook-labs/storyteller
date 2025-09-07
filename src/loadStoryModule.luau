@@ -1,4 +1,3 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
@@ -6,8 +5,8 @@ local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
-type Storybook = types.Storybook
-type Story<T> = types.Story<T>
+type LoadedStorybook = types.LoadedStorybook
+type LoadedStory<T> = types.LoadedStory<T>
 
 --[=[
 	Loads the source of a Story module.
@@ -28,21 +27,19 @@ type Story<T> = types.Story<T>
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStoryModule<T>(
-	loader: ModuleLoader.ModuleLoader,
-	storyModule: ModuleScript,
-	storybook: Storybook
-): Story<T>
+local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedStorybook): LoadedStory<T>
 	local success, result = pcall(function()
-		return loader:require(storyModule)
+		return storybook.loader:require(storyModule)
 	end)
 
 	if not success then
 		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
 	end
 
+	local isLegacyStory = typeof(result) == "function"
+
 	-- Support for Hoarcekat stories
-	if typeof(result) == "function" then
+	if isLegacyStory then
 		local callback = result
 		result = {
 			story = function(props)
@@ -60,19 +57,22 @@ local function loadStoryModule<T>(
 		)
 	end
 
-	local packages = migrateLegacyPackages(result)
+	local story: types.Story<T> = result
+
+	local packages = migrateLegacyPackages(story)
 	if not packages then
 		packages = storybook.packages
 	end
 
-	local story = Sift.Dictionary.merge({
+	local loadedStory: types.LoadedStory<T> = {
 		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
 		storybook = storybook,
 		source = storyModule,
-		packages = packages,
-	}, result)
+		story = story.story,
+		packages = if isLegacyStory then {} else packages,
+	}
 
-	return story
+	return Sift.Dictionary.merge(loadedStory, story)
 end
 
 return loadStoryModule

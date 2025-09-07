@@ -3,7 +3,7 @@ local Sift = require("@pkg/Sift")
 local createRendererForStory = require("@root/createRendererForStory")
 local types = require("@root/types")
 
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
@@ -37,7 +37,6 @@ end
 	local ModuleLoader = require("@pkg/ModuleLoader")
 	local Storyteller = require("@pkg/Storyteller")
 
-	local loader = ModuleLoader.new()
 
 	-- At least one `.storybook` module must be present
 	local storybookModules = Storyteller.findStorybookModules(game)
@@ -45,7 +44,7 @@ end
 
 	local storybook
 	pcall(function()
-		storybook = Storyteller.loadStorybookModule(loader, storybookModules[1])
+		storybook = Storyteller.loadStorybookModule(storybookModules[1])
 	end)
 
 	if storybook then
@@ -56,7 +55,7 @@ end
 
 		local story
 		pcall(function()
-			story = Storyteller.loadStoryModule(loader, storyModules[1], storybook)
+			story = Storyteller.loadStoryModule(storyModules[1], storybook)
 		end)
 
 		if story then
@@ -75,7 +74,7 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
+local function render<T>(container: Instance, story: LoadedStory<T>): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
@@ -106,7 +105,7 @@ local function render<T>(container: Instance, story: Story<T>): RenderLifecycle
 	local function update(newControls: StoryControls?)
 		if renderer.update then
 			local props = Sift.Dictionary.join(prevProps, {
-				controls = newControls,
+				controls = if newControls then collapseControls(newControls) else nil,
 			})
 
 			renderer.update(props, prevProps)

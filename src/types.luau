@@ -1,4 +1,7 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
+
+type ModuleLoader = ModuleLoader.ModuleLoader
 
 local types = {}
 
@@ -20,7 +23,7 @@ export type RenderLifecycle = {
 }
 
 export type StoryRenderer<T> = {
-	mount: (container: Instance, story: Story<T>, initialProps: StoryProps) -> (),
+	mount: (container: Instance, story: LoadedStory<T>, initialProps: StoryProps) -> (),
 	unmount: (() -> ())?,
 	update: ((props: StoryProps, prevProps: StoryProps?) -> ())?,
 	transformProps: ((props: StoryProps, prevProps: StoryProps?) -> StoryProps)?,
@@ -43,15 +46,27 @@ types.IStorybook = t.interface({
 	packages = t.optional(t.map(t.string, t.any)),
 })
 
-export type Story<T> = {
+export type LoadedStorybook = {
 	name: string,
-	story: T | (props: StoryProps) -> T,
+	storyRoots: { Instance },
+	loader: ModuleLoader,
 	source: ModuleScript,
-	storybook: Storybook,
-	packages: StoryPackages?,
 
-	summary: string?,
+	packages: StoryPackages?,
+}
+
+export type UnavailableStorybook = {
+	problem: string,
+	storybook: LoadedStorybook,
+}
+
+export type Story<T> = {
+	story: T | (props: StoryProps) -> T,
+
 	controls: StoryControls?,
+	name: string?,
+	packages: StoryPackages?,
+	summary: string?,
 }
 types.IStory = t.interface({
 	story = t.any,
@@ -60,5 +75,16 @@ types.IStory = t.interface({
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
 })
+
+export type LoadedStory<T> = {
+	name: string,
+	story: T | (props: StoryProps) -> T,
+	source: ModuleScript,
+	storybook: LoadedStorybook,
+	packages: StoryPackages?,
+
+	summary: string?,
+	controls: StoryControls?,
+}
 
 return types

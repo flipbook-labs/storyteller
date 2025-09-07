@@ -1,5 +1,4 @@
-local CoreGui = game:GetService("CoreGui")
-
+local canAccess = require("@root/roblox-internal/canAccess")
 local constants = require("@root/constants")
 
 --[=[
@@ -15,9 +14,9 @@ local constants = require("@root/constants")
 	@since 1.0.0
 ]=]
 local function isStorybookModule(instance: Instance): boolean
-	return instance:IsA("ModuleScript")
+	return canAccess(instance)
+		and instance:IsA("ModuleScript")
 		and instance.Name:match(constants.STORYBOOK_NAME_PATTERN) ~= nil
-		and not instance:IsDescendantOf(CoreGui)
 end
 
 return isStorybookModule

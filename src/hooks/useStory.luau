@@ -1,4 +1,3 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
 local loadStoryModule = require("@root/loadStoryModule")
@@ -28,11 +27,10 @@ local types = require("@root/types")
 		parent: Instance,
 		storyModule: ModuleScript,
 		storybook: Storybook,
-		loader: ModuleLoader,
 	})
 		local ref = useRef(nil :: Frame?)
 
-		local story = Storyteller.useStory(props.storyModule, props.storybook, props.loader)
+		local story = Storyteller.useStory(props.storyModule, props.storybook)
 
 		useEffect(function()
 			if ref.current then
@@ -54,45 +52,45 @@ local types = require("@root/types")
 	@tag React
 	@tag Story
 	@within Storyteller
-
 ]=]
-local function useStory(
-	module: ModuleScript,
-	storybook: types.Storybook,
-	loader: ModuleLoader.ModuleLoader
-): (types.Story<unknown>?, string?)
-	local state, setState = React.useState({} :: {
-		story: types.Story<unknown>?,
-		err: string?,
-	})
-
-	local loadStory = React.useCallback(function()
-		local story
-		local success, err = pcall(function()
-			story = loadStoryModule(loader, module, storybook)
-		end)
-
-		setState({
-			story = if success then story else nil,
-			err = if not success then err else nil,
-		})
-	end, { loader, module, storybook } :: { unknown })
+local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
+	local story, setStory = React.useState(nil :: types.LoadedStory<unknown>?)
+	local err, setErr = React.useState(nil :: string?)
 
 	React.useEffect(function()
-		local conn = loader.loadedModuleChanged:Connect(function(other)
-			if other == module then
-				loadStory()
-			end
-		end)
+		local function loadStory()
+			local newStory
+			local success, result = pcall(function()
+				newStory = loadStoryModule(module, storybook)
+			end)
+
+			setStory(if success then newStory else nil)
+			setErr(if success then nil else result)
+		end
+
+		local connections: { RBXScriptConnection } = {}
+
+		table.insert(
+			connections,
+			storybook.loader.loadedModuleChanged:Connect(function(other)
+				if other == module then
+					loadStory()
+				end
+			end)
+		)
+
+		table.insert(connections, module:GetPropertyChangedSignal("Source"):Connect(loadStory))
 
 		loadStory()
 
 		return function()
-			conn:Disconnect()
+			for _, connection in connections do
+				connection:Disconnect()
+			end
 		end
-	end, { module, loadStory, loader } :: { unknown })
+	end, { module, storybook } :: { unknown })
 
-	return state.story, state.err
+	return story, err
 end
 
 return useStory

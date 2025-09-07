@@ -1,3 +1,4 @@
+local canAccess = require("@root/roblox-internal/canAccess")
 local constants = require("@root/constants")
 
 --[=[
@@ -13,10 +14,9 @@ local constants = require("@root/constants")
 	@since 0.1.0
 ]=]
 local function isStoryModule(instance: Instance): boolean
-	if instance:IsA("ModuleScript") and instance.Name:match(constants.STORY_NAME_PATTERN) then
-		return true
-	end
-	return false
+	return canAccess(instance)
+		and instance:IsA("ModuleScript")
+		and instance.Name:match(constants.STORY_NAME_PATTERN) ~= nil
 end
 
 return isStoryModule

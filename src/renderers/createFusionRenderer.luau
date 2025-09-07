@@ -2,7 +2,7 @@ local Sift = require("@pkg/Sift")
 
 local types = require("@root/types")
 
-type Story<T> = types.Story<T>
+type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
@@ -14,8 +14,9 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local Fusion = packages.Fusion
 
 	local handle: Instance?
+	local scope
 
-	local function mount(container: Instance, story: Story<Instance>, props: StoryProps)
+	local function mount(container: Instance, story: LoadedStory<Instance>, props: StoryProps)
 		if typeof(story.story) == "Instance" then
 			handle = story.story
 		elseif typeof(story.story) == "function" then
@@ -30,6 +31,9 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local function unmount()
 		if handle then
 			handle:Destroy()
+		end
+		if scope then
+			scope:doCleanup()
 		end
 	end
 
@@ -63,13 +67,18 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		if props.controls then
 			local transformed = table.clone(props)
 
+			if not scope and rawget(Fusion, "scoped") then
+				-- Fusion V3
+				scope = Fusion:scoped()
+			end
+
 			transformed.controls = Sift.Dictionary.map(props.controls, function(arg, key)
 				local prevControl = if prevProps and prevProps.controls then prevProps.controls[key] else nil
 
 				if prevControl then
 					return prevControl
 				else
-					return Fusion.Value(arg)
+					return if scope then scope:Value(arg) else Fusion.Value(arg)
 				end
 			end)
 

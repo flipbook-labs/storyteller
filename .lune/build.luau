@@ -49,7 +49,7 @@ if args.watch then
 	watch({
 		filePatterns = {
 			"src/.*%.luau",
-			"example/.*%.luau",
+			"Packages/.*%.luau",
 		},
 		onChanged = build,
 	})

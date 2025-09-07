@@ -8,33 +8,54 @@ local describe = JestGlobals.describe
 local jest = JestGlobals.jest
 local test = JestGlobals.test
 local expect = JestGlobals.expect
+local beforeEach = JestGlobals.beforeEach
+local afterEach = JestGlobals.afterEach
 
-local MOCK_PLAIN_STORYBOOK: types.Storybook = {
-	storyRoots = {},
-}
+local mockPlainStorybook: types.LoadedStorybook
+local mockRoactStorybook: types.LoadedStorybook
+local mockReactStorybook: types.LoadedStorybook
 
-local MOCK_ROACT_STORYBOOK: types.Storybook = {
-	storyRoots = {},
-	packages = {
-		Roact = {
-			createElement = jest.fn(),
-			mount = jest.fn(),
-			unmount = jest.fn(),
-		},
-	},
-}
+beforeEach(function()
+	mockPlainStorybook = {
+		name = "Plain Storybook",
+		storyRoots = {},
+		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
+	}
 
-local MOCK_REACT_STORYBOOK: types.Storybook = {
-	storyRoots = {},
-	packages = {
-		React = {
-			createElement = jest.fn(),
+	mockRoactStorybook = {
+		name = "Roact Storybook",
+		storyRoots = {},
+		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
+		packages = {
+			Roact = {
+				createElement = jest.fn(),
+				mount = jest.fn(),
+				unmount = jest.fn(),
+			},
 		},
-		ReactRoblox = {
-			createRoot = jest.fn(),
+	}
+
+	mockReactStorybook = {
+		name = "React Storybook",
+		storyRoots = {},
+		loader = ModuleLoader.new(),
+		source = Instance.new("ModuleScript"),
+		packages = {
+			React = {
+				createElement = jest.fn(),
+			},
+			ReactRoblox = {
+				createRoot = jest.fn(),
+			},
 		},
-	},
-}
+	}
+end)
+
+afterEach(function()
+	jest.resetAllMocks()
+end)
 
 local function createMockStoryModule(source: string): ModuleScript
 	local storyModule = Instance.new("ModuleScript")
@@ -45,7 +66,6 @@ local function createMockStoryModule(source: string): ModuleScript
 end
 
 test("load a story module as a table", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 		return {
 			name = "Sample",
@@ -53,14 +73,17 @@ test("load a story module as a table", function()
 		}
 	]])
 
-	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
-	assert(story ~= nil, "story not defined")
-	expect(story.name).toEqual("Sample")
+	expect(story).toEqual({
+		name = "Sample",
+		source = expect.anything(),
+		story = expect.any("function"),
+		storybook = mockPlainStorybook,
+	})
 end)
 
 test("handle Hoarcekat stories", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 		return function(target)
 			local gui = Instance.new("TextLabel")
@@ -72,13 +95,12 @@ test("handle Hoarcekat stories", function()
 		end
 	]])
 
-	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
 	expect(story).toBeDefined()
 end)
 
 test("use the name of the story module for the story name", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 			return {
 				story = function() end
@@ -86,31 +108,29 @@ test("use the name of the story module for the story name", function()
 		]])
 	storyModule.Name = "SampleName.story"
 
-	local story = loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
 	assert(story ~= nil, "story not defined")
 	expect(story.name).toEqual("SampleName")
 end)
 
 test("pass the storybook's renderer to the story", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 		return {
 			story = function() end
 		}
 	]])
 
-	local story = loadStoryModule(loader, storyModule, MOCK_REACT_STORYBOOK)
+	local story = loadStoryModule(storyModule, mockReactStorybook)
 
 	expect(story).toBeDefined()
 
-	story = loadStoryModule(loader, storyModule, MOCK_ROACT_STORYBOOK)
+	story = loadStoryModule(storyModule, mockRoactStorybook)
 
 	expect(story).toBeDefined()
 end)
 
 test("generic failures for stories", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 			syntax error
 			return {
@@ -119,12 +139,11 @@ test("generic failures for stories", function()
 		]])
 
 	expect(function()
-		loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+		loadStoryModule(storyModule, mockPlainStorybook)
 	end).toThrow("Failed to load story")
 end)
 
 test("malformed stories", function()
-	local loader = ModuleLoader.new()
 	local storyModule = createMockStoryModule([[
 		return {
 			name = false,
@@ -133,16 +152,17 @@ test("malformed stories", function()
 	]])
 
 	expect(function()
-		loadStoryModule(loader, storyModule, MOCK_PLAIN_STORYBOOK)
+		loadStoryModule(storyModule, mockPlainStorybook)
 	end).toThrow("Story is malformed")
 end)
 
 describe("legacy support", function()
 	test("packages attached to the story get grouped in `packages` object", function()
-		local loader = ModuleLoader.new()
-
-		local storybook: types.Storybook = {
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
 			storyRoots = {},
+			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
 		}
 
 		local storyModule = createMockStoryModule([[
@@ -153,7 +173,7 @@ describe("legacy support", function()
 			}
 		]])
 
-		local story = loadStoryModule(loader, storyModule, storybook)
+		local story = loadStoryModule(storyModule, storybook)
 
 		expect(story).toMatchObject({
 			story = expect.anything(),
@@ -165,10 +185,11 @@ describe("legacy support", function()
 	end)
 
 	test("packages attached to the story take precedence over the storybook", function()
-		local loader = ModuleLoader.new()
-
-		local storybook: types.Storybook = {
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
 			storyRoots = {},
+			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
 			},
@@ -182,7 +203,7 @@ describe("legacy support", function()
 			}
 		]])
 
-		local story = loadStoryModule(loader, storyModule, storybook)
+		local story = loadStoryModule(storyModule, storybook)
 
 		expect(story).toMatchObject({
 			story = expect.anything(),
