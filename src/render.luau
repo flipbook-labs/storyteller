@@ -28,7 +28,7 @@ end
 	the final step to getting stories visually presented to the user.
 
 	This function handles the lifecycle of mounting, updating, and unmounting
-	the Story. On each update controls can be passed down to the story for
+	the Story. On each update, controls can be passed down to the story for
 	live-reloading from user interaction.
 
 	**Usage:**
@@ -36,7 +36,6 @@ end
 	```lua
 	local ModuleLoader = require("@pkg/ModuleLoader")
 	local Storyteller = require("@pkg/Storyteller")
-
 
 	-- At least one `.storybook` module must be present
 	local storybookModules = Storyteller.findStorybookModules(game)

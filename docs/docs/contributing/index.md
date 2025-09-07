@@ -14,11 +14,8 @@ With the above requirements satisfied, run the following commands from your clon
 # Install command-line tools (like Lune)
 $ rokit install
 
-# Setup lune with VSCode
-$ lune setup
-
 # Install packages
-$ lune run wally-install
+$ lune run install
 ```
 
 ## Testing
@@ -48,6 +45,6 @@ $ lune run build
 By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--target` flag to set the environment to build for:
 
 ```sh
-$ lune run build -- --target dev
+$ lune run build --target dev
 ```
 

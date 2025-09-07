@@ -57,16 +57,6 @@ return {
 
 Under the hood these simply map to `packages.Roact`, `packages.React`, and `packages.ReactRoblox` respectively.
 
-## Stories for different renderers
-
-### Manual
-
-### React
-
-### Roact
-
-### Fusion
-
 ## Legacy package support
 
 :::warning

@@ -1,4 +1,4 @@
-# Creating releases
+# Creating Releases
 
 Once ready to cut a new release, bump the version in `wally.toml` and merge it to the main branch.
 

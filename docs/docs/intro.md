@@ -10,8 +10,7 @@ Storyteller is a package for the discovery and rendering of UI stories and power
 
 * Discover Storybooks and their Story modules
 * Render stories written in [React](https://github.com/jsdotlua/react-lua), [Fusion](https://elttob.uk/Fusion/), [Roact](https://github.com/Roblox/roact/), and any generic Roblox Gui.
-* Light compatibility with [UI Labs](https://pepeeltoro41.github.io/ui-labs/) and [Hoarcekat](https://github.com/Kampfkarren/hoarcekat/)
-
+* Partial compatibility with [UI Labs](https://pepeeltoro41.github.io/ui-labs/) and [Hoarcekat](https://github.com/Kampfkarren/hoarcekat/)
 
 ## Installation
 
@@ -19,7 +18,7 @@ Storyteller is a package for the discovery and rendering of UI stories and power
 
 ```toml
 [dependencies]
-Storyteller = "flipbook-labs/storyteller@0.3.0"
+Storyteller = "flipbook-labs/storyteller@x.x.x"
 ```
 
 ### Roblox Model
@@ -28,11 +27,11 @@ Download a copy of the rbxm from the [latest release](https://github.com/flipboo
 
 ## Resources
 
-API documentation is available on [the official documentation website](https://flipbook-labs.github.io/storyteller).
+To learn how to use Storyteller check out the [API documentation](api).
 
 ## Contributing
 
-Contributions welcome! Proper steps on how to get started will come later but feel free to poke around in the meantime.
+Contributions welcome! View our [contributing guide](contributing) to get started.
 
 ## License
 
