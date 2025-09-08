@@ -3,7 +3,6 @@ local isStorybookModule = require("./isStorybookModule")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local testEach = test.each :: any
 
 test("return true for ModuleScripts with the .storybook extension", function()
 	local storybook = Instance.new("ModuleScript")

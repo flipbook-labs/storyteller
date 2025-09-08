@@ -14,7 +14,7 @@ jobs:
 
       - uses: CompeyDev/setup-rokit@v0.1.2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          version: v1.1.1
 
       - uses: actions/setup-node@v4
         with:
@@ -31,7 +31,7 @@ jobs:
         run: npm run build
         working-directory: docs
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: docs/build
 
@@ -49,5 +49,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-

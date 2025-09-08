@@ -1,4 +1,4 @@
-local types = require("./types")
+local types = require("@self/types")
 
 --[=[
 	Storyteller is a library for the discovery and rendering of UI stories and
@@ -28,21 +28,21 @@ export type StoryRenderer<T> = types.StoryRenderer<T>
 
 return {
 	-- Validation
-	isStorybookModule = require("./isStoryModule"),
-	isStoryModule = require("./isStoryModule"),
+	isStorybookModule = require("@self/isStoryModule"),
+	isStoryModule = require("@self/isStoryModule"),
 
 	-- Discovery
-	findStorybookModules = require("./findStorybookModules"),
-	findStoryModulesForStorybook = require("./findStoryModulesForStorybook"),
+	findStorybookModules = require("@self/findStorybookModules"),
+	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
 
 	-- Module loading
-	loadStoryModule = require("./loadStoryModule"),
-	loadStorybookModule = require("./loadStorybookModule"),
+	loadStoryModule = require("@self/loadStoryModule"),
+	loadStorybookModule = require("@self/loadStorybookModule"),
 
 	-- Rendering
-	render = require("./render"),
+	render = require("@self/render"),
 
 	-- Hooks
-	useStory = require("./hooks/useStory"),
-	useStorybooks = require("./hooks/useStorybooks"),
+	useStory = require("@self/hooks/useStory"),
+	useStorybooks = require("@self/hooks/useStorybooks"),
 }
