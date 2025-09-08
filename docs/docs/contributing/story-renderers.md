@@ -1,4 +1,4 @@
-# Story Renderers Spec
+# Story Renderers
 
 The render API allows any UI library to be supported as the renderer for a Storyteller story.
 
@@ -20,7 +20,7 @@ Future:
 - [Blend](https://quenty.github.io/NevermoreEngine/api/Blend/)
 - Developer Storybook (Roblox internal)
 
-## Implementing a renderer
+## Adding new renderers
 
 All renderers live here: https://github.com/flipbook-labs/storyteller/tree/main/src/renderers.
 

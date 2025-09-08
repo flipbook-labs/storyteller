@@ -5,10 +5,11 @@ local types = require("@self/types")
 	powers our storybook plugin [Flipbook](https://github.com/flipbook-labs/flipbook).
 
 	The API for this package focuses around the following areas:
-	1. Validation for the Story format and Storybook format
-	2. Discvoery of valid ModuleScripts with `.story` and `.storybook` extensions
-	3. Loading of Stories and Storybooks into a sandbox with cacheless module requiring
-	4. Rendering stories into a container with lifecycle callbacks for updating and unmounting
+
+	1. **Validation** for the [Story](/docs/reference/story-format#story) format and [Storybook](/docs/reference/story-format#storybook) format
+	2. **Discovery** of valid ModuleScripts with `.story` and `.storybook` extensions
+	3. **Loading** of Stories and Storybooks into a sandbox with cacheless module requiring
+	4. **Rendering** stories into a container with lifecycle callbacks for updating and unmounting
 
 	There also exist React hooks for ease of integration into storybook apps.
 

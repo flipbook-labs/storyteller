@@ -48,6 +48,7 @@ const config: Config = {
 				docs: {
 					sidebarPath: './sidebars.ts',
 					editUrl: REPO_URL,
+					routeBasePath: '/',
 				},
 				theme: {
 					customCss: './src/css/custom.css',
@@ -68,19 +69,13 @@ const config: Config = {
 			items: [
 				{
 					type: 'docSidebar',
-					sidebarId: 'docs',
+					sidebarId: 'primary',
 					position: 'left',
-					label: 'Docs',
+					label: 'Home',
 				},
 				{
 					to: "/api/",
 					label: "API",
-					position: "left"
-				},
-				{
-					type: 'docSidebar',
-					sidebarId: 'specs',
-					label: "Specs",
 					position: "left"
 				},
 				{
@@ -104,10 +99,6 @@ const config: Config = {
 							label: 'API',
 							href: '/api/Storyteller'
 						},
-						{
-							label: 'Tech Specs',
-							href: '/docs/tech-specs/intro/'
-						}
 					],
 				},
 				{
@@ -142,6 +133,7 @@ const config: Config = {
 		prism: {
 			theme: prismThemes.github,
 			darkTheme: prismThemes.dracula,
+			additionalLanguages: ['lua', 'bash', 'toml'],
 		},
 	} satisfies Preset.ThemeConfig,
 };
