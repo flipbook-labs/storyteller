@@ -35,4 +35,4 @@ Contributions welcome! View our [contributing guide](contributing) to get starte
 
 ## License
 
-The contents of this repository are available under the MIT License. For full license text, see [LICENSE](LICENSE).
+The contents of this repository are available under the MIT License. For full license text, see [LICENSE](https://github.com/flipbook-labs/storyteller/blob/main/LICENSE).

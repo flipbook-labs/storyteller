@@ -99,10 +99,6 @@ const config: Config = {
 							label: 'API',
 							href: '/api/Storyteller'
 						},
-						{
-							label: 'Tech Specs',
-							href: '/docs/tech-specs/intro/'
-						}
 					],
 				},
 				{
