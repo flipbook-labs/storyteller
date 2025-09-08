@@ -1,7 +1,7 @@
 local compile = require("./lib/compile")
 local parseArgs = require("./lib/parseArgs")
 local process = require("@lune/process")
-local project = require("../project")
+local project = require("@repo/project")
 local run = require("./lib/run")
 local watch = require("./lib/watcher/watch")
 

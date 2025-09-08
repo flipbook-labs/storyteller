@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Jest = require(ReplicatedStorage.Packages.Jest)
+local Jest = (require :: any)(ReplicatedStorage.Packages.Jest)
 
 local root = ReplicatedStorage.Packages.Storyteller
 

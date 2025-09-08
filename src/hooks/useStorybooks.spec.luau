@@ -38,10 +38,8 @@ test("loads storybook modules", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toMatchObject({
-		{
-			name = "Sample",
-		},
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Sample",
 	})
 end)
 
@@ -58,12 +56,10 @@ test("storybooks with syntax errors are marked unavailable", function()
 
 	local storybooks = get()
 
-	expect(storybooks.unavailable).toMatchObject({
-		{
-			problem = expect.any("string"),
-			storybook = {
-				name = storybookModule.Name,
-			},
+	expect(storybooks.unavailable[1]).toMatchObject({
+		problem = expect.any("string"),
+		storybook = {
+			name = storybookModule.Name,
 		},
 	})
 end)

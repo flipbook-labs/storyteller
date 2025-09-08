@@ -15,6 +15,9 @@ globalTypes.d.luau
 /Packages
 /wally.lock
 
+# Environment
+.env
+
 # Other
 /*.log
 __pycache__

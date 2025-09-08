@@ -179,9 +179,9 @@ local function useStorybooks(parent: Instance): {
 
 		for _, storybook in storybooks do
 			if storybook["problem"] == nil then
-				table.insert(available, storybook :: LoadedStorybook)
+				table.insert(available, (storybook :: any) :: LoadedStorybook)
 			else
-				table.insert(unavailable, storybook :: UnavailableStorybook)
+				table.insert(unavailable, (storybook :: any) :: UnavailableStorybook)
 			end
 		end
 
