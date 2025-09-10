@@ -22,9 +22,9 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 			result = story.story
 		elseif typeof(story.story) == "function" then
 			if debug.info(story.story, "a") >= 2 then
-				result = story.story(container, props)
+				result = (story :: any).story(container, props)
 			else
-				result = story.story(props)
+				result = (story :: any).story(props)
 			end
 		end
 

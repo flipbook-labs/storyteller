@@ -1,7 +1,7 @@
 local compile = require("./lib/compile")
 local parseArgs = require("./lib/parseArgs")
 local process = require("@lune/process")
-local project = require("../project")
+local project = require("@repo/project")
 local run = require("./lib/run")
 local watch = require("./lib/watcher/watch")
 
@@ -35,6 +35,7 @@ local function build()
 		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
 		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
 		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
+		run("rm", { "-rf", `{project.BUILD_PATH}/jest.config.luau` })
 	end
 
 	run("rojo", { "build", "-o", output })
@@ -48,6 +49,7 @@ if args.watch then
 	watch({
 		filePatterns = {
 			"src/.*%.luau",
+			"Packages/.*%.luau",
 		},
 		onChanged = build,
 	})
