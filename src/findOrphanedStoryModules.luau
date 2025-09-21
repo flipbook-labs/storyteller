@@ -5,13 +5,15 @@ local matchDescendants = require("@root/matchDescendants")
 local types = require("@root/types")
 
 --[=[
-	Discovers all Story modules that don't have a Storybook targetting them with its `storyRoots`.
+	Discovers all Story modules that do not have a Storybook.
+
+	These are all of the Story modules that are not descendants of an instance
+	in the `storyRoots` array of the given storybooks.
 
 	@tag Storybook
 	@tag Story
 	@tag Discovery
 	@within Storyteller
-	@since 0.1.0
 ]=]
 local function findOrphanedStoryModules(parent: Instance, storybooks: { types.LoadedStorybook }): { ModuleScript }
 	local storyModules = matchDescendants(parent, isStoryModule)
