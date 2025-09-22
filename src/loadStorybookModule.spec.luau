@@ -117,3 +117,24 @@ describe("legacy support", function()
 		})
 	end)
 end)
+
+describe("roblox internal", function()
+	test("grouping storybooks", function()
+		local loader = ModuleLoader.new()
+
+		local storybookModule = createMockStorybookModule([[
+			return {
+				group = "Group",
+				storyRoots = {
+					Instance.new("Folder")
+				},
+				react = {},
+				reactRoblox = {},
+			}
+		]])
+
+		local storybook = loadStorybookModule(storybookModule, loader)
+
+		expect(storybook.name).toBe("Group / Foo")
+	end)
+end)
