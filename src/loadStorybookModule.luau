@@ -47,6 +47,12 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		end
 	end
 
+	do -- Roblox internal. This behavior may be removed without notice.
+		if result.group then
+			result.name = `{result.group} / {result.name}`
+		end
+	end
+
 	result.source = module
 	result.loader = loader
 
