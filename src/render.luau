@@ -79,11 +79,11 @@ local function render<T>(container: Instance, story: LoadedStory<T>): RenderLife
 	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps = {
+		local props: StoryProps = Sift.Dictionary.join(story.props or {}, {
 			container = container,
 			story = story,
 			theme = "Dark", -- TODO: Support theme changing
-		}
+		})
 
 		props.controls = Sift.Dictionary.join(
 			if story.controls then collapseControls(story.controls) else nil,
