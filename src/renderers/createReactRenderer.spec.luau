@@ -6,6 +6,7 @@ local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
+local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
@@ -194,4 +195,38 @@ test("lifecycle", function()
 	end)
 
 	expect(#container:GetChildren()).toBe(0)
+end)
+
+describe("middleware", function()
+	test("supply context provider to all stories", function()
+		local ThemeContext = React.createContext(nil)
+
+		local function StoryThatNeedsContext()
+			local theme = React.useContext(ThemeContext)
+
+			return React.createElement("TextLabel", {
+				Text = if theme == "Dark" then "Dark" else "Light",
+			})
+		end
+
+		local story = createReactStory(StoryThatNeedsContext)
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				return React.createElement(ThemeContext.Provider, {
+					value = "Dark",
+				}, React.createElement(element, props))
+			end
+		end
+
+		render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		local element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark")
+	end)
 end)

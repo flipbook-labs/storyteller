@@ -218,3 +218,30 @@ describe("legacy support", function()
 		})
 	end)
 end)
+
+describe("roblox internal", function()
+	test("pick a single substory to show", function()
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
+			storyRoots = {},
+			loader = ModuleLoader.new(),
+			source = Instance.new("ModuleScript"),
+			packages = {},
+		}
+
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					One = function() end,
+					Two = function() end,
+					Three = function() end,
+				}
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, storybook)
+
+		expect(story.story).toBeDefined()
+		expect((story :: any).substories).toBeUndefined()
+	end)
+end)

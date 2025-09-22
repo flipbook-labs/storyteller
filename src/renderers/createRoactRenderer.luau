@@ -19,9 +19,16 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local Roact = packages.Roact
 	local tree
 	local currentComponent
+	local currentStory
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 		local element
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
 
 		if isRoactElement(story.story) then
 			currentComponent = (story.story :: any).component
@@ -31,12 +38,23 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 			element = Roact.createElement(currentComponent, props)
 		end
 
+		if mapStory then
+			element = Roact.createElement(mapStory(story.story), props, element)
+		end
+
+		currentStory = story
 		tree = Roact.mount(element, container, "RoactRenderer")
 	end
 
 	local function update(props: StoryProps)
 		if tree and currentComponent then
 			local element = Roact.createElement(currentComponent, props)
+
+			local mapStory = if currentStory and currentStory.storybook then currentStory.storybook.mapStory else nil
+			if mapStory then
+				element = Roact.createElement(mapStory(currentStory.story), props, element)
+			end
+
 			Roact.update(tree, element)
 		end
 	end
