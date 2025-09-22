@@ -48,10 +48,12 @@ local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedSt
 		}
 	end
 
-	do -- Roblox internal. This behavior may be substantially changed or removed
-		-- We need support for substories to be compatible with Developer
-		-- Storybook. In the meantime we're just selecting a randomly accessed
-		-- one, but ideally we should be able to render them all out
+	do
+		-- Roblox internal. This behavior may be substantially changed or
+		-- removed in the future. We need support for substories to be
+		-- compatible with Developer Storybook, so we're just selecting a
+		-- randomly accessed one but ideally we should be able to render them
+		-- all out
 		if result.stories and not result.story then
 			local randomSubstory
 			for _, substory in result.stories do

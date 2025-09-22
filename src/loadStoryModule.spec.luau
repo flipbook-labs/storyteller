@@ -220,8 +220,6 @@ describe("legacy support", function()
 end)
 
 describe("roblox internal", function()
-	-- Right now we don't support rendering more than one story. For now, we
-	-- pick a random one to render.
 	test("pick a single substory to show", function()
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
