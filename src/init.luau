@@ -34,6 +34,7 @@ return {
 	-- Discovery
 	findStorybookModules = require("@self/findStorybookModules"),
 	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
+	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
 	-- Module loading
 	loadStoryModule = require("@self/loadStoryModule"),
