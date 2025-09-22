@@ -117,3 +117,36 @@ describe("legacy support", function()
 		})
 	end)
 end)
+
+describe("roblox internal", function()
+	test("map storyRoot (single instance) to storyRoots (array of instances)", function()
+		local storybookModule = createMockStorybookModule([[
+			return {
+				storyRoot = Instance.new("Folder"),
+			}
+		]])
+
+		local storybook = loadStorybookModule(storybookModule)
+
+		expect(#storybook.storyRoots).toBe(1)
+	end)
+
+	test("grouping storybooks", function()
+		local loader = ModuleLoader.new()
+
+		local storybookModule = createMockStorybookModule([[
+			return {
+				group = "Group",
+				storyRoots = {
+					Instance.new("Folder")
+				},
+				react = {},
+				reactRoblox = {},
+			}
+		]])
+
+		local storybook = loadStorybookModule(storybookModule, loader)
+
+		expect(storybook.name).toBe("Group / Foo")
+	end)
+end)
