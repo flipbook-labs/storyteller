@@ -41,7 +41,7 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	local isStorybook, message = types.IStorybook(result)
 
-	assert(isStorybook, `failed to load storybook {module:GetFullName()}: {message}`)
+	assert(isStorybook, `failed to load storybook {module:GetFullName()}:\n{message}`)
 
 	if not result.packages then
 		result.packages = migrateLegacyPackages(result)
