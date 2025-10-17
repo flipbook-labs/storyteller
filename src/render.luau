@@ -86,8 +86,8 @@ local function render<T>(container: Instance, story: LoadedStory<T>, extraProps:
 				theme = "Dark",
 			},
 
-			story.props,
 			extraProps,
+			story.props,
 
 			-- Props that cannot be overridden by the user
 			{
