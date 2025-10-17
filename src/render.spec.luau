@@ -204,3 +204,24 @@ test("array controls are collapsed to the first story", function()
 
 	expect(font).toBe(Enum.Font.BuilderSans)
 end)
+
+test("extra props can be supplied for things like the UI theme", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story, {
+		theme = "Light",
+	})
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			theme = "Light",
+		})
+	)
+end)
