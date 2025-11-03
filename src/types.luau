@@ -7,6 +7,15 @@ local types = {}
 
 export type StudioTheme = "Light" | "Dark"
 
+-- https://storybook.js.org/docs/essentials/controls#annotation
+type DetailedControlValue = {}
+
+type ControlValue = string | number | boolean | DetailedControlValue
+
+export type ControlSchema = {
+	[string]: ControlValue | {},
+}
+
 export type StoryControls = {
 	[string]: any,
 }

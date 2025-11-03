@@ -49,6 +49,7 @@ local function StoryContainer(props: {
 		end
 	end, { props.onError, err } :: { unknown })
 
+	-- TODO: This should either be AutomaticSize or a ScrollingFrame
 	return React.createElement("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
