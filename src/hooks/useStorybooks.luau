@@ -73,9 +73,11 @@ type UnavailableStorybook = types.UnavailableStorybook
 local function useStorybooks(parent: Instance): {
 	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
+	isLoading: boolean,
 }
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
-	local storybooks, setStorybooks = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
+	local storybookMap, setStorybookMap = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
+	local isLoading, setIsLoading = useState(true)
 
 	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
 		local existing = storybookConnections.current[storybookModule]
@@ -103,7 +105,7 @@ local function useStorybooks(parent: Instance): {
 			table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
 			table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
 
-			setStorybooks(function(prev)
+			setStorybookMap(function(prev)
 				local new = table.clone(prev)
 
 				if success and storybook then
@@ -123,6 +125,7 @@ local function useStorybooks(parent: Instance): {
 
 				return new
 			end)
+			setIsLoading(false)
 		end
 
 		function reloadStorybook(instance: Instance)
@@ -135,7 +138,7 @@ local function useStorybooks(parent: Instance): {
 					loader:clear()
 					load()
 				else
-					setStorybooks(function(prev)
+					setStorybookMap(function(prev)
 						local new = table.clone(prev)
 						new[storybookModule] = nil
 						return new
@@ -148,7 +151,7 @@ local function useStorybooks(parent: Instance): {
 	end, {})
 
 	useEffect(function()
-		setStorybooks({})
+		setStorybookMap({})
 
 		local storybookModules = findStorybookModules(parent)
 
@@ -173,11 +176,11 @@ local function useStorybooks(parent: Instance): {
 		end
 	end, { parent } :: { unknown })
 
-	return useMemo(function()
+	local storybooks = useMemo(function()
 		local available: { LoadedStorybook } = {}
 		local unavailable: { UnavailableStorybook } = {}
 
-		for _, storybook in storybooks do
+		for _, storybook in storybookMap do
 			if storybook["problem"] == nil then
 				table.insert(available, (storybook :: any) :: LoadedStorybook)
 			else
@@ -189,7 +192,13 @@ local function useStorybooks(parent: Instance): {
 			available = available,
 			unavailable = unavailable,
 		}
-	end, { storybooks })
+	end, { storybookMap })
+
+	return {
+		isLoading = isLoading,
+		available = storybooks.available,
+		unavailable = storybooks.unavailable,
+	}
 end
 
 return useStorybooks

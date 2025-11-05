@@ -152,3 +152,28 @@ test("re-renders on module changes", function()
 		}),
 	})
 end)
+
+test("marks itself as loading until finished searching", function()
+	local firstResult
+	local get = renderHook(function()
+		local result = useStorybooks(container)
+		if not firstResult then
+			firstResult = result
+		end
+		return result
+	end)
+
+	local storybooks = get()
+
+	expect(firstResult.isLoading).toBe(true)
+
+	-- Just step forward since there's no way there would be enough work for
+	-- this to take longer than a frame
+	act(function()
+		task.wait()
+	end)
+
+	storybooks = get()
+
+	expect(storybooks.isLoading).toBe(false)
+end)
