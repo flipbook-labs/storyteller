@@ -45,8 +45,8 @@ jobs:
         with:
           version: v1.1.1
 
-      - name: Setup Lune typedefs
-        run: lune setup
+      - name: Setup Lute typedefs
+        run: lute setup
 
       - name: Install packages
         run: lute scripts/install.luau
