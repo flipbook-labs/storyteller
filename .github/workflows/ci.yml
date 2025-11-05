@@ -51,6 +51,7 @@ jobs:
           # Manually move the generated typedefs until this issue is resolved:
           # https://github.com/luau-lang/lute/issues/517
           mv .lute $HOME/.lute
+          ls -al $HOME
 
       - name: Install packages
         run: lute scripts/install.luau
