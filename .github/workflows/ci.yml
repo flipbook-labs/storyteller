@@ -46,12 +46,7 @@ jobs:
           version: v1.1.1
 
       - name: Setup Lute typedefs
-        run: |
-          lute setup
-          # Manually move the generated typedefs until this issue is resolved:
-          # https://github.com/luau-lang/lute/issues/517
-          mv .lute $HOME/.lute
-          ls -al $HOME
+        run: lute setup
 
       - name: Install packages
         run: lute scripts/install.luau
