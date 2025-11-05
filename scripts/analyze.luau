@@ -11,19 +11,33 @@ run("curl", {
 	"https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/master/scripts/globalTypes.d.lua",
 })
 
-run("rojo", {
-	"sourcemap",
-	project.ROJO_ANALYSIS_PROJECT,
-	"-o",
-	project.SOURCEMAP_PATH,
-})
+local function analyzeLuauSource()
+	run("luau-lsp", {
+		"analyze",
+		`--defs={globalDefsPath}`,
+		"--settings=./.vscode/settings.json",
+		"--platform=standard",
+		"--flag:LuauSolverV2=true",
+		project.SCRIPTS_PATH,
+	})
+end
 
-run("luau-lsp", {
-	"analyze",
-	`--sourcemap={project.SOURCEMAP_PATH}`,
-	`--defs={globalDefsPath}`,
-	"--settings=./.vscode/settings.json",
-	"--ignore=**/_Index/**",
-	project.SOURCE_PATH,
-	project.LUNE_SCRIPTS_PATH,
-})
+local function analyzeRobloxSource()
+	run("rojo", {
+		"sourcemap",
+		project.ROJO_BUILD_PROJECT,
+		"-o",
+		project.SOURCEMAP_PATH,
+	})
+
+	run("luau-lsp", {
+		"analyze",
+		`--sourcemap={project.SOURCEMAP_PATH}`,
+		`--defs={globalDefsPath}`,
+		"--settings=./.vscode/settings.json",
+		project.SOURCE_PATH,
+	})
+end
+
+analyzeLuauSource()
+analyzeRobloxSource()

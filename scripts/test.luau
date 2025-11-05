@@ -1,17 +1,25 @@
-local process = require("@lune/process")
+local cli = require("@batteries/cli")
+local process = require("@lute/process")
 
 local compile = require("./lib/compile")
 local dotenv = require("./lib/dotenv")
-local parseArgs = require("./lib/parseArgs")
 local run = require("./lib/run")
 
 local project = require("@repo/project")
 
 dotenv()
 
-local args = parseArgs(process.args)
+local args = cli.parser()
 
-local apiKey = process.env.ROBLOX_API_KEY or args.apiKey
+args:add("apiKey", "option", {
+	help = "Target to build for",
+	aliases = { "c" },
+	default = "prod",
+})
+
+args:parse({ ... })
+
+local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
 if not apiKey then
 	print(
 		"err: A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
@@ -24,17 +32,16 @@ compile("dev")
 run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 
 local success, err = pcall(function()
-	run("python3", {
-		".lune/open-cloud/upload_and_run_task.py",
+	return run("python3", {
+		"scripts/open-cloud/upload_and_run_task.py",
 		"tests.rbxl",
-		".lune/tasks/run-tests.luau",
+		"scripts/tasks/run-tests.luau",
 	}, {
 		env = {
 			ROBLOX_UNIVERSE_ID = project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
 			ROBLOX_PLACE_ID = project.ROBLOX_UNIT_TESTING_PLACE_ID,
 			ROBLOX_API_KEY = tostring(apiKey),
 		},
-		stdio = "forward",
 	})
 end)
 

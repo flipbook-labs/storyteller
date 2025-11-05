@@ -1,10 +1,13 @@
-local fs = require("@lune/fs")
+local fs = require("@lute/fs")
 
 local function rmrf(path: string)
-	if fs.isDir(path) then
-		fs.removeDir(path)
+	if fs.type(path) == "dir" then
+		for _, file in fs.listdir(path) do
+			rmrf(`{path}/{file.name}`)
+		end
+		fs.rmdir(path)
 	else
-		fs.removeFile(path)
+		fs.remove(path)
 	end
 end
 

@@ -1,3 +1,4 @@
+--!nocheck
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Jest = (require :: any)(ReplicatedStorage.Packages.Jest)
