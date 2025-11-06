@@ -1,16 +1,37 @@
+local cli = require("@batteries/cli")
+local process = require("@lute/process")
+
 local compile = require("./lib/compile")
-local parseArgs = require("./lib/parseArgs")
-local process = require("@lune/process")
+local dotenv = require("./lib/dotenv")
 local project = require("@repo/project")
 local run = require("./lib/run")
-local watch = require("./lib/watcher/watch")
+local watch = require("./lib/watch")
 
-local args = parseArgs(process.args)
+dotenv()
 
-local target = if args.target then args.target else "prod"
-assert(target == "dev" or target == "prod", `bad value for target (must be one of "dev" or "prod", got "{target}")`)
+local args = cli.parser()
 
-local output = if args.output then args.output else project.MODEL_FILENAME
+args:add("channel", "option", {
+	help = "channel to build for",
+	aliases = { "c" },
+	default = "prod",
+})
+args:add("output", "option", {
+	help = "Full path to the rbxm file to build",
+	aliases = { "o" },
+	default = "Storyteller.rbxm",
+})
+args:add("watch", "flag", {
+	help = "Watch for changes and recompile automatically",
+	aliases = { "w" },
+})
+
+args:parse({ ... })
+
+local channel = args:get("channel")
+assert(channel == "dev" or channel == "prod", `bad value for channel (must be one of "dev" or "prod", got "{channel}")`)
+
+local output = args:get("output")
 assert(typeof(output) == "string", `bad value for output (string expected, got {typeof(output)})`)
 
 local WALLY_BUILD_DIR = ".build/wally"
@@ -29,9 +50,9 @@ local function buildWallyPackage()
 end
 
 local function build()
-	compile(target)
+	compile(channel)
 
-	if target == "prod" then
+	if channel == "prod" then
 		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
 		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
 		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
@@ -45,11 +66,15 @@ end
 
 build()
 
-if args.watch then
+if args:get("watch") then
 	watch({
-		filePatterns = {
-			"src/.*%.luau",
-			"Packages/.*%.luau",
+		roots = {
+			`{process.cwd()}/src`,
+			`{process.cwd()}/workspace`,
+		},
+		excludedFilePatterns = {
+			".*Packages",
+			"build",
 		},
 		onChanged = build,
 	})

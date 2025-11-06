@@ -1,15 +1,16 @@
-local fs = require("@lune/fs")
+local fs = require("@lute/fs")
 
 local project = require("@repo/project")
+local rmrf = require("./rmrf")
 local run = require("./run")
 
-type Target = "prod" | "dev"
+type channel = "prod" | "dev"
 
-local function compile(target: Target)
-	if fs.isDir(project.BUILD_PATH) then
-		fs.removeDir(project.BUILD_PATH)
+local function compile(channel: channel)
+	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
+		rmrf(project.BUILD_PATH)
 	end
-	fs.writeDir(project.BUILD_PATH)
+	fs.mkdir(project.BUILD_PATH)
 
 	run("rojo", {
 		"sourcemap",
@@ -24,7 +25,7 @@ local function compile(target: Target)
 		project.BUILD_PATH,
 	})
 
-	if target == "dev" then
+	if channel == "dev" then
 		run("darklua", {
 			"process",
 			"example",
