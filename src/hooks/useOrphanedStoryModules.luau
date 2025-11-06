@@ -6,24 +6,30 @@ local isStorybookModule = require("@root/isStorybookModule")
 local useStorybooks = require("@root/hooks/useStorybooks")
 
 local useEffect = React.useEffect
-local useMemo = React.useMemo
 local useCallback = React.useCallback
 local useState = React.useState
 local useRef = React.useRef
 
-local function useOrphanedStories(parent: Instance): { ModuleScript }
+local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
+	print(`useOrphanedStoryModules({parent})`)
+
 	local orphanedStories, setOrphanedStories = useState({} :: { ModuleScript })
 
 	local storybooks = useStorybooks(parent)
 
+	print(`storybooks.isLoading: {storybooks.isLoading}`)
+
 	local update = useCallback(function()
+		print("update")
 		-- We make sure to only look for orphans after all storybooks (available
 		-- and unavailable) have been searched for, otherwise on the first
 		-- render we could return stories that do in fact have a storybook
 		-- associated with them
 		if storybooks.isLoading then
+			print("still loading. set to empty")
 			setOrphanedStories({})
 		else
+			print("find")
 			setOrphanedStories(findOrphanedStoryModules(parent, storybooks.available))
 		end
 	end, { parent, storybooks.isLoading, storybooks.available } :: { unknown })
@@ -66,4 +72,4 @@ local function useOrphanedStories(parent: Instance): { ModuleScript }
 	return orphanedStories
 end
 
-return useOrphanedStories
+return useOrphanedStoryModules

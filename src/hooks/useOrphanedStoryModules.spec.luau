@@ -5,7 +5,7 @@ local new = require("@root/test-utils/new")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
 
-local useOrphanedStories = require("./useOrphanedStories")
+local useOrphanedStoryModules = require("./useOrphanedStoryModules")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -51,7 +51,7 @@ test("updates when moving instances around the DataModel", function()
 	})
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStories(container)
+		return useOrphanedStoryModules(container)
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
@@ -65,6 +65,7 @@ test("updates when moving instances around the DataModel", function()
 		task.wait()
 	end)
 
+	print("check")
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 		storyModuleA,
 		storyModuleC,
@@ -117,7 +118,7 @@ test("updates when adding/removing instances from the DataModel", function()
 	})
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStories(container)
+		return useOrphanedStoryModules(container)
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({

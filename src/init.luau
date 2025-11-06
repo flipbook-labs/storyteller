@@ -46,5 +46,5 @@ return {
 	-- Hooks
 	useStory = require("@self/hooks/useStory"),
 	useStorybooks = require("@self/hooks/useStorybooks"),
-	useOrphanedStories = require("@self/hooks/useOrphanedStories"),
+	useOrphanedStoryModules = require("@self/hooks/useOrphanedStoryModules"),
 }
