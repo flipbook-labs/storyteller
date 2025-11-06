@@ -1,5 +1,4 @@
 local types = require("@self/types")
-local useOrphanedStories = require(script.hooks.useOrphanedStories)
 
 --[=[
 	Storyteller is a library for the discovery and rendering of UI stories and
