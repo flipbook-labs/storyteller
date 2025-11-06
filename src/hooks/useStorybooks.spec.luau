@@ -153,7 +153,7 @@ test("re-renders on module changes", function()
 	})
 end)
 
-test("marks itself as loading until finished searching", function()
+test("marks itself as loading until searching finishes", function()
 	local firstResult
 	local get = renderHook(function()
 		local result = useStorybooks(container)
