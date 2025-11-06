@@ -24,10 +24,10 @@ jobs:
           echo "MODEL_FILE=$name.rbxm" >> $GITHUB_ENV
 
       - name: Install packages
-        run: lune run install
+        run: lute scripts/install.luau
 
       - name: Build
-        run: lune run build --target prod --output ${{ env.MODEL_FILE }}
+        run: lute scripts/build.luau --channel prod --output ${{ env.MODEL_FILE }}
 
       - name: Login to Wally registry
         run: wally login --token ${{ secrets.WALLY_REGISTRY_TOKEN }}

@@ -9,6 +9,7 @@ dist
 # Luau
 sourcemap*.json
 globalTypes.d.luau
+LuauPackages
 
 # Wally
 /DevPackages
