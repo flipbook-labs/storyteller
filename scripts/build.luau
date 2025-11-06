@@ -11,8 +11,8 @@ dotenv()
 
 local args = cli.parser()
 
-args:add("target", "option", {
-	help = "Target to build for",
+args:add("channel", "option", {
+	help = "channel to build for",
 	aliases = { "c" },
 	default = "prod",
 })
@@ -28,8 +28,8 @@ args:add("watch", "flag", {
 
 args:parse({ ... })
 
-local target = args:get("target")
-assert(target == "dev" or target == "prod", `bad value for target (must be one of "dev" or "prod", got "{target}")`)
+local channel = args:get("channel")
+assert(channel == "dev" or channel == "prod", `bad value for channel (must be one of "dev" or "prod", got "{channel}")`)
 
 local output = args:get("output")
 assert(typeof(output) == "string", `bad value for output (string expected, got {typeof(output)})`)
@@ -50,9 +50,9 @@ local function buildWallyPackage()
 end
 
 local function build()
-	compile(target)
+	compile(channel)
 
-	if target == "prod" then
+	if channel == "prod" then
 		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
 		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
 		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })

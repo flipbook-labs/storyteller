@@ -27,7 +27,7 @@ jobs:
         run: lute scripts/install.luau
 
       - name: Build
-        run: lute scripts/build.luau --target prod --output ${{ env.MODEL_FILE }}
+        run: lute scripts/build.luau --channel prod --output ${{ env.MODEL_FILE }}
 
       - name: Login to Wally registry
         run: wally login --token ${{ secrets.WALLY_REGISTRY_TOKEN }}

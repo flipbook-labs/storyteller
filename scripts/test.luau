@@ -12,9 +12,8 @@ dotenv()
 local args = cli.parser()
 
 args:add("apiKey", "option", {
-	help = "Target to build for",
-	aliases = { "c" },
-	default = "prod",
+	help = "Open Cloud API key",
+	aliases = { "k" },
 })
 
 args:parse({ ... })

@@ -42,8 +42,8 @@ Run the following to build the project:
 $ lute scripts/build.luau
 ```
 
-By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--target` flag to set the environment to build for:
+By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--channel` flag to set the environment to build for:
 
 ```sh
-$ lute scripts/build.luau --target dev
+$ lute scripts/build.luau --channel dev
 ```
