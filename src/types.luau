@@ -74,7 +74,6 @@ export type Story<T> = {
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	-- TODO: Double check if Developer Storybook lets you do this
 	props: { [string]: any }?,
 }
 types.IStory = t.interface({
