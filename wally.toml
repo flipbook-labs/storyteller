@@ -15,16 +15,17 @@ include = [
 exclude = ["*"]
 
 [dependencies]
-Sift = "csqrl/sift@0.0.8"
 ModuleLoader = "flipbook-labs/module-loader@0.7.0"
-t = "osyrisrblx/t@3.0.0"
+Prospector = "egomoose/prospector@2.0.1"
 React = "jsdotlua/react@17.0.2"
+Sift = "csqrl/sift@0.0.8"
+t = "osyrisrblx/t@3.0.0"
 
 # [dev-dependencies]
-ReactRoblox = "jsdotlua/react-roblox@17.0.2"
-Roact = "roblox/roact@1.4.4"
-RoactCompat = "jsdotlua/roact-compat@17.0.2"
 Fusion = "elttob/fusion@0.2.0"
 Fusion3 = "elttob/fusion@0.3.0"
 Jest = "jsdotlua/jest@3.10.0"
 JestGlobals = "jsdotlua/jest-globals@3.10.0"
+ReactRoblox = "jsdotlua/react-roblox@17.0.2"
+Roact = "roblox/roact@1.4.4"
+RoactCompat = "jsdotlua/roact-compat@17.0.2"
