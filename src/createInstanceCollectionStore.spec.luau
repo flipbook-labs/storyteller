@@ -55,18 +55,13 @@ test("satisfies Story and Storybook use case", function()
 	local storyCollection = createInstanceCollectionStore(root, "ModuleScript", isStoryModule)
 	local storybookCollection = createInstanceCollectionStore(root, "ModuleScript", isStorybookModule)
 
-	expect(storyCollection.getMatches(false)).toEqual({})
-	expect(storybookCollection.getMatches(false)).toEqual({})
-
-	storyCollection.collect()
-	storybookCollection.collect()
-
 	expect(storyCollection.getMatches(false)).toEqual(expect.arrayContaining({
 		storyModuleA,
 		storyModuleB,
 		storyModuleC,
 		storyModuleD,
 	}))
+
 	expect(storybookCollection.getMatches(false)).toEqual({ storybookModule })
 end)
 
@@ -88,10 +83,6 @@ test("never updates so long as the instances stay descendants of the root", func
 
 	local partCollection = createInstanceCollectionStore(root, "Part")
 
-	expect(partCollection.getMatches(false)).toEqual({})
-
-	partCollection.collect()
-
 	local snapshot = partCollection.getMatches(false)
 
 	expect(snapshot).toEqual(expect.arrayContaining({
@@ -103,20 +94,20 @@ test("never updates so long as the instances stay descendants of the root", func
 	waitForEvents()
 
 	-- The identities should be equal
-	expect(partCollection.getMatches(false)).toBe(snapshot)
+	expect(snapshot == partCollection.getMatches(false)).toBe(true)
 
 	partA.Parent = partB.Parent
 	waitForEvents()
 
 	-- Same thing. No changes to the collected instances since they're still
 	-- descendants of the root. Identities should still match
-	expect(partCollection.getMatches(false)).toBe(snapshot)
+	expect(snapshot == partCollection.getMatches(false)).toBe(true)
 
 	-- Now we remove the part from the root, which should trigger an update
 	partA.Parent = nil
 	waitForEvents()
 
-	expect(partCollection.getMatches(false)).never.toBe(snapshot)
+	expect(snapshot == partCollection.getMatches(false)).toBe(false)
 	expect(partCollection.getMatches(false)).toEqual({ partB })
 end)
 
@@ -139,20 +130,23 @@ test("updates when adding/removing instances from the DataModel", function()
 
 	local partCollection = createInstanceCollectionStore(root, "Part")
 
-	expect(partCollection.getMatches(false)).toEqual({})
-
-	partCollection.collect()
-
-	local snapshot = partCollection.getMatches(false)
+	expect(partCollection.getMatches(false)).toEqual(expect.arrayContaining({
+		partA,
+		partB,
+	}))
 
 	local folder = new("Folder", nil, {
 		PartC = partC,
 	})
 
 	folder.Parent = partA.Parent
+	waitForEvents()
 
-	expect(snapshot).never.toBe(partCollection.getMatches(false))
-	expect(partCollection.getMatches(false)).toBe(expect.arrayContaining({ partA, partB, partC }))
+	expect(partCollection.getMatches(false)).toEqual(expect.arrayContaining({
+		partA,
+		partB,
+		partC,
+	}))
 end)
 
 test("recalculates when an existing match has property changes", function()
@@ -173,9 +167,10 @@ test("recalculates when an existing match has property changes", function()
 
 	local partCollection = createInstanceCollectionStore(root, "Part#PartA")
 
-	partCollection.collect()
-
 	expect(partCollection.getMatches(false)).toEqual({ partA })
+
+	-- Waiting for the initial PartA.Changed event to be connected
+	waitForEvents()
 
 	partA.Name = "NoLongerMatches"
 	waitForEvents()
