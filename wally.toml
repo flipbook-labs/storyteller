@@ -16,7 +16,6 @@ exclude = ["*"]
 
 [dependencies]
 ModuleLoader = "flipbook-labs/module-loader@0.7.0"
-Prospector = "egomoose/prospector@2.0.1"
 React = "jsdotlua/react@17.0.2"
 Sift = "csqrl/sift@0.0.8"
 t = "osyrisrblx/t@3.0.0"

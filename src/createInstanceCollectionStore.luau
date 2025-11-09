@@ -1,81 +1,133 @@
-local Prospector = require("@pkg/Prospector")
 local Signals = require("@rbxpkg/Signals")
 
-type CollectionPredicate = (instance: Instance) -> boolean?
+export type CollectionMatcher = (instance: Instance) -> boolean?
+
+export type CollectionStatus = "NotStarted" | "Collecting" | "Watching" | "Stopped" | "Destroyed"
+
+local CollectionStatus = {
+	NotStarted = "NotStarted" :: "NotStarted",
+	Collecting = "Collecting" :: "Collecting",
+	Watching = "Watching" :: "Watching",
+	Stopped = "Stopped" :: "Stopped",
+	Destroyed = "Destroyed" :: "Destroyed",
+}
+
+type StopCollecting = () -> ()
 
 export type InstanceCollectionStore = {
-	getIsRunning: Signals.getter<boolean>,
-	createCollection: (predicate: CollectionPredicate) -> Signals.getter<Instance>,
-	collect: (root: Instance) -> (),
+	getStatus: Signals.getter<CollectionStatus>,
+	getMatches: Signals.getter<{ Instance }>,
+	collect: () -> StopCollecting,
+	destroy: () -> (),
 }
 
-type Collection = {
-	predicate: CollectionPredicate,
-	setCollection: Signals.setter<{ Instance }>,
-}
-
-local function createInstanceCollectionStore(): InstanceCollectionStore
-	local getIsRunning, setIsRunning = Signals.createSignal(false)
+local function createInstanceCollectionStore(
+	root: Instance,
+	selector: string,
+	matcher: CollectionMatcher?
+): InstanceCollectionStore
+	local getStatus: Signals.getter<CollectionStatus>, setStatus =
+		Signals.createSignal(CollectionStatus.NotStarted :: CollectionStatus)
 	local getMatches, setMatches = Signals.createSignal({} :: { Instance })
-	local getCollections, setCollections = Signals.createSignal({} :: { Collection })
 	local effects: { Signals.dispose } = {}
+	local descendantAddedConn: RBXScriptConnection?
 
-	local function createCollection(predicate: CollectionPredicate)
-		local getCollection, setCollection = Signals.createSignal({} :: { Instance })
+	--[[
+		This queue is used to process new and existing Instances after building
+		the initial list of matches.
 
-		setCollections(function(prev)
-			local new = table.clone(prev)
-			table.insert(new, {
-				predicate = predicate,
-				setCollection = setCollection,
-			})
-			return new
-		end)
+		The queue gets pushed to when...
 
-		return getCollection
+		1. A new Instance is added as a descendant of `root`, or
+		2. An existing match has one or more of its properties changed
+
+		So long as `collect()` has been called and the store has not been
+		destroyed, the queue will be incrementally processed so that the matches
+		continue to mirror the DataModel
+	]]
+	local queue: { Instance } = {}
+
+	local function collectOnce()
+		print("collectOnce")
+		local matches = {}
+
+		for _, candidate in root:QueryDescendants(selector) do
+			if not matcher or matcher(candidate) then
+				table.insert(matches, candidate)
+			end
+		end
+
+		setMatches(matches)
 	end
 
-	local function collect(root: Instance)
-		setIsRunning(true)
+	local function collect()
+		print("collect")
+		setStatus(CollectionStatus.Collecting)
+
+		if descendantAddedConn then
+			descendantAddedConn:Disconnect()
+		end
+
+		descendantAddedConn = root.DescendantAdded:Connect(function(descendant)
+			print("add descendant to queue", descendant)
+			table.insert(queue, descendant)
+		end)
+
+		collectOnce()
 
 		task.spawn(function()
-			local matches = Prospector.Collect.descendantsBFS(root, function(descendant)
-				for _, collection in getCollections(false) do
-					-- If at least one predicate matches then this descendant is
-					-- included. We disambiguate the final list of instances
-					-- into their logical groupings later
-					if collection.predicate(descendant) then
-						return true
-					end
-				end
-				return false
-			end)
+			setStatus(CollectionStatus.Watching)
 
-			setMatches(matches)
-
-			for _, collection in getCollections(false) do
-				local collectionMatches = {}
-				for _, match in matches do
-					if collection.predicate(match) then
-						table.insert(collectionMatches, match)
-					end
+			while getStatus(false) == CollectionStatus.Watching do
+				if #queue > 0 then
+					collectOnce()
+					table.clear(queue)
 				end
-				collection.setCollection(collectionMatches)
+				task.wait()
 			end
 
-			setIsRunning(false)
+			setStatus(CollectionStatus.Stopped)
 		end)
+
+		return function()
+			setStatus(CollectionStatus.Stopped)
+		end
 	end
 
+	table.insert(
+		effects,
+		Signals.createEffect(function(scope)
+			local connections: { RBXScriptConnection } = {}
+
+			for _, match in getMatches(scope) do
+				print(`connect to {match}.Changed`)
+				table.insert(
+					connections,
+					match.Changed:Connect(function()
+						print(`{match} changed, adding to queue...`)
+						table.insert(queue, match)
+					end)
+				)
+			end
+
+			return function()
+				for _, conn in connections do
+					conn:Disconnect()
+				end
+			end
+		end)
+	)
+
 	local function destroy()
+		setStatus(CollectionStatus.Destroyed)
 		for _, dispose in effects do
 			dispose()
 		end
 	end
 
 	return {
-		getIsRunning = getIsRunning,
-		createCollection = createCollection,
+		getStatus = getStatus,
+		getMatches = getMatches,
 		collect = collect,
 		destroy = destroy,
 	}

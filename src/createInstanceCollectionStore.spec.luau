@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
@@ -8,6 +9,10 @@ local createInstanceCollectionStore = require("./createInstanceCollectionStore")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+
+local function waitForEvents()
+	RunService.Heartbeat:Wait()
+end
 
 -- TODO: Create a giant instance tree (100k instances or so?) to stress test it
 
@@ -47,28 +52,25 @@ test("satisfies Story and Storybook use case", function()
 		["D.story"] = storyModuleD,
 	})
 
-	local instanceCollectionsStore = createInstanceCollectionStore()
+	local storyCollection = createInstanceCollectionStore(root, "ModuleScript", isStoryModule)
+	local storybookCollection = createInstanceCollectionStore(root, "ModuleScript", isStorybookModule)
 
-	local getStories = instanceCollectionsStore.createCollection(isStoryModule)
-	local getStorybooks = instanceCollectionsStore.createCollection(isStorybookModule)
+	expect(storyCollection.getMatches(false)).toEqual({})
+	expect(storybookCollection.getMatches(false)).toEqual({})
 
-	expect(getStories(false)).toEqual({})
-	expect(getStorybooks(false)).toEqual({})
+	storyCollection.collect()
+	storybookCollection.collect()
 
-	instanceCollectionsStore.collect(root)
-
-	expect(getStories(false)).toEqual(expect.arrayContaining({
+	expect(storyCollection.getMatches(false)).toEqual(expect.arrayContaining({
 		storyModuleA,
 		storyModuleB,
 		storyModuleC,
 		storyModuleD,
 	}))
-	expect(getStorybooks(false)).toEqual({ storybookModule })
+	expect(storybookCollection.getMatches(false)).toEqual({ storybookModule })
 end)
 
-test("does nothing so long as the instances stay descendants of the root", function()
-	local instanceCollectionsStore = createInstanceCollectionStore()
-
+test("never updates so long as the instances stay descendants of the root", function()
 	local partA = new("Part")
 	local partB = new("Part")
 
@@ -84,15 +86,13 @@ test("does nothing so long as the instances stay descendants of the root", funct
 		}),
 	})
 
-	local getParts = instanceCollectionsStore.createCollection(function(instance)
-		return instance:IsA("BasePart")
-	end)
+	local partCollection = createInstanceCollectionStore(root, "Part")
 
-	expect(getParts(false)).toEqual({})
+	expect(partCollection.getMatches(false)).toEqual({})
 
-	instanceCollectionsStore.collect(root)
+	partCollection.collect()
 
-	local snapshot = getParts(false)
+	local snapshot = partCollection.getMatches(false)
 
 	expect(snapshot).toEqual(expect.arrayContaining({
 		partA,
@@ -100,26 +100,27 @@ test("does nothing so long as the instances stay descendants of the root", funct
 	}))
 
 	partB.Parent = partA.Parent
+	waitForEvents()
 
 	-- The identities should be equal
-	expect(getParts(false)).toBe(snapshot)
+	expect(partCollection.getMatches(false)).toBe(snapshot)
 
 	partA.Parent = partB.Parent
+	waitForEvents()
 
 	-- Same thing. No changes to the collected instances since they're still
 	-- descendants of the root. Identities should still match
-	expect(getParts(false)).toBe(snapshot)
+	expect(partCollection.getMatches(false)).toBe(snapshot)
 
 	-- Now we remove the part from the root, which should trigger an update
 	partA.Parent = nil
+	waitForEvents()
 
-	expect(getParts(false)).never.toBe(snapshot)
-	expect(getParts(false)).toEqual({ partB })
+	expect(partCollection.getMatches(false)).never.toBe(snapshot)
+	expect(partCollection.getMatches(false)).toEqual({ partB })
 end)
 
 test("updates when adding/removing instances from the DataModel", function()
-	local instanceCollectionsStore = createInstanceCollectionStore()
-
 	local partA = new("Part")
 	local partB = new("Part")
 	local partC = new("Part")
@@ -136,15 +137,13 @@ test("updates when adding/removing instances from the DataModel", function()
 		}),
 	})
 
-	local getParts = instanceCollectionsStore.createCollection(function(instance)
-		return instance:IsA("BasePart")
-	end)
+	local partCollection = createInstanceCollectionStore(root, "Part")
 
-	expect(getParts(false)).toEqual({})
+	expect(partCollection.getMatches(false)).toEqual({})
 
-	instanceCollectionsStore.collect(root)
+	partCollection.collect()
 
-	local snapshot = getParts(false)
+	local snapshot = partCollection.getMatches(false)
 
 	local folder = new("Folder", nil, {
 		PartC = partC,
@@ -152,6 +151,34 @@ test("updates when adding/removing instances from the DataModel", function()
 
 	folder.Parent = partA.Parent
 
-	expect(snapshot).never.toBe(getParts(false))
-	expect(getParts(false)).toEqual(expect.arrayContaining({ partA, partB, partC }))
+	expect(snapshot).never.toBe(partCollection.getMatches(false))
+	expect(partCollection.getMatches(false)).toBe(expect.arrayContaining({ partA, partB, partC }))
+end)
+
+test("recalculates when an existing match has property changes", function()
+	local partA = new("Part")
+	local partB = new("Part")
+
+	local root = new("Folder", nil, {
+		Folder = new("Folder", nil, {
+			Folder = new("Folder", nil, {
+				Folder = new("Folder", nil, {
+					PartA = partA,
+				}),
+			}),
+
+			PartB = partB,
+		}),
+	})
+
+	local partCollection = createInstanceCollectionStore(root, "Part#PartA")
+
+	partCollection.collect()
+
+	expect(partCollection.getMatches(false)).toEqual({ partA })
+
+	partA.Name = "NoLongerMatches"
+	waitForEvents()
+
+	expect(partCollection.getMatches(false)).toEqual({})
 end)
