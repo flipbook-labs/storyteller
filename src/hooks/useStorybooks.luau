@@ -1,7 +1,8 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local SignalsReact = require("@rbxpkg/SignalsReact")
 
-local findStorybookModules = require("@root/findStorybookModules")
+local createInstanceCollectionStore = require("@root/createInstanceCollectionStore")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
@@ -11,6 +12,7 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local useState = React.useState
 local useMemo = React.useMemo
+local useSignalState = SignalsReact.useSignalState
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 type LoadedStorybook = types.LoadedStorybook
@@ -76,6 +78,13 @@ local function useStorybooks(parent: Instance): {
 }
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
 	local storybooks, setStorybooks = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
+
+	-- TODO: Make sure to destroy this when `parent` changes
+	local storybookModuleCollection = useMemo(function()
+		return createInstanceCollectionStore(parent, "ModuleScript", isStorybookModule)
+	end, { parent })
+
+	local storybookModules = (useSignalState(storybookModuleCollection.getMatches) :: any) :: { ModuleScript }
 
 	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
 		local existing = storybookConnections.current[storybookModule]
@@ -150,28 +159,18 @@ local function useStorybooks(parent: Instance): {
 	useEffect(function()
 		setStorybooks({})
 
-		local storybookModules = findStorybookModules(parent)
-
 		for _, storybookModule in storybookModules do
 			task.spawn(loadStorybook, storybookModule)
 		end
 
-		local conn = parent.DescendantAdded:Connect(function(descendant)
-			if isStorybookModule(descendant) then
-				loadStorybook(descendant :: ModuleScript)
-			end
-		end)
-
 		return function()
-			conn:Disconnect()
-
 			for _, connections in storybookConnections.current do
 				for _, connection in connections do
 					connection:Disconnect()
 				end
 			end
 		end
-	end, { parent } :: { unknown })
+	end, { parent, storybookModules } :: { unknown })
 
 	return useMemo(function()
 		local available: { LoadedStorybook } = {}

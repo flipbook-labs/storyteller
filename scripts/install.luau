@@ -1,5 +1,7 @@
 local fs = require("@lute/fs")
 
+local find = require("./lib/find")
+local findAndReplace = require("./lib/findAndReplace")
 local project = require("@repo/project")
 local run = require("./lib/run")
 
@@ -20,6 +22,8 @@ local function installRobloxPackages()
 
 		"-d",
 		"Signals",
+		"-d",
+		"SignalsReact",
 	})
 
 	local dest = `src/RobloxPackages`
@@ -28,6 +32,30 @@ local function installRobloxPackages()
 	end
 	run("mv", { "RobloxPackagesTmp/Packages", dest })
 	run("rm", { "-rf", "RobloxPackagesTmp" })
+
+	-- Patch React and RoactCompat dependencies to use ours
+	for _, name in { "React", "RoactCompat", "Roact" } do
+		local linkers = find(dest, `^{name}%..*`)
+
+		for _, linker in linkers do
+			-- All Roact linkers in RobloxPackages point to Roblox's
+			-- RoactCompat, so we need to update them to point to ours instead.
+			if name == "Roact" then
+				name = "RoactCompat"
+			end
+
+			findAndReplace(
+				linker,
+				"local PackageIndex = .*_Index",
+				'local Root = script:FindFirstAncestor("RobloxPackages")'
+			)
+			findAndReplace(
+				linker,
+				"local Package = require%(.*%)",
+				`local Package = require(Root.Parent.Parent.{name})`
+			)
+		end
+	end
 end
 
 local function installLuteBatteries()
