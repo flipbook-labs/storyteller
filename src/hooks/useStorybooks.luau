@@ -1,10 +1,10 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
-local findStorybookModules = require("@root/findStorybookModules")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
+local useQueryDescendants = require("@root/hooks/useQueryDescendants")
 
 local useCallback = React.useCallback
 local useEffect = React.useEffect
@@ -78,6 +78,7 @@ local function useStorybooks(parent: Instance): {
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
 	local storybookMap, setStorybookMap = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
 	local isLoading, setIsLoading = useState(true)
+	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
 
 	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
 		local existing = storybookConnections.current[storybookModule]
@@ -153,10 +154,10 @@ local function useStorybooks(parent: Instance): {
 	useEffect(function()
 		setStorybookMap({})
 
-		local storybookModules = findStorybookModules(parent)
-
-		for _, storybookModule in storybookModules do
-			task.spawn(loadStorybook, storybookModule)
+		for _, moduleScript in moduleScripts do
+			if isStorybookModule(moduleScript) then
+				task.spawn(loadStorybook, moduleScript)
+			end
 		end
 
 		local conn = parent.DescendantAdded:Connect(function(descendant)
@@ -174,7 +175,7 @@ local function useStorybooks(parent: Instance): {
 				end
 			end
 		end
-	end, { parent } :: { unknown })
+	end, { parent, moduleScripts } :: { unknown })
 
 	local storybooks = useMemo(function()
 		local available: { LoadedStorybook } = {}

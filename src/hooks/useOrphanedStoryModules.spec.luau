@@ -4,6 +4,7 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 local new = require("@root/test-utils/new")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
+local waitForEvents = require("@root/test-utils/waitForEvents")
 
 local useOrphanedStoryModules = require("./useOrphanedStoryModules")
 
@@ -38,11 +39,11 @@ test("updates when moving instances around the DataModel", function()
 	local storyModuleC = templateStoryModule:Clone()
 	local storyModuleD = templateStoryModule:Clone()
 
-	local container = new("Folder", {}, {
-		["Folder"] = new("Folder", {}, {
+	local container = new("Folder", nil, {
+		["Folder"] = new("Folder", nil, {
 			["Sample.storybook"] = storybookModule,
 			["A.story"] = storyModuleA,
-			["Folder"] = new("Folder", {}, {
+			["Folder"] = new("Folder", nil, {
 				["B.story"] = storyModuleB,
 			}),
 		}),
@@ -59,10 +60,10 @@ test("updates when moving instances around the DataModel", function()
 		storyModuleD,
 	}))
 
+	print("storyModuleA.Parent = container")
 	act(function()
-		print("storyModuleA.Parent = container")
 		storyModuleA.Parent = container
-		task.wait()
+		waitForEvents()
 	end)
 
 	print("check")
@@ -72,10 +73,10 @@ test("updates when moving instances around the DataModel", function()
 		storyModuleD,
 	}))
 
+	print("storybookModule.Parent = container")
 	act(function()
-		print("storybookModule.Parent = container")
 		storybookModule.Parent = container
-		task.wait()
+		waitForEvents()
 	end)
 
 	expect(getOrphanedStories()).toEqual({})
@@ -126,7 +127,10 @@ test("updates when adding/removing instances from the DataModel", function()
 		storyModuleD,
 	}))
 
-	storybookModule.Parent = nil
+	act(function()
+		storybookModule.Parent = nil
+		waitForEvents()
+	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 		storyModuleA,
@@ -135,7 +139,10 @@ test("updates when adding/removing instances from the DataModel", function()
 		storyModuleD,
 	}))
 
-	storybookModule.Parent = storyModuleB.Parent
+	act(function()
+		storybookModule.Parent = storyModuleB.Parent
+		waitForEvents()
+	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 		storyModuleA,
@@ -143,10 +150,15 @@ test("updates when adding/removing instances from the DataModel", function()
 		storyModuleD,
 	}))
 
-	storyModuleC.Parent = nil
+	act(function()
+		storyModuleC.Parent = nil
+		waitForEvents()
+	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 		storyModuleA,
 		storyModuleD,
 	}))
 end)
+
+test("updates when renaming modules", function() end)

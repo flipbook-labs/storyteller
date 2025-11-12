@@ -1,8 +1,7 @@
 local React = require("@pkg/React")
 
-local findOrphanedStoryModules = require("@root/findOrphanedStoryModules")
-local isStoryModule = require("@root/isStoryModule")
-local isStorybookModule = require("@root/isStorybookModule")
+local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
+local useQueryDescendants = require("@root/hooks/useQueryDescendants")
 local useStorybooks = require("@root/hooks/useStorybooks")
 
 local useEffect = React.useEffect
@@ -11,47 +10,30 @@ local useState = React.useState
 local useRef = React.useRef
 
 local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
-	print(`useOrphanedStoryModules({parent})`)
-
-	local orphanedStories, setOrphanedStories = useState({} :: { ModuleScript })
-
+	local orphanedStoryModules, setOrphanedStoryModules = useState({} :: { ModuleScript })
 	local storybooks = useStorybooks(parent)
-
-	print(`storybooks.isLoading: {storybooks.isLoading}`)
+	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
 
 	local update = useCallback(function()
-		print("update")
-		-- We make sure to only look for orphans after all storybooks (available
-		-- and unavailable) have been searched for, otherwise on the first
-		-- render we could return stories that do in fact have a storybook
-		-- associated with them
-		if storybooks.isLoading then
-			print("still loading. set to empty")
-			setOrphanedStories({})
-		else
-			print("find")
-			setOrphanedStories(findOrphanedStoryModules(parent, storybooks.available))
-		end
-	end, { parent, storybooks.isLoading, storybooks.available } :: { unknown })
+		local orphans: { ModuleScript } = {}
 
-	useEffect(function()
-		local conn = parent.DescendantAdded:Connect(function(instance)
-			if isStoryModule(instance) or isStorybookModule(instance) then
-				print("NEW STORY OR STORYBOOK ADDED", instance)
-				update()
+		for _, moduleScript in moduleScripts do
+			print(`isOrphanedStoryModule {moduleScript}`)
+			if isOrphanedStoryModule(moduleScript, storybooks.available) then
+				table.insert(orphans, moduleScript)
 			end
-		end)
-
-		return function()
-			conn:Disconnect()
 		end
-	end, { parent, update } :: { unknown })
+
+		setOrphanedStoryModules(orphans)
+	end, { moduleScripts } :: { unknown })
 
 	useEffect(function()
 		local connections = {}
 
-		for _, orphan in orphanedStories do
-			table.insert(connections, orphan.AncestryChanged:Connect(update))
+		-- Any ModuleScript can be renamed to become a Story, so we need to
+		-- watch property changes on all of them
+		for _, moduleScript in moduleScripts do
+			table.insert(connections, moduleScript:GetPropertyChangedSignal("Name"):Connect(update))
 		end
 
 		return function()
@@ -59,7 +41,7 @@ local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 				conn:Disconnect()
 			end
 		end
-	end, { orphanedStories, update } :: { unknown })
+	end, { moduleScripts })
 
 	local didInitialSearch = useRef(false)
 	useEffect(function()
@@ -69,7 +51,7 @@ local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 		end
 	end, { storybooks.isLoading, update } :: { unknown })
 
-	return orphanedStories
+	return orphanedStoryModules
 end
 
 return useOrphanedStoryModules
