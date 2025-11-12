@@ -4,7 +4,6 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 local new = require("@root/test-utils/new")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
-local waitForEvents = require("@root/test-utils/waitForEvents")
 
 local useQueryDescendants = require("./useQueryDescendants")
 
@@ -40,12 +39,12 @@ test("updates when moving instances around the DataModel", function()
 
 	act(function()
 		moduleC.Parent = container
-		waitForEvents()
+		task.wait()
 	end)
 
 	act(function()
 		moduleA.Parent = nil
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getDescendants()).toEqual(expect.arrayContaining({
@@ -55,7 +54,7 @@ test("updates when moving instances around the DataModel", function()
 
 	act(function()
 		moduleB.Parent = container
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getDescendants()).toEqual(expect.arrayContaining({

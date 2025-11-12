@@ -4,7 +4,6 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 local new = require("@root/test-utils/new")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
-local waitForEvents = require("@root/test-utils/waitForEvents")
 
 local useOrphanedStoryModules = require("./useOrphanedStoryModules")
 
@@ -63,7 +62,7 @@ test("updates when moving instances around the DataModel", function()
 	print("storyModuleA.Parent = container")
 	act(function()
 		storyModuleA.Parent = container
-		waitForEvents()
+		task.wait()
 	end)
 
 	print("check")
@@ -76,7 +75,7 @@ test("updates when moving instances around the DataModel", function()
 	print("storybookModule.Parent = container")
 	act(function()
 		storybookModule.Parent = container
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getOrphanedStories()).toEqual({})
@@ -129,7 +128,7 @@ test("updates when adding/removing instances from the DataModel", function()
 
 	act(function()
 		storybookModule.Parent = nil
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
@@ -141,7 +140,7 @@ test("updates when adding/removing instances from the DataModel", function()
 
 	act(function()
 		storybookModule.Parent = storyModuleB.Parent
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
@@ -152,7 +151,7 @@ test("updates when adding/removing instances from the DataModel", function()
 
 	act(function()
 		storyModuleC.Parent = nil
-		waitForEvents()
+		task.wait()
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
