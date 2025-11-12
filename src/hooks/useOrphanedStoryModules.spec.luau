@@ -59,20 +59,17 @@ test("updates when moving instances around the DataModel", function()
 		storyModuleD,
 	}))
 
-	print("storyModuleA.Parent = container")
 	act(function()
 		storyModuleA.Parent = container
 		task.wait()
 	end)
 
-	print("check")
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 		storyModuleA,
 		storyModuleC,
 		storyModuleD,
 	}))
 
-	print("storybookModule.Parent = container")
 	act(function()
 		storybookModule.Parent = container
 		task.wait()

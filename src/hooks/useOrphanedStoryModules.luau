@@ -18,7 +18,6 @@ local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 		local orphans: { ModuleScript } = {}
 
 		for _, moduleScript in moduleScripts do
-			print(`isOrphanedStoryModule {moduleScript}`)
 			if isOrphanedStoryModule(moduleScript, storybooks.available) then
 				table.insert(orphans, moduleScript)
 			end
