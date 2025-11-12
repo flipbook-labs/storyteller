@@ -104,6 +104,42 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	}))
 end)
 
+test("renaming a ModuleScript to turn it into a Storybook updates as expected", function()
+	local getStorybooks = renderHook(function()
+		return useStorybooks(container)
+	end)
+
+	local moduleScript = Instance.new("ModuleScript")
+	moduleScript.Source = storybookModule.Source
+
+	act(function()
+		moduleScript.Parent = container
+		task.wait()
+	end)
+
+	expect(getStorybooks().available).toEqual({
+		expect.objectContaining({
+			name = "Sample",
+		}),
+	})
+	expect(getStorybooks().unavailable).toEqual({})
+
+	act(function()
+		moduleScript.Name = "Foo.storybook"
+		task.wait()
+	end)
+
+	expect(getStorybooks().available).toEqual(expect.arrayContaining({
+		expect.objectContaining({
+			name = "Sample",
+		}),
+		expect.objectContaining({
+			name = "Foo",
+		}),
+	}))
+	expect(getStorybooks().unavailable).toEqual({})
+end)
+
 test("removing a storybook from the DM triggers a re-render", function()
 	local get = renderHook(function()
 		return useStorybooks(container)

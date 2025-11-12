@@ -152,6 +152,29 @@ local function useStorybooks(parent: Instance): {
 	end, {})
 
 	useEffect(function()
+		local connections = {}
+
+		-- Any ModuleScript can be renamed to become a Story, so we need to
+		-- watch property changes on all of them
+		for _, moduleScript in moduleScripts do
+			table.insert(
+				connections,
+				moduleScript:GetPropertyChangedSignal("Name"):Connect(function()
+					if isStorybookModule(moduleScript) then
+						loadStorybook(moduleScript)
+					end
+				end)
+			)
+		end
+
+		return function()
+			for _, conn in connections do
+				conn:Disconnect()
+			end
+		end
+	end, { moduleScripts })
+
+	useEffect(function()
 		setStorybookMap({})
 
 		for _, moduleScript in moduleScripts do
