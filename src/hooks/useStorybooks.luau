@@ -200,7 +200,7 @@ local function useStorybooks(parent: Instance): {
 		end
 	end, { parent, moduleScripts } :: { unknown })
 
-	local storybooks = useMemo(function()
+	return useMemo(function()
 		local available: { LoadedStorybook } = {}
 		local unavailable: { UnavailableStorybook } = {}
 
@@ -213,16 +213,11 @@ local function useStorybooks(parent: Instance): {
 		end
 
 		return {
+			isLoading = isLoading,
 			available = available,
 			unavailable = unavailable,
 		}
-	end, { storybookMap })
-
-	return {
-		isLoading = isLoading,
-		available = storybooks.available,
-		unavailable = storybooks.unavailable,
-	}
+	end, { isLoading, storybookMap } :: { unknown })
 end
 
 return useStorybooks

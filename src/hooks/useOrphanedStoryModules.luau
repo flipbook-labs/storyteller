@@ -1,6 +1,7 @@
 local React = require("@pkg/React")
 
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
+local usePrevious = require("@root/hooks/usePrevious")
 local useQueryDescendants = require("@root/hooks/useQueryDescendants")
 local useStorybooks = require("@root/hooks/useStorybooks")
 
@@ -12,6 +13,7 @@ local useRef = React.useRef
 local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 	local orphanedStoryModules, setOrphanedStoryModules = useState({} :: { ModuleScript })
 	local storybooks = useStorybooks(parent)
+	local prevStorybooks = usePrevious(storybooks)
 	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
 
 	local update = useCallback(function()
@@ -24,7 +26,7 @@ local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 		end
 
 		setOrphanedStoryModules(orphans)
-	end, { moduleScripts } :: { unknown })
+	end, { moduleScripts, storybooks } :: { unknown })
 
 	useEffect(function()
 		local connections = {}
@@ -40,7 +42,13 @@ local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
 				conn:Disconnect()
 			end
 		end
-	end, { moduleScripts })
+	end, { moduleScripts, update } :: { unknown })
+
+	useEffect(function()
+		if prevStorybooks and storybooks ~= prevStorybooks then
+			update()
+		end
+	end, { storybooks, prevStorybooks, update } :: { unknown })
 
 	local didInitialSearch = useRef(false)
 	useEffect(function()
