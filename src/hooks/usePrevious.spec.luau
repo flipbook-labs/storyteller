@@ -1,25 +1,36 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
-local useEvent = require("@root/Common/useEvent")
+
 local usePrevious = require("./usePrevious")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
+local useEffect = React.useEffect
+
+local act = ReactRoblox.act
+
 local container = Instance.new("ScreenGui")
 local root = ReactRoblox.createRoot(container)
-
 local toggleState = Instance.new("BindableEvent")
 
 local function HookTester()
 	local state, setState = React.useState(false)
 	local prev = usePrevious(state)
 
-	useEvent(toggleState.Event, function()
-		setState(not state)
-	end)
+	useEffect(function()
+		local conn = toggleState.Event:Connect(function()
+			setState(function(prevState)
+				return not prevState
+			end)
+		end)
+
+		return function()
+			conn:Disconnect()
+		end
+	end, {})
 
 	return React.createElement("TextLabel", {
 		Text = tostring(prev),
@@ -27,7 +38,7 @@ local function HookTester()
 end
 
 afterEach(function()
-	ReactRoblox.act(function()
+	act(function()
 		root:unmount()
 	end)
 end)
@@ -35,7 +46,7 @@ end)
 test("use the last value", function()
 	local element = React.createElement(HookTester)
 
-	ReactRoblox.act(function()
+	act(function()
 		root:render(element)
 	end)
 
@@ -43,21 +54,21 @@ test("use the last value", function()
 
 	expect(result.Text).toBe("nil")
 
-	ReactRoblox.act(function()
+	act(function()
 		toggleState:Fire()
 	end)
 
-	ReactRoblox.act(function()
+	act(function()
 		task.wait()
 	end)
 
 	expect(result.Text).toBe("false")
 
-	ReactRoblox.act(function()
+	act(function()
 		toggleState:Fire()
 	end)
 
-	ReactRoblox.act(function()
+	act(function()
 		task.wait()
 	end)
 
