@@ -2,6 +2,7 @@
 	"languageMode": "strict",
 	"aliases": {
 		"pkg": "./Packages",
+		"rbxpkg": "./src/RobloxPackages",
 		"root": "./src",
 		"repo": ".",
 		"lute": "~/.lute/typedefs/0.1.0/lute",
