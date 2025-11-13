@@ -76,7 +76,7 @@ local function useStorybooks(parent: Instance): {
 	isLoading: boolean,
 }
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
-	local storybookMap, setStorybookMap = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
+	local storybooks, setStorybooks = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
 	local isLoading, setIsLoading = useState(true)
 	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
 
@@ -106,7 +106,7 @@ local function useStorybooks(parent: Instance): {
 			table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
 			table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
 
-			setStorybookMap(function(prev)
+			setStorybooks(function(prev)
 				local new = table.clone(prev)
 
 				if success and storybook then
@@ -139,7 +139,7 @@ local function useStorybooks(parent: Instance): {
 					loader:clear()
 					load()
 				else
-					setStorybookMap(function(prev)
+					setStorybooks(function(prev)
 						local new = table.clone(prev)
 						new[storybookModule] = nil
 						return new
@@ -175,7 +175,7 @@ local function useStorybooks(parent: Instance): {
 	end, { moduleScripts })
 
 	useEffect(function()
-		setStorybookMap({})
+		setStorybooks({})
 
 		for _, moduleScript in moduleScripts do
 			if isStorybookModule(moduleScript) then
@@ -204,7 +204,7 @@ local function useStorybooks(parent: Instance): {
 		local available: { LoadedStorybook } = {}
 		local unavailable: { UnavailableStorybook } = {}
 
-		for _, storybook in storybookMap do
+		for _, storybook in storybooks do
 			if storybook["problem"] == nil then
 				table.insert(available, (storybook :: any) :: LoadedStorybook)
 			else
@@ -217,7 +217,7 @@ local function useStorybooks(parent: Instance): {
 			available = available,
 			unavailable = unavailable,
 		}
-	end, { isLoading, storybookMap } :: { unknown })
+	end, { isLoading, storybooks } :: { unknown })
 end
 
 return useStorybooks

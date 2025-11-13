@@ -23,10 +23,9 @@ local function useQueryDescendants(parent: Instance, selector: string): { Instan
 	useEffect(function()
 		local connections = {}
 
-		-- This might wind up being expensive when `parent` is the whole
-		-- DataModel. If that winds up being the case this should be adjusted so
-		-- that new descendants are added to a queue and processed over several
-		-- frames
+		-- This might be expensive when `parent` is the whole DataModel. If that
+		-- winds up being the case this should be adjusted so that new
+		-- descendants are added to a queue and processed over several frames
 		table.insert(connections, parent.DescendantAdded:Connect(update))
 
 		for _, instance in descendants do
