@@ -1,7 +1,6 @@
 local Sift = require("@pkg/Sift")
 
-local isStoryModule = require("@root/isStoryModule")
-local matchDescendants = require("@root/matchDescendants")
+local findStoryModules = require("@root/findStoryModules")
 local types = require("@root/types")
 
 --[=[
@@ -16,7 +15,7 @@ local types = require("@root/types")
 	@within Storyteller
 ]=]
 local function findOrphanedStoryModules(parent: Instance, storybooks: { types.LoadedStorybook }): { ModuleScript }
-	local storyModules = matchDescendants(parent, isStoryModule)
+	local storyModules = findStoryModules(parent)
 
 	local storyRoots = Sift.Array.reduce(storybooks, function(accumulated: { Instance }, storybook)
 		return Sift.Array.join(accumulated, storybook.storyRoots)

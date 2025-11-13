@@ -1,10 +1,10 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
-local findStorybookModules = require("@root/findStorybookModules")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
+local useQueryDescendants = require("@root/hooks/useQueryDescendants")
 
 local useCallback = React.useCallback
 local useEffect = React.useEffect
@@ -73,9 +73,12 @@ type UnavailableStorybook = types.UnavailableStorybook
 local function useStorybooks(parent: Instance): {
 	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
+	isLoading: boolean,
 }
 	local storybookConnections = useRef({} :: { [ModuleScript]: { RBXScriptConnection } })
 	local storybooks, setStorybooks = useState({} :: { [ModuleScript]: LoadedStorybook | UnavailableStorybook })
+	local isLoading, setIsLoading = useState(true)
+	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
 
 	local getOrCreateConnectionObject = useCallback(function(storybookModule: ModuleScript): { RBXScriptConnection }
 		local existing = storybookConnections.current[storybookModule]
@@ -123,6 +126,7 @@ local function useStorybooks(parent: Instance): {
 
 				return new
 			end)
+			setIsLoading(false)
 		end
 
 		function reloadStorybook(instance: Instance)
@@ -148,12 +152,35 @@ local function useStorybooks(parent: Instance): {
 	end, {})
 
 	useEffect(function()
+		local connections = {}
+
+		-- Any ModuleScript can be renamed to become a Story, so we need to
+		-- watch property changes on all of them
+		for _, moduleScript in moduleScripts do
+			table.insert(
+				connections,
+				moduleScript:GetPropertyChangedSignal("Name"):Connect(function()
+					if isStorybookModule(moduleScript) then
+						loadStorybook(moduleScript)
+					end
+				end)
+			)
+		end
+
+		return function()
+			for _, conn in connections do
+				conn:Disconnect()
+			end
+		end
+	end, { moduleScripts })
+
+	useEffect(function()
 		setStorybooks({})
 
-		local storybookModules = findStorybookModules(parent)
-
-		for _, storybookModule in storybookModules do
-			task.spawn(loadStorybook, storybookModule)
+		for _, moduleScript in moduleScripts do
+			if isStorybookModule(moduleScript) then
+				task.spawn(loadStorybook, moduleScript)
+			end
 		end
 
 		local conn = parent.DescendantAdded:Connect(function(descendant)
@@ -171,7 +198,7 @@ local function useStorybooks(parent: Instance): {
 				end
 			end
 		end
-	end, { parent } :: { unknown })
+	end, { parent, moduleScripts } :: { unknown })
 
 	return useMemo(function()
 		local available: { LoadedStorybook } = {}
@@ -186,10 +213,11 @@ local function useStorybooks(parent: Instance): {
 		end
 
 		return {
+			isLoading = isLoading,
 			available = available,
 			unavailable = unavailable,
 		}
-	end, { storybooks })
+	end, { isLoading, storybooks } :: { unknown })
 end
 
 return useStorybooks
