@@ -14,8 +14,6 @@ local function waitForEvents()
 	RunService.Heartbeat:Wait()
 end
 
--- TODO: Create a giant instance tree (100k instances or so?) to stress test it
-
 test("satisfies Story and Storybook use case", function()
 	local storybookModule = new("ModuleScript", {
 		Source = [[
@@ -176,4 +174,43 @@ test("recalculates when an existing match has property changes", function()
 	waitForEvents()
 
 	expect(partCollection.getMatches(false)).toEqual({})
+end)
+
+test("stress testing", function()
+	local maxInstances = 1e6
+	local maxDepth = 20
+
+	local root = Instance.new("Folder")
+	local currentDepth = 1
+	local currentParent = root
+
+	local leaves = {}
+
+	for _ = 1, maxInstances do
+		local shouldBranch = currentDepth == maxDepth
+
+		local instance = Instance.new("Folder")
+
+		if shouldBranch then
+			instance.Parent = root
+			currentDepth = 1
+			table.insert(leaves, currentParent)
+		else
+			instance.Parent = currentParent
+			currentDepth += 1
+		end
+
+		currentParent = instance
+	end
+
+	expect(#root:GetDescendants()).toBe(maxInstances)
+
+	for _, leaf in leaves do
+		local part = Instance.new("Part")
+		part.Parent = leaf
+	end
+
+	local partCollection = createInstanceCollectionStore(root, "Part")
+
+	expect(#partCollection.getMatches(false)).toEqual(#leaves)
 end)
