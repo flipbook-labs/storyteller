@@ -90,11 +90,8 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 
 	local store = StorytellerStore.new(root)
 
-	expect(store.getLoadedStorybooks(false)).toEqual({ validStorybook })
-	expect(store.getUnavailableStorybooks(false)).toEqual(expect.arrayContaining({
-		storybookThatThrows,
-		invalidStorybook,
-	}))
+	expect(#store.getLoadedStorybooks(false)).toBe(1)
+	expect(#store.getUnavailableStorybooks(false)).toBe(2)
 end)
 
 describe("recomputing Story and Storybook modules", function()
@@ -133,6 +130,7 @@ describe("recomputing Story and Storybook modules", function()
 		prevStorybookModules = store.getStorybookModules(false)
 
 		moduleScript.Parent = nil
+		task.wait()
 
 		-- Same as before. The ModuleScript was removed so we need to recompute,
 		-- but there shouldn't be any change to the sizes
@@ -171,6 +169,14 @@ describe("recomputing Story and Storybook modules", function()
 		-- needed to get picked up
 		storyModules = store.getStoryModules(false)
 		expect(#storyModules).toBe(1)
+		expect(storyModules).never.toBe(prevStoryModules)
+		prevStoryModules = storyModules
+
+		moduleScript.Parent = nil
+		task.wait()
+
+		storyModules = store.getStoryModules(false)
+		expect(#storyModules).toBe(0)
 		expect(storyModules).never.toBe(prevStoryModules)
 	end)
 

@@ -38,47 +38,45 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
 
+	local getWasAnyModuleChanged, setWasAnyModuleChanged = Signals.createSignal(false)
+
 	-- Just redefining the getter's return type since we know for sure we're
 	-- getting back ModuleScripts from the query
 	local getModuleScripts = Signals.createComputed(function(scope): { ModuleScript }
-		return instanceQueryStore.getMatches(scope) :: any
-	end)
+		local matches = instanceQueryStore.getMatches(scope) :: any
 
-	local getWasAnyModuleChanged, setWasAnyModuleChanged = Signals.createSignal(false)
-
-	local effects: { Signals.dispose } = {}
-
-	-- I also need this to recompute when any of the ModuleScripts' Name or
-	-- Source changes. Does that have to be an effect?
-	local getFilteredModules = Signals.createComputed(function(scope)
-		local storyModules = {}
-		local storybookModules = {}
-
-		-- This is included so any time one of the ModuleScripts changes this
-		-- Signal gets recomputed
-		getWasAnyModuleChanged(scope)
-
-		for _, moduleScript in getModuleScripts(scope) do
-			if isStoryModule(moduleScript) then
-				table.insert(storyModules, moduleScript)
-			elseif isStorybookModule(moduleScript) then
-				table.insert(storybookModules, moduleScript)
-			end
+		-- The scope is passed so any time one of the ModuleScripts' properties
+		-- change this Signal gets recomputed. This is needed so that Stories
+		-- and Storybooks get recomputed when Name or Source properties change
+		if getWasAnyModuleChanged(scope) then
+			-- We also have to return a new object so that other computeds will
+			-- see this as a different set of matches and recompute themselves
+			-- too
+			return table.clone(matches)
 		end
 
-		return {
-			storyModules = storyModules,
-			storybookModules = storybookModules,
-		}
+		return matches
 	end)
 
 	local getStoryModules = Signals.createComputed(function(scope)
-		return getFilteredModules(scope).storyModules
+		local storyModules = {}
+		for _, moduleScript in getModuleScripts(scope) do
+			if isStoryModule(moduleScript) then
+				table.insert(storyModules, moduleScript)
+			end
+		end
+		return storyModules
 	end)
 	self.getStoryModules = getStoryModules
 
 	local getStorybookModules = Signals.createComputed(function(scope)
-		return getFilteredModules(scope).storybookModules
+		local storybookModules = {}
+		for _, moduleScript in getModuleScripts(scope) do
+			if isStorybookModule(moduleScript) then
+				table.insert(storybookModules, moduleScript)
+			end
+		end
+		return storybookModules
 	end)
 	self.getStorybookModules = getStorybookModules
 
@@ -88,131 +86,58 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local getUnavailableStorybooks, setUnavailableStorybooks = Signals.createSignal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local getStorybooksBySource = Signals.createComputed(function(scope): {
-		loaded: {
-			[ModuleScript]: LoadedStorybook,
-		},
-		unavailable: {
-			[ModuleScript]: UnavailableStorybook,
-		},
-	}
-		local loaded = {}
-		local unavailable = {}
-
-		return {
-			loaded = loaded,
-			unavailable = unavailable,
-		}
-	end)
-
 	local disposeStorybookLoader = Signals.createEffect(function(scope)
-		local connections: { RBXScriptConnection } = {}
+		for _, moduleScript in getModuleScripts(scope) do
+			if isStorybookModule(moduleScript) then
+				local loader = ModuleLoader.new()
 
-		-- Orr I might be able to do something weird by keeping track of the
-		-- last value and doing some deep comparisons?
-		local prevStorybooks = getLoadedStorybooks(false)
-
-		for _, storybookModule in getStorybookModules(scope) do
-			local loader = ModuleLoader.new()
-
-			-- keep track of the storybooks and make sure to only load/reload the minimum amount
-
-			local storybook: LoadedStorybook?
-			local success, result = pcall(function()
-				storybook = loadStorybookModule(storybookModule, loader)
-			end)
-
-			if success and storybook then
-				setLoadedStorybooks(function(prev)
-					local new = table.clone(prev)
-					local index = Sift.List.findWhere(new, function(other)
-						return other.source == storybookModule
-					end)
-					if index then
-						table.remove(new, index)
-					end
-
-					table.insert(new, storybook)
-
-					return new
+				local storybook: LoadedStorybook?
+				local success, result = pcall(function()
+					storybook = loadStorybookModule(moduleScript, loader)
 				end)
-			else
-				setUnavailableStorybooks(function(prev)
-					local new = table.clone(prev)
-					local index = Sift.List.findWhere(new, function(other)
-						return other.storybook.source == storybookModule
+
+				if success and storybook then
+					setLoadedStorybooks(function(prev)
+						local new = table.clone(prev)
+						local index = Sift.List.findWhere(new, function(other)
+							return other.source == moduleScript
+						end)
+						if index then
+							table.remove(new, index)
+						end
+
+						table.insert(new, storybook)
+
+						return new
 					end)
+				else
+					setUnavailableStorybooks(function(prev)
+						local new = table.clone(prev)
+						local index = Sift.List.findWhere(new, function(other)
+							return other.storybook.source == moduleScript
+						end)
 
-					if index then
-						table.remove(new, index)
-					end
+						if index then
+							table.remove(new, index)
+						end
 
-					local unavailableStorybook: UnavailableStorybook = {
-						problem = result,
-						storybook = {
-							name = storybookModule.Name,
-							loader = loader,
-							source = storybookModule,
-							storyRoots = {},
-						},
-					}
-					table.insert(new, unavailableStorybook)
+						local unavailableStorybook: UnavailableStorybook = {
+							problem = result,
+							storybook = {
+								name = moduleScript.Name,
+								loader = loader,
+								source = moduleScript,
+								storyRoots = {},
+							},
+						}
+						table.insert(new, unavailableStorybook)
 
-					return new
-				end)
-			end
-
-			-- table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
-			-- table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
-		end
-
-		return function()
-			for _, connection in connections do
-				connection:Disconnect()
+						return new
+					end)
+				end
 			end
 		end
 	end)
-
-	--[[
-	local getComputedStorybooks: Signals.getter<{
-		available: { LoadedStorybook },
-		unavailable: { UnavailableStorybook },
-	}>
-	getComputedStorybooks = Signals.createComputed(function(scope)
-		-- These should be computed in an effect so that we can selectively reload
-		-- each storybook instead of recalculating _all_ of them
-		local available: { LoadedStorybook } = {}
-		local unavailable: { UnavailableStorybook } = {}
-
-		-- Orr I might be able to do something weird by keeping track of the
-		-- last value and doing some deep comparisons?
-		local prevStorybooks = getComputedStorybooks(false)
-
-		for _, storybookModule in getFilteredModules(scope).storybookModules do
-			-- defaultStorybook
-			local storybook: LoadedStorybook?
-			local success, result = pcall(function()
-				storybook = loadStorybookModule(storybookModule, loader)
-			end)
-
-			table.insert(connections, loader.loadedModuleChanged:Connect(reloadStorybook))
-			table.insert(connections, storybookModule.AncestryChanged:Connect(reloadStorybook))
-		end
-
-		return {
-			available = available,
-			unavailable = unavailable,
-		}
-	end)
-
-	local getLoadedStorybooks = Signals.createComputed(function(scope)
-		return getComputedStorybooks(scope).available
-	end)
-
-	local getUnavailableStorybooks = Signals.createComputed(function(scope)
-		return getComputedStorybooks(scope).unavailable
-	end)
-	]]
 
 	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
 		local orphans = {}
@@ -245,18 +170,51 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 
 		return function()
-			print("CLEANUP")
 			for _, connection in connections do
 				connection:Disconnect()
 			end
 		end
 	end)
 
-	self.destroy = function()
+	-- This is the effect that takes care of reloading the individual Storybooks
+	-- that change when their Name or Source properties are edited.
+	local diseposeStorybookReloader = Signals.createEffect(function(scope)
+		local connections: { RBXScriptConnection } = {}
+
+		local function reloadStorybook(storybookModule: ModuleScript) end
+
+		for _, storybookModule in getStorybookModules(scope) do
+			table.insert(
+				connections,
+				storybookModule.AncestryChanged:Connect(function()
+					reloadStorybook(storybookModule)
+				end)
+			)
+		end
+
+		for _, loadedStorybook in getLoadedStorybooks(scope) do
+			table.insert(
+				connections,
+				loadedStorybook.loader.loadedModuleChanged:Connect(function()
+					reloadStorybook(loadedStorybook.source)
+				end)
+			)
+		end
+
+		return function()
+			for _, connection in connections do
+				connection:Disconnect()
+			end
+		end
+	end)
+
+	local function destroy()
 		instanceQueryStore.destroy()
 		disposeModuleWatcher()
 		disposeStorybookLoader()
+		diseposeStorybookReloader()
 	end
+	self.destroy = destroy
 
 	return self
 end
