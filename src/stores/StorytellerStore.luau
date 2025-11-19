@@ -31,11 +31,16 @@ local defaultStorybook: LoadedStorybook = {
 	storyRoots = {},
 }
 
+local function startsWith(haystack: string, needle: string)
+	return haystack:sub(1, #needle) == needle
+end
+
 local StorytellerStore = {}
 
 function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
+	local connections: { [string]: RBXScriptConnection } = {}
 	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
 
 	local getWasAnyModuleChanged, setWasAnyModuleChanged = Signals.createSignal(false)
@@ -86,58 +91,68 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local getUnavailableStorybooks, setUnavailableStorybooks = Signals.createSignal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local disposeStorybookLoader = Signals.createEffect(function(scope)
-		for _, moduleScript in getModuleScripts(scope) do
-			if isStorybookModule(moduleScript) then
-				local loader = ModuleLoader.new()
+	local function loadStorybook(storybookModule: ModuleScript)
+		local loader = ModuleLoader.new()
 
-				local storybook: LoadedStorybook?
-				local success, result = pcall(function()
-					storybook = loadStorybookModule(moduleScript, loader)
+		local storybook: LoadedStorybook?
+		local success, result = pcall(function()
+			storybook = loadStorybookModule(storybookModule, loader)
+		end)
+
+		if success and storybook then
+			setLoadedStorybooks(function(prev)
+				local new = table.clone(prev)
+				local index = Sift.List.findWhere(new, function(other)
+					return other.source == storybookModule
+				end)
+				if index then
+					table.remove(new, index)
+				end
+
+				table.insert(new, storybook)
+
+				return new
+			end)
+		else
+			setUnavailableStorybooks(function(prev)
+				local new = table.clone(prev)
+				local index = Sift.List.findWhere(new, function(other)
+					return other.storybook.source == storybookModule
 				end)
 
-				if success and storybook then
-					setLoadedStorybooks(function(prev)
-						local new = table.clone(prev)
-						local index = Sift.List.findWhere(new, function(other)
-							return other.source == moduleScript
-						end)
-						if index then
-							table.remove(new, index)
-						end
-
-						table.insert(new, storybook)
-
-						return new
-					end)
-				else
-					setUnavailableStorybooks(function(prev)
-						local new = table.clone(prev)
-						local index = Sift.List.findWhere(new, function(other)
-							return other.storybook.source == moduleScript
-						end)
-
-						if index then
-							table.remove(new, index)
-						end
-
-						local unavailableStorybook: UnavailableStorybook = {
-							problem = result,
-							storybook = {
-								name = moduleScript.Name,
-								loader = loader,
-								source = moduleScript,
-								storyRoots = {},
-							},
-						}
-						table.insert(new, unavailableStorybook)
-
-						return new
-					end)
+				if index then
+					table.remove(new, index)
 				end
-			end
+
+				local unavailableStorybook: UnavailableStorybook = {
+					problem = result,
+					storybook = {
+						name = storybookModule.Name,
+						loader = loader,
+						source = storybookModule,
+						storyRoots = {},
+					},
+				}
+				table.insert(new, unavailableStorybook)
+
+				return new
+			end)
 		end
-	end)
+	end
+
+	local function unloadStorybook(storybookModule: ModuleScript)
+		setLoadedStorybooks(function(prev)
+			return Sift.List.filter(prev, function(storybook)
+				return storybook.source ~= storybookModule
+			end)
+		end)
+
+		setUnavailableStorybooks(function(prev)
+			return Sift.List.filter(prev, function(unavailableStorybook)
+				return unavailableStorybook.storybook.source ~= storybookModule
+			end)
+		end)
+	end
 
 	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
 		local orphans = {}
@@ -150,71 +165,79 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
-	local disposeModuleWatcher = Signals.createEffect(function(scope)
-		local connections = {}
-
-		for _, moduleScript in getModuleScripts(scope) do
-			local events = {
-				moduleScript:GetPropertyChangedSignal("Name"),
-				moduleScript:GetPropertyChangedSignal("Source"),
-			}
-
-			for _, event in events do
-				table.insert(
-					connections,
-					event:Connect(function()
-						setWasAnyModuleChanged(true)
-					end)
-				)
-			end
-		end
-
-		return function()
-			for _, connection in connections do
-				connection:Disconnect()
-			end
-		end
-	end)
-
-	-- This is the effect that takes care of reloading the individual Storybooks
-	-- that change when their Name or Source properties are edited.
-	local diseposeStorybookReloader = Signals.createEffect(function(scope)
-		local connections: { RBXScriptConnection } = {}
-
-		local function reloadStorybook(storybookModule: ModuleScript) end
-
-		for _, storybookModule in getStorybookModules(scope) do
-			table.insert(
-				connections,
-				storybookModule.AncestryChanged:Connect(function()
-					reloadStorybook(storybookModule)
-				end)
-			)
-		end
-
-		for _, loadedStorybook in getLoadedStorybooks(scope) do
-			table.insert(
-				connections,
-				loadedStorybook.loader.loadedModuleChanged:Connect(function()
-					reloadStorybook(loadedStorybook.source)
-				end)
-			)
-		end
-
-		return function()
-			for _, connection in connections do
-				connection:Disconnect()
-			end
-		end
-	end)
-
 	local function destroy()
 		instanceQueryStore.destroy()
-		disposeModuleWatcher()
-		disposeStorybookLoader()
-		diseposeStorybookReloader()
+
+		for _, connection in connections do
+			connection:Disconnect()
+		end
 	end
 	self.destroy = destroy
+
+	local function onStorybookModuleRemoved(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+
+		for key, connection in connections do
+			if startsWith(key, storybookModule:GetFullName()) then
+				connection:Disconnect()
+				connections[key] = nil
+			end
+		end
+	end
+
+	local function onStorybookModuleAdded(storybookModule: ModuleScript)
+		local prefix = storybookModule:GetFullName()
+
+		loadStorybook(storybookModule)
+
+		connections[`{prefix}_NameChanged`] = storybookModule:GetPropertyChangedSignal("Name"):Connect(function()
+			loadStorybook(storybookModule)
+		end)
+		connections[`{prefix}_SourceChanged`] = storybookModule:GetPropertyChangedSignal("Source"):Connect(function()
+			loadStorybook(storybookModule)
+		end)
+
+		connections[`{prefix}_AncestryChanged`] = storybookModule.AncestryChanged:Connect(function()
+			if not storybookModule.Parent then
+				onStorybookModuleRemoved(storybookModule)
+			end
+		end)
+	end
+
+	local function onStoryModuleRemoved(storyModule: ModuleScript)
+		for key, connection in connections do
+			if startsWith(key, storyModule:GetFullName()) then
+				connection:Disconnect()
+				connections[key] = nil
+			end
+		end
+	end
+
+	local function onStoryModuleAdded(storyModule: ModuleScript)
+		local prefix = storyModule:GetFullName()
+
+		connections[`{prefix}_AncestryChanged`] = storyModule.AncestryChanged:Connect(function()
+			if not storyModule.Parent then
+				onStoryModuleRemoved(storyModule)
+			end
+		end)
+	end
+
+	local function onInstanceAdded(instance: Instance)
+		if instance:IsA("ModuleScript") then
+			if isStorybookModule(instance) then
+				onStorybookModuleAdded(instance)
+			end
+			if isStoryModule(instance) then
+				onStoryModuleAdded(instance)
+			end
+		end
+	end
+
+	for _, moduleScript in getModuleScripts(false) do
+		onInstanceAdded(moduleScript)
+	end
+	connections.DescendantAdded = root.DescendantAdded:Connect(onInstanceAdded)
 
 	return self
 end
