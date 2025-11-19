@@ -5,6 +5,7 @@ local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
 local useStorybooks = require("./useStorybooks")
 
+local afterEach = JestGlobals.afterEach
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -18,6 +19,7 @@ local storybookModule: ModuleScript
 
 beforeEach(function()
 	container = Instance.new("Folder")
+	container.Parent = game
 
 	storybookModule = Instance.new("ModuleScript")
 	storybookModule.Name = "Sample.storybook"
@@ -29,6 +31,10 @@ beforeEach(function()
 		}
 	]]
 	storybookModule.Parent = container
+end)
+
+afterEach(function()
+	container:Destroy()
 end)
 
 test("loads storybook modules", function()
@@ -187,29 +193,4 @@ test("re-renders on module changes", function()
 			name = "New Name",
 		}),
 	})
-end)
-
-test("marks itself as loading until searching finishes", function()
-	local firstResult
-	local get = renderHook(function()
-		local result = useStorybooks(container)
-		if not firstResult then
-			firstResult = result
-		end
-		return result
-	end)
-
-	local storybooks = get()
-
-	expect(firstResult.isLoading).toBe(true)
-
-	-- Just step forward since there's no way there would be enough work for
-	-- this to take longer than a frame
-	act(function()
-		task.wait()
-	end)
-
-	storybooks = get()
-
-	expect(storybooks.isLoading).toBe(false)
 end)

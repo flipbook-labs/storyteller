@@ -1,14 +1,11 @@
 local React = require("@pkg/React")
+local Sift = require("@pkg/Sift")
+local SignalsReact = require("@rbxpkg/SignalsReact")
 
-local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
-local usePrevious = require("@root/hooks/usePrevious")
-local useQueryDescendants = require("@root/hooks/useQueryDescendants")
-local useStorybooks = require("@root/hooks/useStorybooks")
+local getStorytellerStore = require("@root/stores/getStorytellerStore")
 
-local useEffect = React.useEffect
-local useCallback = React.useCallback
-local useState = React.useState
-local useRef = React.useRef
+local useMemo = React.useMemo
+local useSignalState = SignalsReact.useSignalState
 
 --[=[
 	This hook is used for the discovery of Story modules that are not associated
@@ -62,55 +59,19 @@ local useRef = React.useRef
 	@tag Story
 	@within Storyteller
 ]=]
-local function useOrphanedStoryModules(parent: Instance): { ModuleScript }
-	local orphanedStoryModules, setOrphanedStoryModules = useState({} :: { ModuleScript })
-	local storybooks = useStorybooks(parent)
-	local prevStorybooks = usePrevious(storybooks)
-	local moduleScripts = (useQueryDescendants(parent, "ModuleScript") :: any) :: { ModuleScript }
+local function useOrphanedStoryModules(parent: Instance?): { ModuleScript }
+	local storytellerStore = useSignalState(getStorytellerStore)
+	local orphanedStoryModules = useSignalState(storytellerStore.getOrphanedStoryModules)
 
-	local update = useCallback(function()
-		local orphans: { ModuleScript } = {}
-
-		for _, moduleScript in moduleScripts do
-			if isOrphanedStoryModule(moduleScript, storybooks.available) then
-				table.insert(orphans, moduleScript)
-			end
+	return useMemo(function()
+		if parent then
+			return Sift.List.filter(orphanedStoryModules, function(orphanedStoryModule)
+				return orphanedStoryModule:IsDescendantOf(parent)
+			end)
 		end
 
-		setOrphanedStoryModules(orphans)
-	end, { moduleScripts, storybooks } :: { unknown })
-
-	useEffect(function()
-		local connections = {}
-
-		-- Any ModuleScript can be renamed to become a Story, so we need to
-		-- watch property changes on all of them
-		for _, moduleScript in moduleScripts do
-			table.insert(connections, moduleScript:GetPropertyChangedSignal("Name"):Connect(update))
-		end
-
-		return function()
-			for _, conn in connections do
-				conn:Disconnect()
-			end
-		end
-	end, { moduleScripts, update } :: { unknown })
-
-	useEffect(function()
-		if prevStorybooks and storybooks ~= prevStorybooks then
-			update()
-		end
-	end, { storybooks, prevStorybooks, update } :: { unknown })
-
-	local didInitialSearch = useRef(false)
-	useEffect(function()
-		if not (storybooks.isLoading or didInitialSearch.current) then
-			update()
-			didInitialSearch.current = true
-		end
-	end, { storybooks.isLoading, update } :: { unknown })
-
-	return orphanedStoryModules
+		return orphanedStoryModules
+	end, { parent, orphanedStoryModules })
 end
 
 return useOrphanedStoryModules
