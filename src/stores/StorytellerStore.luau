@@ -57,6 +57,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			-- We also have to return a new object so that other computeds will
 			-- see this as a different set of matches and recompute themselves
 			-- too
+			setWasAnyModuleChanged(false)
 			return table.clone(matches)
 		end
 
@@ -185,16 +186,21 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 	end
 
+	local function reloadStorybook(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+		loadStorybook(storybookModule)
+	end
+
 	local function onStorybookModuleAdded(storybookModule: ModuleScript)
 		local prefix = storybookModule:GetFullName()
 
 		loadStorybook(storybookModule)
 
 		connections[`{prefix}_NameChanged`] = storybookModule:GetPropertyChangedSignal("Name"):Connect(function()
-			loadStorybook(storybookModule)
+			reloadStorybook(storybookModule)
 		end)
 		connections[`{prefix}_SourceChanged`] = storybookModule:GetPropertyChangedSignal("Source"):Connect(function()
-			loadStorybook(storybookModule)
+			reloadStorybook(storybookModule)
 		end)
 
 		connections[`{prefix}_AncestryChanged`] = storybookModule.AncestryChanged:Connect(function()
@@ -225,6 +231,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local function onInstanceAdded(instance: Instance)
 		if instance:IsA("ModuleScript") then
+			local prefix = instance:GetFullName()
+			connections[`{prefix}_NameChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
+				onInstanceAdded(instance)
+			end)
+			connections[`{prefix}_SourceChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
+				onInstanceAdded(instance)
+			end)
+
 			if isStorybookModule(instance) then
 				onStorybookModuleAdded(instance)
 			end
@@ -232,6 +246,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				onStoryModuleAdded(instance)
 			end
 		end
+
+		setWasAnyModuleChanged(true)
 	end
 
 	for _, moduleScript in getModuleScripts(false) do
