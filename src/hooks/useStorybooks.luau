@@ -89,7 +89,7 @@ local function useStorybooks(parent: Instance): {
 				end)
 				else unavailable,
 		}
-	end, { available, unavailable, parent })
+	end, { available, unavailable, parent } :: { unknown })
 end
 
 return useStorybooks

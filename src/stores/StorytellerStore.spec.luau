@@ -1,8 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 
 local new = require("@root/test-utils/new")
-local types = require("@root/types")
 
 local StorytellerStore = require("./StorytellerStore")
 

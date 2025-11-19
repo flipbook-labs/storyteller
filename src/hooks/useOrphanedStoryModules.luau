@@ -71,7 +71,7 @@ local function useOrphanedStoryModules(parent: Instance?): { ModuleScript }
 		end
 
 		return orphanedStoryModules
-	end, { parent, orphanedStoryModules })
+	end, { parent, orphanedStoryModules } :: { unknown })
 end
 
 return useOrphanedStoryModules
