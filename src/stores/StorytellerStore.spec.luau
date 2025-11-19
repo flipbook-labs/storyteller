@@ -238,8 +238,10 @@ describe("orphaned stories", function()
 			}),
 			["Foo.storybook"] = new("ModuleScript", {
 				Source = [[
-					storyRoots = {
-						script.Parent.FolderA
+					return {
+						storyRoots = {
+							script.Parent.FolderA
+						}
 					}
 				]],
 			}),
@@ -247,6 +249,7 @@ describe("orphaned stories", function()
 
 		local store = StorytellerStore.new(root)
 
+		expect(#store.getLoadedStorybooks(false)).toBe(1)
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storyB })
 	end)
 
@@ -260,15 +263,19 @@ describe("orphaned stories", function()
 			}),
 			["A.storybook"] = new("ModuleScript", {
 				Source = [[
-					storyRoots = {
-						script.Parent.FolderA
+					return {
+						storyRoots = {
+							script.Parent.FolderA
+						}
 					}
 				]],
 			}),
 			["B.storybook"] = new("ModuleScript", {
 				Source = [[
-					storyRoots = {
-						script.Parent.FolderB
+					return {
+						storyRoots = {
+							script.Parent.FolderB
+						}
 					}
 				]],
 			}),
@@ -276,6 +283,7 @@ describe("orphaned stories", function()
 
 		local store = StorytellerStore.new(root)
 
+		expect(#store.getLoadedStorybooks(false)).toBe(2)
 		expect(store.getOrphanedStoryModules(false)).toEqual({})
 	end)
 

@@ -24,13 +24,6 @@ export type StorytellerStore = {
 	destroy: () -> (),
 }
 
-local defaultStorybook: LoadedStorybook = {
-	name = "Storybook",
-	loader = ModuleLoader.new(),
-	source = Instance.new("ModuleScript"),
-	storyRoots = {},
-}
-
 local function startsWith(haystack: string, needle: string)
 	return haystack:sub(1, #needle) == needle
 end
