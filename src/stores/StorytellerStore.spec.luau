@@ -8,13 +8,6 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
--- 1. Listen for all ModuleScripts in the DataModel
--- 2. Filter to just the ones that match the .storybook name
--- 3. Require each one and parse them into a LoadedStorybook or UnavailableStorybook
--- 4. Keep track of an IsLoading state when discovering Storybooks
--- 5. As ModuleScripts get added/removed/renamed or have their Source changed we need to do all these steps again
---    1. useQueryDescendants should already take care of added/removed, so useStorybooks needs to track Name and Source changes
-
 test("collects all relevant ModuleScripts under the root", function()
 	local storyA = new("ModuleScript")
 	local storyB = new("ModuleScript")
@@ -94,11 +87,6 @@ end)
 
 describe("recomputing Story and Storybook modules", function()
 	test("recomputes when any ModuleScript is added or removed", function()
-		-- Add to root
-		-- Remove from root
-		-- Rename
-		-- Change source
-
 		local root = new("Folder")
 
 		local store = StorytellerStore.new(root)
@@ -178,7 +166,45 @@ describe("recomputing Story and Storybook modules", function()
 		expect(storyModules).never.toBe(prevStoryModules)
 	end)
 
-	test("recomputes when a Storybook module is added or removed", function() end)
+	test("recomputes when a Storybook module is added or removed", function()
+		local root = new("Folder")
+
+		local store = StorytellerStore.new(root)
+
+		expect(#store.getStorybookModules(false)).toBe(0)
+
+		local prevStorybookModules = store.getStorybookModules(false)
+
+		local moduleScript = Instance.new("ModuleScript")
+
+		moduleScript.Parent = root
+		task.wait()
+
+		-- A new ModuleScript was added which means we need to recalculate the
+		-- Storybook modules, but since the ModuleScript has no Storybook
+		-- characteristics we still get back 0 modules
+		local storybookModules = store.getStorybookModules(false)
+		expect(#storybookModules).toBe(0)
+		expect(storybookModules).never.toBe(prevStorybookModules)
+		prevStorybookModules = storybookModules
+
+		moduleScript.Name = "Foo.storybook"
+		task.wait()
+
+		-- The ModuleScript was renamed to become a Storybook. That's all that's
+		-- needed to get picked up
+		storybookModules = store.getStorybookModules(false)
+		expect(#storybookModules).toBe(1)
+		expect(storybookModules).never.toBe(prevStorybookModules)
+		prevStorybookModules = storybookModules
+
+		moduleScript.Parent = nil
+		task.wait()
+
+		storybookModules = store.getStorybookModules(false)
+		expect(#storybookModules).toBe(0)
+		expect(storybookModules).never.toBe(prevStorybookModules)
+	end)
 end)
 
 describe("user journeys", function()
@@ -220,8 +246,6 @@ describe("user journeys", function()
 		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
 	end)
 end)
-
--- test("stops listening once destroyed", function() end)
 
 describe("orphaned stories", function()
 	test("finds all Story modules that aren't managed by a Storybook", function()

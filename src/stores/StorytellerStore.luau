@@ -47,10 +47,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		-- change this Signal gets recomputed. This is needed so that Stories
 		-- and Storybooks get recomputed when Name or Source properties change
 		if getWasAnyModuleChanged(scope) then
+			setWasAnyModuleChanged(false)
+
 			-- We also have to return a new object so that other computeds will
 			-- see this as a different set of matches and recompute themselves
 			-- too
-			setWasAnyModuleChanged(false)
 			return table.clone(matches)
 		end
 
@@ -195,12 +196,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		connections[`{prefix}_SourceChanged`] = storybookModule:GetPropertyChangedSignal("Source"):Connect(function()
 			reloadStorybook(storybookModule)
 		end)
-
-		connections[`{prefix}_AncestryChanged`] = storybookModule.AncestryChanged:Connect(function()
-			if not storybookModule.Parent then
-				onStorybookModuleRemoved(storybookModule)
-			end
-		end)
 	end
 
 	local function onStoryModuleRemoved(storyModule: ModuleScript)
@@ -212,24 +207,31 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 	end
 
-	local function onStoryModuleAdded(storyModule: ModuleScript)
-		local prefix = storyModule:GetFullName()
-
-		connections[`{prefix}_AncestryChanged`] = storyModule.AncestryChanged:Connect(function()
-			if not storyModule.Parent then
-				onStoryModuleRemoved(storyModule)
-			end
-		end)
+	local function onStoryModuleAdded(_storyModule: ModuleScript)
+		-- noop
 	end
 
 	local function onInstanceAdded(instance: Instance)
 		if instance:IsA("ModuleScript") then
 			local prefix = instance:GetFullName()
+
 			connections[`{prefix}_NameChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
 				onInstanceAdded(instance)
 			end)
 			connections[`{prefix}_SourceChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
 				onInstanceAdded(instance)
+			end)
+			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
+				if not instance:IsDescendantOf(root) then
+					if isStoryModule(instance) then
+						onStoryModuleRemoved(instance)
+					end
+					if isStorybookModule(instance) then
+						onStorybookModuleRemoved(instance)
+					end
+				end
+
+				setWasAnyModuleChanged(true)
 			end)
 
 			if isStorybookModule(instance) then
