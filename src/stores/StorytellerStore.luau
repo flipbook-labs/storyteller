@@ -190,10 +190,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		loadStorybook(storybookModule)
 
-		connections[`{prefix}_NameChanged`] = storybookModule:GetPropertyChangedSignal("Name"):Connect(function()
+		connections[`{prefix}_StorybookAdded_NameChanged`] = storybookModule
+			:GetPropertyChangedSignal("Name")
+			:Connect(function()
 			reloadStorybook(storybookModule)
 		end)
-		connections[`{prefix}_SourceChanged`] = storybookModule:GetPropertyChangedSignal("Source"):Connect(function()
+		connections[`{prefix}_StorybookAdded_SourceChanged`] = storybookModule
+			:GetPropertyChangedSignal("Source")
+			:Connect(function()
 			reloadStorybook(storybookModule)
 		end)
 	end
@@ -215,10 +219,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		if instance:IsA("ModuleScript") then
 			local prefix = instance:GetFullName()
 
-			connections[`{prefix}_NameChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
+			connections[`{prefix}_InstanceAdded_NameChanged`] = instance
+				:GetPropertyChangedSignal("Name")
+				:Connect(function()
 				onInstanceAdded(instance)
 			end)
-			connections[`{prefix}_SourceChanged`] = instance:GetPropertyChangedSignal("Name"):Connect(function()
+			connections[`{prefix}_InstanceAdded_SourceChanged`] = instance
+				:GetPropertyChangedSignal("Source")
+				:Connect(function()
 				onInstanceAdded(instance)
 			end)
 			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
