@@ -34,29 +34,19 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { [string]: RBXScriptConnection } = {}
+	local effects: { Signals.dispose } = {}
 	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
 
-	local getWasAnyModuleChanged, setWasAnyModuleChanged = Signals.createSignal(false)
-
-	-- Just redefining the getter's return type since we know for sure we're
-	-- getting back ModuleScripts from the query
-	local getModuleScripts = Signals.createComputed(function(scope): { ModuleScript }
-		local matches = instanceQueryStore.getMatches(scope) :: any
-
-		-- The scope is passed so any time one of the ModuleScripts' properties
-		-- change this Signal gets recomputed. This is needed so that Stories
-		-- and Storybooks get recomputed when Name or Source properties change
-		if getWasAnyModuleChanged(scope) then
-			setWasAnyModuleChanged(false)
-
-			-- We also have to return a new object so that other computeds will
-			-- see this as a different set of matches and recompute themselves
-			-- too
-			return table.clone(matches)
-		end
-
-		return matches
-	end)
+	local getModuleScripts, setModuleScripts = Signals.createSignal({} :: { ModuleScript })
+	table.insert(
+		effects,
+		Signals.createEffect(function(scope)
+			-- Casting to any since we know for sure we're getting back
+			-- ModuleScripts from the query
+			local matches = instanceQueryStore.getMatches(scope) :: any
+			setModuleScripts(matches)
+		end)
+	)
 
 	local getStoryModules = Signals.createComputed(function(scope)
 		local storyModules = {}
@@ -166,6 +156,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		for _, connection in connections do
 			connection:Disconnect()
 		end
+
+		for _, dispose in effects do
+			dispose()
+		end
 	end
 	self.destroy = destroy
 
@@ -193,13 +187,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		connections[`{prefix}_StorybookAdded_NameChanged`] = storybookModule
 			:GetPropertyChangedSignal("Name")
 			:Connect(function()
-			reloadStorybook(storybookModule)
-		end)
+				reloadStorybook(storybookModule)
+			end)
 		connections[`{prefix}_StorybookAdded_SourceChanged`] = storybookModule
 			:GetPropertyChangedSignal("Source")
 			:Connect(function()
-			reloadStorybook(storybookModule)
-		end)
+				reloadStorybook(storybookModule)
+			end)
 	end
 
 	local function onStoryModuleRemoved(storyModule: ModuleScript)
@@ -215,6 +209,21 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		-- noop
 	end
 
+	local function onModuleScriptChanged(moduleScript: ModuleScript)
+		setModuleScripts(function(prev)
+			return table.clone(prev)
+		end)
+
+		if isStorybookModule(moduleScript) then
+			onStorybookModuleRemoved(moduleScript)
+			onStorybookModuleAdded(moduleScript)
+		end
+		if isStoryModule(moduleScript) then
+			onStoryModuleRemoved(moduleScript)
+			onStoryModuleAdded(moduleScript)
+		end
+	end
+
 	local function onInstanceAdded(instance: Instance)
 		if instance:IsA("ModuleScript") then
 			local prefix = instance:GetFullName()
@@ -222,13 +231,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			connections[`{prefix}_InstanceAdded_NameChanged`] = instance
 				:GetPropertyChangedSignal("Name")
 				:Connect(function()
-				onInstanceAdded(instance)
-			end)
+					onModuleScriptChanged(instance)
+				end)
 			connections[`{prefix}_InstanceAdded_SourceChanged`] = instance
 				:GetPropertyChangedSignal("Source")
 				:Connect(function()
-				onInstanceAdded(instance)
-			end)
+					onModuleScriptChanged(instance)
+				end)
 			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
 				if not instance:IsDescendantOf(root) then
 					if isStoryModule(instance) then
@@ -239,9 +248,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					end
 				end
 
-				setWasAnyModuleChanged(true)
+				onModuleScriptChanged(instance)
 			end)
 
+			-- If the ModuleScript was NOT one of these and then became one
 			if isStorybookModule(instance) then
 				onStorybookModuleAdded(instance)
 			end
@@ -249,8 +259,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				onStoryModuleAdded(instance)
 			end
 		end
-
-		setWasAnyModuleChanged(true)
 	end
 
 	for _, moduleScript in getModuleScripts(false) do

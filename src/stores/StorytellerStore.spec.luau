@@ -352,4 +352,35 @@ describe("orphaned stories", function()
 
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storybookModule, storyModuleB })
 	end)
+
+	test("updates when a story moves around the DataModel", function()
+		local storyA = new("ModuleScript")
+		local storyB = new("ModuleScript")
+
+		local root = new("Folder", nil, {
+			Folder = new("Folder", nil, {
+				["A.story"] = storyA,
+				["B.story"] = storyB,
+			}),
+			["Foo.storybook"] = new("ModuleScript", {
+				Source = [[
+					return {
+						storyRoots = {
+							script.Parent.Folder
+						}
+					}
+				]],
+			}),
+		})
+
+		local store = StorytellerStore.new(root)
+
+		expect(#store.getLoadedStorybooks(false)).toBe(1)
+		expect(store.getOrphanedStoryModules(false)).toEqual({})
+
+		storyA.Parent = root
+		task.wait()
+
+		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA })
+	end)
 end)
