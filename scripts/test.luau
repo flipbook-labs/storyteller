@@ -42,7 +42,9 @@ local function createTestRunnerScript()
 
 	run("mkdir", { "-p", ".build/tasks" })
 	run("cp", { "-R", "scripts/tasks/run-tests.luau", testRunnerPath })
-	findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
+	if filter then
+		findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
+	end
 
 	return testRunnerPath
 end
