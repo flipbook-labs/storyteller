@@ -3,6 +3,7 @@ local process = require("@lute/process")
 
 local compile = require("./lib/compile")
 local dotenv = require("./lib/dotenv")
+local findAndReplace = require("./lib/findAndReplace")
 local run = require("./lib/run")
 
 local project = require("@repo/project")
@@ -16,6 +17,10 @@ args:add("apiKey", "option", {
 	aliases = { "k" },
 })
 
+args:add("filter", "option", {
+	help = "Specify a filepath pattern to match for when running tests",
+})
+
 args:parse({ ... })
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
@@ -26,15 +31,29 @@ if not apiKey then
 	process.exit(1)
 end
 
+local filter = args:get("filter")
+
 compile("dev")
 
 run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 
+local function createTestRunnerScript()
+	local testRunnerPath = ".build/tasks/run-tests.luau"
+
+	run("mkdir", { "-p", ".build/tasks" })
+	run("cp", { "-R", "scripts/tasks/run-tests.luau", testRunnerPath })
+	findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
+
+	return testRunnerPath
+end
+
 local success, err = pcall(function()
+	local testRunnerPath = createTestRunnerScript()
+
 	return run("python3", {
 		"scripts/open-cloud/upload_and_run_task.py",
 		"tests.rbxl",
-		"scripts/tasks/run-tests.luau",
+		testRunnerPath,
 	}, {
 		env = {
 			ROBLOX_UNIVERSE_ID = project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
