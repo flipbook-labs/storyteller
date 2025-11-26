@@ -6,6 +6,7 @@ local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
 local useStory = require("./useStory")
 
+local afterEach = JestGlobals.afterEach
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -21,6 +22,7 @@ local storybook: LoadedStorybook
 
 beforeEach(function()
 	container = Instance.new("Folder")
+	container.Parent = game
 
 	componentModule = Instance.new("ModuleScript")
 	componentModule.Name = "Component"
@@ -53,6 +55,10 @@ beforeEach(function()
 		source = Instance.new("ModuleScript"),
 		storyRoots = { container },
 	}
+end)
+
+afterEach(function()
+	container:Destroy()
 end)
 
 test("loads a story module", function()
