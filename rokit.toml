@@ -6,7 +6,8 @@
 [tools]
 darklua = "seaofvoices/darklua@0.17.1"
 luau-lsp = "JohnnyMorganz/luau-lsp@1.53.2"
-lute = "luau-lang/lute@0.1.0-nightly.20251106"
+lute = "luau-lang/lute@0.1.0-nightly.20251125"
+rbxcloud = "Sleitnick/rbxcloud@0.17.0"
 rojo = "rojo-rbx/rojo@7.5.1"
 selene = "Kampfkarren/selene@0.29.0"
 stylua = "JohnnyMorganz/StyLua@2.1.0"

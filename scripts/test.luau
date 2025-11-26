@@ -1,4 +1,5 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 local process = require("@lute/process")
 
 local compile = require("./lib/compile")
@@ -30,23 +31,41 @@ compile("dev")
 
 run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 
-local success, err = pcall(function()
-	return run("python3", {
-		"scripts/open-cloud/upload_and_run_task.py",
-		"tests.rbxl",
-		"scripts/tasks/run-tests.luau",
-	}, {
-		env = {
-			ROBLOX_UNIVERSE_ID = project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
-			ROBLOX_PLACE_ID = project.ROBLOX_UNIT_TESTING_PLACE_ID,
-			ROBLOX_API_KEY = tostring(apiKey),
-		},
-	})
-end)
+local env = {
+	RBXCLOUD_API_KEY = tostring(apiKey),
+}
 
-run("rm", { "tests.rbxl" })
+run("rbxcloud", {
+	"experience",
+	"publish",
+	"--filename",
+	"tests.rbxl",
+	"--version-type",
+	"saved",
 
-if not success then
-	print(err)
-	process.exit(1)
-end
+	"--universe-id",
+	project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
+	"--place-id",
+	project.ROBLOX_UNIT_TESTING_PLACE_ID,
+}, {
+	env = env,
+})
+
+local luauExecuteOut = run("rbxcloud", {
+	"luau",
+	"execute",
+	"--filepath",
+	"scripts/tasks/run-tests.luau",
+
+	"--universe-id",
+	project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
+	"--place-id",
+	project.ROBLOX_UNIT_TESTING_PLACE_ID,
+}, {
+	env = env,
+})
+
+local json = json.deserialize(luauExecuteOut)
+
+-- TODO: Parse command output to get the task ID to wait for tests to finish
+-- TODO: Parse test output to determine if we should error or not
