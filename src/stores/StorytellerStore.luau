@@ -37,6 +37,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local effects: { Signals.dispose } = {}
 	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
 
+	local newInstancesQueue: { Instance } = {}
+	local changeModulesQueue: { ModuleScript } = {}
+	local isQueueBeingProcessed = true
+
 	local getModuleScripts, setModuleScripts = Signals.createSignal({} :: { ModuleScript })
 	table.insert(
 		effects,
@@ -151,6 +155,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
 	local function destroy()
+		isQueueBeingProcessed = false
+
 		instanceQueryStore.destroy()
 
 		for _, connection in connections do
@@ -237,15 +243,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			connections[`{prefix}_InstanceAdded_NameChanged`] = instance
 				:GetPropertyChangedSignal("Name")
 				:Connect(function()
-					onModuleScriptChanged(instance)
+					table.insert(changeModulesQueue, instance)
 				end)
 			connections[`{prefix}_InstanceAdded_SourceChanged`] = instance
 				:GetPropertyChangedSignal("Source")
 				:Connect(function()
-					onModuleScriptChanged(instance)
+					table.insert(changeModulesQueue, instance)
 				end)
 			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
-				onModuleScriptChanged(instance)
+				table.insert(changeModulesQueue, instance)
 			end)
 
 			-- If the ModuleScript was NOT one of these and then became one
@@ -259,9 +265,30 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	for _, moduleScript in getModuleScripts(false) do
-		onInstanceAdded(moduleScript)
+		table.insert(newInstancesQueue, moduleScript)
 	end
-	connections.DescendantAdded = root.DescendantAdded:Connect(onInstanceAdded)
+	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
+		table.insert(newInstancesQueue, descendant)
+	end)
+
+	task.spawn(function()
+		while isQueueBeingProcessed do
+			if #newInstancesQueue > 0 then
+				for _, instance in newInstancesQueue do
+					onInstanceAdded(instance)
+				end
+				newInstancesQueue = {}
+			end
+
+			if #changeModulesQueue > 0 then
+				for _, moduleScript in changeModulesQueue do
+					onModuleScriptChanged(moduleScript)
+				end
+				changeModulesQueue = {}
+			end
+			task.wait()
+		end
+	end)
 
 	return self
 end

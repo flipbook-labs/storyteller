@@ -7,6 +7,13 @@ local StorytellerStore = require("./StorytellerStore")
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local afterEach = JestGlobals.afterEach
+
+local store
+
+afterEach(function()
+	store.destroy()
+end)
 
 test("collects all relevant ModuleScripts under the root", function()
 	local storyA = new("ModuleScript")
@@ -49,7 +56,7 @@ test("collects all relevant ModuleScripts under the root", function()
 		["B.storybook"] = storybookB,
 	})
 
-	local store = StorytellerStore.new(root)
+	store = StorytellerStore.new(root)
 
 	expect(store.getStoryModules(false)).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
 	expect(store.getStorybookModules(false)).toEqual(expect.arrayContaining({ storybookA, storybookB }))
@@ -79,7 +86,7 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 		["InvalidStorybook.storybook"] = invalidStorybook :: Instance,
 	})
 
-	local store = StorytellerStore.new(root)
+	store = StorytellerStore.new(root)
 
 	expect(#store.getLoadedStorybooks(false)).toBe(1)
 	expect(#store.getUnavailableStorybooks(false)).toBe(2)
@@ -89,7 +96,7 @@ describe("recomputing Story and Storybook modules", function()
 	test("recomputes when any ModuleScript is added or removed", function()
 		local root = new("Folder")
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getStoryModules(false)).toBe(0)
 		expect(#store.getStorybookModules(false)).toBe(0)
@@ -129,7 +136,7 @@ describe("recomputing Story and Storybook modules", function()
 	test("recomputes when a Story module is added or removed", function()
 		local root = new("Folder")
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getStoryModules(false)).toBe(0)
 
@@ -169,7 +176,7 @@ describe("recomputing Story and Storybook modules", function()
 	test("recomputes when a Storybook module is added or removed", function()
 		local root = new("Folder")
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getStorybookModules(false)).toBe(0)
 
@@ -214,7 +221,7 @@ describe("user journeys", function()
 	test("creating a new Storybook in Studio", function()
 		local root = new("Folder")
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getLoadedStorybooks(false)).toEqual(0)
 		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
@@ -275,7 +282,7 @@ describe("orphaned stories", function()
 			}),
 		})
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getLoadedStorybooks(false)).toBe(1)
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storyB })
@@ -309,7 +316,7 @@ describe("orphaned stories", function()
 			}),
 		})
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getLoadedStorybooks(false)).toBe(2)
 		expect(store.getOrphanedStoryModules(false)).toEqual({})
@@ -324,7 +331,7 @@ describe("orphaned stories", function()
 			storyModule.Parent = root
 		end
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getOrphanedStoryModules(false)).toBe(5)
 	end)
@@ -354,7 +361,7 @@ describe("orphaned stories", function()
 			root = folder
 		end
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storybookModule, storyModuleB })
 	end)
@@ -379,7 +386,7 @@ describe("orphaned stories", function()
 			}),
 		})
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getLoadedStorybooks(false)).toBe(1)
 		expect(store.getOrphanedStoryModules(false)).toEqual({})
@@ -410,7 +417,7 @@ describe("orphaned stories", function()
 			["Foo.storybook"] = storybookModule,
 		})
 
-		local store = StorytellerStore.new(root)
+		store = StorytellerStore.new(root)
 
 		expect(#store.getLoadedStorybooks(false)).toBe(1)
 		expect(store.getOrphanedStoryModules(false)).toEqual({})
