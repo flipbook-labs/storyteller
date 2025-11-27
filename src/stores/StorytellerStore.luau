@@ -216,11 +216,17 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		if isStorybookModule(moduleScript) then
 			onStorybookModuleRemoved(moduleScript)
+
+			if moduleScript:IsDescendantOf(root) then
 			onStorybookModuleAdded(moduleScript)
+			end
 		end
 		if isStoryModule(moduleScript) then
 			onStoryModuleRemoved(moduleScript)
+
+			if moduleScript:IsDescendantOf(root) then
 			onStoryModuleAdded(moduleScript)
+			end
 		end
 	end
 
@@ -239,15 +245,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					onModuleScriptChanged(instance)
 				end)
 			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
-				if not instance:IsDescendantOf(root) then
-					if isStoryModule(instance) then
-						onStoryModuleRemoved(instance)
-					end
-					if isStorybookModule(instance) then
-						onStorybookModuleRemoved(instance)
-					end
-				end
-
 				onModuleScriptChanged(instance)
 			end)
 

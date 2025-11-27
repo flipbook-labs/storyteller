@@ -244,6 +244,12 @@ describe("user journeys", function()
 
 		expect(#store.getLoadedStorybooks(false)).toEqual(1)
 		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
+
+		storybookModule.Parent = nil
+		task.wait()
+
+		expect(#store.getLoadedStorybooks(false)).toEqual(0)
+		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
 	end)
 end)
 
@@ -382,5 +388,39 @@ describe("orphaned stories", function()
 		task.wait()
 
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA })
+	end)
+
+	test("updates when a storybook is removed", function()
+		local storyA = new("ModuleScript")
+		local storyB = new("ModuleScript")
+
+		local storybookModule = new("ModuleScript", {
+			Source = [[
+				return {
+					storyRoots = {
+						script.Parent
+					}
+				}
+			]],
+		})
+
+		local root = new("Folder", nil, {
+			["A.story"] = storyA,
+			["B.story"] = storyB,
+			["Foo.storybook"] = storybookModule,
+		})
+
+		local store = StorytellerStore.new(root)
+
+		expect(#store.getLoadedStorybooks(false)).toBe(1)
+		expect(store.getOrphanedStoryModules(false)).toEqual({})
+
+		print("bye bye")
+		storybookModule.Parent = nil
+		task.wait()
+
+		print("check")
+		expect(#store.getLoadedStorybooks(false)).toBe(0)
+		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA, storyB })
 	end)
 end)
