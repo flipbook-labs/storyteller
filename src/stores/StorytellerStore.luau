@@ -172,10 +172,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local function onStorybookModuleRemoved(storybookModule: ModuleScript)
 		unloadStorybook(storybookModule)
 
+		if not storybookModule:IsDescendantOf(root) then
 		for key, connection in connections do
 			if startsWith(key, storybookModule:GetFullName()) then
 				connection:Disconnect()
 				connections[key] = nil
+				end
 			end
 		end
 	end
@@ -203,10 +205,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function onStoryModuleRemoved(storyModule: ModuleScript)
+		if not storyModule:IsDescendantOf(root) then
 		for key, connection in connections do
 			if startsWith(key, storyModule:GetFullName()) then
 				connection:Disconnect()
 				connections[key] = nil
+				end
 			end
 		end
 	end
