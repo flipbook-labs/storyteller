@@ -21,11 +21,20 @@ export type StorytellerStore = {
 	getStoryModules: Signals.getter<{ ModuleScript }>,
 	getOrphanedStoryModules: Signals.getter<{ ModuleScript }>,
 
+	flush: () -> (),
+	getQueueSize: () -> number,
+
 	destroy: () -> (),
 }
 
 local function startsWith(haystack: string, needle: string)
 	return haystack:sub(1, #needle) == needle
+end
+
+local function insertUnique<T>(arr: { T }, item: T)
+	if not table.find(arr, item) then
+		table.insert(arr, item)
+	end
 end
 
 local StorytellerStore = {}
@@ -38,7 +47,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
 
 	local newInstancesQueue: { Instance } = {}
-	local changeModulesQueue: { ModuleScript } = {}
+	local changedModulesQueue: { ModuleScript } = {}
 	local isQueueBeingProcessed = true
 
 	local getModuleScripts, setModuleScripts = Signals.createSignal({} :: { ModuleScript })
@@ -247,15 +256,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			connections[`{prefix}_InstanceAdded_NameChanged`] = instance
 				:GetPropertyChangedSignal("Name")
 				:Connect(function()
-					table.insert(changeModulesQueue, instance)
+					insertUnique(changedModulesQueue, instance)
 				end)
 			connections[`{prefix}_InstanceAdded_SourceChanged`] = instance
 				:GetPropertyChangedSignal("Source")
 				:Connect(function()
-					table.insert(changeModulesQueue, instance)
+					insertUnique(changedModulesQueue, instance)
 				end)
 			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
-				table.insert(changeModulesQueue, instance)
+				insertUnique(changedModulesQueue, instance)
 			end)
 
 			-- If the ModuleScript was NOT one of these and then became one
@@ -269,14 +278,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	for _, moduleScript in getModuleScripts(false) do
-		table.insert(newInstancesQueue, moduleScript)
+		insertUnique(newInstancesQueue, moduleScript)
 	end
 	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
-		table.insert(newInstancesQueue, descendant)
+		insertUnique(newInstancesQueue, descendant)
 	end)
 
-	task.spawn(function()
-		while isQueueBeingProcessed do
+	local function processQueueItems()
 			if #newInstancesQueue > 0 then
 				for _, instance in newInstancesQueue do
 					onInstanceAdded(instance)
@@ -284,15 +292,31 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				newInstancesQueue = {}
 			end
 
-			if #changeModulesQueue > 0 then
-				for _, moduleScript in changeModulesQueue do
+		if #changedModulesQueue > 0 then
+			for _, moduleScript in changedModulesQueue do
 					onModuleScriptChanged(moduleScript)
 				end
-				changeModulesQueue = {}
+			changedModulesQueue = {}
+		end
 			end
+
+	task.spawn(function()
+		while isQueueBeingProcessed do
+			processQueueItems()
+
 			task.wait()
 		end
 	end)
+
+	local function flush()
+		processQueueItems()
+	end
+	self.flush = flush
+
+	local function getQueueSize()
+		return #newInstancesQueue + #changedModulesQueue
+	end
+	self.getQueueSize = getQueueSize
 
 	return self
 end
