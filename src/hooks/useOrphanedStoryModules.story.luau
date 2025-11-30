@@ -1,10 +1,8 @@
 local React = require("@pkg/React")
 
-local useStorybooks = require("@root/hooks/useStorybooks")
-
 local useOrphanedStoryModules = require("./useOrphanedStoryModules")
 
-local function createNextLayoutOrder()
+local function createNextOrder()
 	local layoutOrder = 0
 	return function()
 		layoutOrder += 1
@@ -17,7 +15,7 @@ return {
 	story = function()
 		renderCount += 1
 
-		local nextLayoutOrder = createNextLayoutOrder()
+		local getNextOrder = createNextOrder()
 
 		local orphanedStoryModules = useOrphanedStoryModules()
 
@@ -34,7 +32,7 @@ return {
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
-			LayoutOrder = nextLayoutOrder(),
+			LayoutOrder = getNextOrder(),
 		})
 
 		children.Header = React.createElement("TextLabel", {
@@ -48,7 +46,7 @@ return {
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
-			LayoutOrder = nextLayoutOrder(),
+			LayoutOrder = getNextOrder(),
 		})
 
 		for _, orphanedStoryModule in orphanedStoryModules do
@@ -63,7 +61,7 @@ return {
 				TextYAlignment = Enum.TextYAlignment.Top,
 				TextColor3 = Color3.fromRGB(0, 0, 0),
 				BackgroundTransparency = 1,
-				LayoutOrder = nextLayoutOrder(),
+				LayoutOrder = getNextOrder(),
 			})
 		end
 

@@ -2,7 +2,7 @@ local React = require("@pkg/React")
 
 local useStorybooks = require("./useStorybooks")
 
-local function createNextLayoutOrder()
+local function createNextOrder()
 	local layoutOrder = 0
 	return function()
 		layoutOrder += 1
@@ -15,7 +15,7 @@ return {
 	story = function()
 		renderCount += 1
 
-		local nextLayoutOrder = createNextLayoutOrder()
+		local getNextOrder = createNextOrder()
 
 		local storybooks = useStorybooks()
 
@@ -32,7 +32,7 @@ return {
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
-			LayoutOrder = nextLayoutOrder(),
+			LayoutOrder = getNextOrder(),
 		})
 
 		children.AvailableHeader = React.createElement("TextLabel", {
@@ -46,7 +46,7 @@ return {
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
-			LayoutOrder = nextLayoutOrder(),
+			LayoutOrder = getNextOrder(),
 		})
 
 		for _, available in storybooks.available do
@@ -61,7 +61,7 @@ return {
 				TextYAlignment = Enum.TextYAlignment.Top,
 				TextColor3 = Color3.fromRGB(0, 0, 0),
 				BackgroundTransparency = 1,
-				LayoutOrder = nextLayoutOrder(),
+				LayoutOrder = getNextOrder(),
 			})
 		end
 
@@ -76,7 +76,7 @@ return {
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextColor3 = Color3.fromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
-			LayoutOrder = nextLayoutOrder(),
+			LayoutOrder = getNextOrder(),
 		})
 
 		for _, unavailable in storybooks.unavailable do
@@ -91,7 +91,7 @@ return {
 				TextYAlignment = Enum.TextYAlignment.Top,
 				TextColor3 = Color3.fromRGB(0, 0, 0),
 				BackgroundTransparency = 1,
-				LayoutOrder = nextLayoutOrder(),
+				LayoutOrder = getNextOrder(),
 			})
 		end
 
