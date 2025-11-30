@@ -50,6 +50,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local changedModulesQueue: { ModuleScript } = {}
 	local isQueueBeingProcessed = true
 
+	local isDestroyed = false
+
 	local getModuleScripts, setModuleScripts = Signals.createSignal({} :: { ModuleScript })
 	table.insert(
 		effects,
@@ -164,6 +166,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
 	local function destroy()
+		if isDestroyed then
+			return
+		end
+
 		isQueueBeingProcessed = false
 
 		instanceQueryStore.destroy()
@@ -175,6 +181,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		for _, dispose in effects do
 			dispose()
 		end
+
+		isDestroyed = true
 	end
 	self.destroy = destroy
 
