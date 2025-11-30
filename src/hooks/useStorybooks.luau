@@ -67,7 +67,7 @@ type UnavailableStorybook = types.UnavailableStorybook
 	@tag Storybook
 	@within Storyteller
 ]=]
-local function useStorybooks(parent: Instance): {
+local function useStorybooks(parent: Instance?): {
 	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
