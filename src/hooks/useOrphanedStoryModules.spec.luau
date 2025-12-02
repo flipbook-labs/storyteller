@@ -118,11 +118,11 @@ test("updates when adding/removing instances from the DataModel", function()
 	local storyModuleC = templateStoryModule:Clone()
 	local storyModuleD = templateStoryModule:Clone()
 
-	local root = new("Folder", {}, {
-		["Folder"] = new("Folder", {}, {
+	local root = new("Folder", nil, {
+		["Folder"] = new("Folder", nil, {
 			["Sample.storybook"] = storybookModule,
 			["A.story"] = storyModuleA,
-			["Folder"] = new("Folder", {}, {
+			["Folder"] = new("Folder", nil, {
 				["B.story"] = storyModuleB,
 			}),
 		}),

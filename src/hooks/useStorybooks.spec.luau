@@ -181,7 +181,8 @@ test("removing a storybook from the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({})
+	expect(#storybooks.available).toBe(0)
+	expect(#storybooks.unavailable).toBe(0)
 end)
 
 test("re-renders on module changes", function()

@@ -311,7 +311,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	task.spawn(function()
 		while isQueueBeingProcessed do
 			processQueueItems()
-
 			task.wait()
 		end
 	end)
