@@ -36,6 +36,9 @@ test("loads storybook modules", function()
 		}
 	]]
 
+	-- TODO: Make tests work without the task.wait(). This tells me there might
+	-- be something in StorytellerStore that isn't recomputing when certain
+	-- events happen
 	storybookModule.Parent = container
 	task.wait()
 
