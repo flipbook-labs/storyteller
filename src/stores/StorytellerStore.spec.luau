@@ -422,11 +422,9 @@ describe("orphaned stories", function()
 		expect(#store.getLoadedStorybooks(false)).toBe(1)
 		expect(store.getOrphanedStoryModules(false)).toEqual({})
 
-		print("bye bye")
 		storybookModule.Parent = nil
 		task.wait()
 
-		print("check")
 		expect(#store.getLoadedStorybooks(false)).toBe(0)
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA, storyB })
 	end)
