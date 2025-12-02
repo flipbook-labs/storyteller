@@ -15,22 +15,10 @@ local act = ReactRoblox.act
 type LoadedStorybook = types.LoadedStorybook
 
 local container: Folder
-local storybookModule: ModuleScript
 
 beforeEach(function()
 	container = Instance.new("Folder")
 	container.Parent = game
-
-	storybookModule = Instance.new("ModuleScript")
-	storybookModule.Name = "Sample.storybook"
-	storybookModule.Source = [[
-		return {
-			storyRoots = {
-				script.Parent
-			}
-		}
-	]]
-	storybookModule.Parent = container
 end)
 
 afterEach(function()
@@ -38,11 +26,25 @@ afterEach(function()
 end)
 
 test("loads storybook modules", function()
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Sample.storybook"
+	storybookModule.Source = [[
+		return {
+			storyRoots = {
+				Instance.new("Folder")
+			}
+		}
+	]]
+	storybookModule.Parent = container
+
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
+
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
 
 	expect(storybooks.available[1]).toMatchObject({
 		name = "Sample",
@@ -50,17 +52,23 @@ test("loads storybook modules", function()
 end)
 
 test("storybooks with syntax errors are marked unavailable", function()
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Sample.storybook"
 	storybookModule.Source = [[
 		return {
 			syntax error
 		}
 	]]
+	storybookModule.Parent = container
 
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
 
 	local storybooks = get()
+
+	expect(#storybooks.available).toBe(0)
+	expect(#storybooks.unavailable).toBe(1)
 
 	expect(storybooks.unavailable[1]).toMatchObject({
 		problem = expect.any("string"),
@@ -71,9 +79,9 @@ test("storybooks with syntax errors are marked unavailable", function()
 end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
-	local newStorybookModule = Instance.new("ModuleScript")
-	newStorybookModule.Name = "BOO.storybook"
-	newStorybookModule.Source = [[
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Sample.storybook"
+	storybookModule.Source = [[
 		return {
 			storyRoots = {
 				Instance.new("Folder")
@@ -94,18 +102,18 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	})
 
 	act(function()
-		newStorybookModule.Parent = container
+		storybookModule.Parent = container
 		task.wait()
 	end)
 
 	storybooks = get()
 
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
+
 	expect(storybooks.available).toEqual(expect.arrayContaining({
 		expect.objectContaining({
 			name = "Sample",
-		}),
-		expect.objectContaining({
-			name = "BOO",
 		}),
 	}))
 end)
@@ -116,37 +124,51 @@ test("renaming a ModuleScript to turn it into a Storybook updates as expected", 
 	end)
 
 	local moduleScript = Instance.new("ModuleScript")
-	moduleScript.Source = storybookModule.Source
+	moduleScript.Source = [[
+		return {
+			storyRoots = {
+				Instance.new("Folder")
+			}
+		}
+	]]
 
 	act(function()
 		moduleScript.Parent = container
 		task.wait()
 	end)
 
-	expect(getStorybooks().available).toEqual({
-		expect.objectContaining({
-			name = "Sample",
-		}),
-	})
-	expect(getStorybooks().unavailable).toEqual({})
+	local storybooks = getStorybooks()
+
+	expect(#storybooks.available).toBe(0)
+	expect(#storybooks.unavailable).toBe(0)
 
 	act(function()
 		moduleScript.Name = "Foo.storybook"
 		task.wait()
 	end)
 
-	expect(getStorybooks().available).toEqual(expect.arrayContaining({
-		expect.objectContaining({
-			name = "Sample",
-		}),
-		expect.objectContaining({
-			name = "Foo",
-		}),
-	}))
-	expect(getStorybooks().unavailable).toEqual({})
+	storybooks = getStorybooks()
+
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
+
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Foo",
+	})
 end)
 
 test("removing a storybook from the DM triggers a re-render", function()
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Sample.storybook"
+	storybookModule.Source = [[
+		return {
+			storyRoots = {
+				Instance.new("Folder")
+			}
+		}
+	]]
+	storybookModule.Parent = container
+
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
@@ -162,6 +184,17 @@ test("removing a storybook from the DM triggers a re-render", function()
 end)
 
 test("re-renders on module changes", function()
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Sample.storybook"
+	storybookModule.Source = [[
+		return {
+			storyRoots = {
+				Instance.new("Folder")
+			}
+		}
+	]]
+	storybookModule.Parent = container
+
 	local get = renderHook(function()
 		return useStorybooks(container)
 	end)
