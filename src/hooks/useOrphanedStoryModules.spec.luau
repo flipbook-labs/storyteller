@@ -9,10 +9,23 @@ local useOrphanedStoryModules = require("./useOrphanedStoryModules")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local beforeEach = JestGlobals.beforeEach
+local afterEach = JestGlobals.afterEach
 
 local act = ReactRoblox.act
 
 type LoadedStorybook = types.LoadedStorybook
+
+local container: Folder
+
+beforeEach(function()
+	container = Instance.new("Folder")
+	container.Parent = game
+end)
+
+afterEach(function()
+	container:Destroy()
+end)
 
 test("updates when moving instances around the DataModel", function()
 	local storybookModule = new("ModuleScript", {
@@ -38,7 +51,7 @@ test("updates when moving instances around the DataModel", function()
 	local storyModuleC = templateStoryModule:Clone()
 	local storyModuleD = templateStoryModule:Clone()
 
-	local container = new("Folder", nil, {
+	local root = new("Folder", nil, {
 		["Folder"] = new("Folder", nil, {
 			["Sample.storybook"] = storybookModule,
 			["A.story"] = storyModuleA,
@@ -50,8 +63,11 @@ test("updates when moving instances around the DataModel", function()
 		["D.story"] = storyModuleD,
 	})
 
+	root.Parent = container
+	task.wait()
+
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules(container)
+		return useOrphanedStoryModules()
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
@@ -60,7 +76,7 @@ test("updates when moving instances around the DataModel", function()
 	}))
 
 	act(function()
-		storyModuleA.Parent = container
+		storyModuleA.Parent = root
 		task.wait()
 	end)
 
@@ -71,7 +87,7 @@ test("updates when moving instances around the DataModel", function()
 	}))
 
 	act(function()
-		storybookModule.Parent = container
+		storybookModule.Parent = root
 		task.wait()
 	end)
 
@@ -102,7 +118,7 @@ test("updates when adding/removing instances from the DataModel", function()
 	local storyModuleC = templateStoryModule:Clone()
 	local storyModuleD = templateStoryModule:Clone()
 
-	local container = new("Folder", {}, {
+	local root = new("Folder", {}, {
 		["Folder"] = new("Folder", {}, {
 			["Sample.storybook"] = storybookModule,
 			["A.story"] = storyModuleA,
@@ -114,8 +130,11 @@ test("updates when adding/removing instances from the DataModel", function()
 		["D.story"] = storyModuleD,
 	})
 
+	root.Parent = container
+	task.wait()
+
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules(container)
+		return useOrphanedStoryModules()
 	end)
 
 	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
@@ -156,5 +175,3 @@ test("updates when adding/removing instances from the DataModel", function()
 		storyModuleD,
 	}))
 end)
-
-test("updates when renaming modules", function() end)

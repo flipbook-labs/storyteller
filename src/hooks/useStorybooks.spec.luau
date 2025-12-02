@@ -35,7 +35,9 @@ test("loads storybook modules", function()
 			}
 		}
 	]]
+
 	storybookModule.Parent = container
+	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -59,7 +61,9 @@ test("storybooks with syntax errors are marked unavailable", function()
 			syntax error
 		}
 	]]
+
 	storybookModule.Parent = container
+	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -95,11 +99,8 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
-		expect.objectContaining({
-			name = "Sample",
-		}),
-	})
+	expect(#storybooks.available).toBe(0)
+	expect(#storybooks.unavailable).toBe(0)
 
 	act(function()
 		storybookModule.Parent = container
@@ -111,11 +112,9 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	expect(#storybooks.available).toBe(1)
 	expect(#storybooks.unavailable).toBe(0)
 
-	expect(storybooks.available).toEqual(expect.arrayContaining({
-		expect.objectContaining({
-			name = "Sample",
-		}),
-	}))
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Sample",
+	})
 end)
 
 test("renaming a ModuleScript to turn it into a Storybook updates as expected", function()
@@ -167,7 +166,9 @@ test("removing a storybook from the DM triggers a re-render", function()
 			}
 		}
 	]]
+
 	storybookModule.Parent = container
+	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -193,7 +194,9 @@ test("re-renders on module changes", function()
 			}
 		}
 	]]
+
 	storybookModule.Parent = container
+	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -201,10 +204,8 @@ test("re-renders on module changes", function()
 
 	local storybooks = get()
 
-	expect(storybooks.available).toEqual({
-		expect.objectContaining({
-			name = "Sample",
-		}),
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Sample",
 	})
 
 	act(function()
@@ -221,9 +222,7 @@ test("re-renders on module changes", function()
 
 	storybooks = get()
 
-	expect(storybooks.available).toEqual({
-		expect.objectContaining({
-			name = "New Name",
-		}),
+	expect(storybooks.available[1]).toMatchObject({
+		name = "New Name",
 	})
 end)
