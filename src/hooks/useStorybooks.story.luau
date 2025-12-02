@@ -10,19 +10,18 @@ local function createNextOrder()
 	end
 end
 
-local renderCount = 0
 return {
 	story = function()
-		renderCount += 1
+		local renderCount = React.useRef(0)
+		renderCount.current += 1
 
 		local getNextOrder = createNextOrder()
-
 		local storybooks = useStorybooks()
 
 		local children: { [string]: React.Node } = {}
 
 		children.RenderCount = React.createElement("TextLabel", {
-			Text = `Renders: {renderCount}`,
+			Text = `Renders: {renderCount.current}`,
 
 			Size = UDim2.fromScale(1, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
