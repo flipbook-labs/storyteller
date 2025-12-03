@@ -74,6 +74,6 @@ local function installLuteBatteries()
 	end
 end
 
-installWallyPackages()
 installRobloxPackages()
+installWallyPackages()
 installLuteBatteries()
