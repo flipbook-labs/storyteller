@@ -50,7 +50,7 @@ local function buildWallyPackage()
 end
 
 local function build()
-	compile(channel)
+	compile()
 
 	if channel == "prod" then
 		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })

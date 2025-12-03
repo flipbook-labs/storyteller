@@ -4,9 +4,7 @@ local project = require("@repo/project")
 local rmrf = require("./rmrf")
 local run = require("./run")
 
-type channel = "prod" | "dev"
-
-local function compile(channel: channel)
+local function compile()
 	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
 		rmrf(project.BUILD_PATH)
 	end
@@ -26,14 +24,6 @@ local function compile(channel: channel)
 		project.SOURCE_PATH,
 		project.BUILD_PATH,
 	})
-
-	if channel == "dev" then
-		run("darklua", {
-			"process",
-			"example",
-			`{project.BUILD_PATH}/Example`,
-		})
-	end
 end
 
 return compile
