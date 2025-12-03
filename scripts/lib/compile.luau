@@ -12,6 +12,8 @@ local function compile(channel: channel)
 	end
 	fs.mkdir(project.BUILD_PATH)
 
+	run("cp", { "-R", project.ROBLOX_PACKAGES_PATH, project.BUILD_PATH })
+
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,

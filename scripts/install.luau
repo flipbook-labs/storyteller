@@ -26,7 +26,7 @@ local function installRobloxPackages()
 		"SignalsReact",
 	})
 
-	local dest = `src/RobloxPackages`
+	local dest = project.ROBLOX_PACKAGES_PATH
 	if fs.exists(dest) and fs.type(dest) == "dir" then
 		run("rm", { "-rf", dest })
 	end
