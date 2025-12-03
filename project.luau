@@ -4,6 +4,7 @@ return {
 	SOURCE_PATH = "src",
 	BUILD_PATH = "dist",
 	PACKAGES_PATH = "Packages",
+	ROBLOX_PACKAGES_PATH = "RobloxPackages",
 	SCRIPTS_PATH = "scripts",
 
 	MODEL_FILENAME = "Storyteller.rbxm",

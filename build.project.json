@@ -3,6 +3,9 @@
   "tree": {
     "$path": "Packages",
     "Storyteller": {
+      "RobloxPackages": {
+        "$path": "RobloxPackages"
+      },
       "$path": "src"
     }
   }

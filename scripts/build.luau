@@ -51,7 +51,7 @@ local function buildWallyPackage()
 end
 
 local function build()
-	compile(channel)
+	compile()
 
 	local prunedFilePatterns = {
 		"%.spec%.luau",
