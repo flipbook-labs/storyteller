@@ -190,10 +190,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		unloadStorybook(storybookModule)
 
 		if not storybookModule:IsDescendantOf(root) then
-		for key, connection in connections do
-			if startsWith(key, storybookModule:GetFullName()) then
-				connection:Disconnect()
-				connections[key] = nil
+			for key, connection in connections do
+				if startsWith(key, storybookModule:GetFullName()) then
+					connection:Disconnect()
+					connections[key] = nil
 				end
 			end
 		end
@@ -223,10 +223,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local function onStoryModuleRemoved(storyModule: ModuleScript)
 		if not storyModule:IsDescendantOf(root) then
-		for key, connection in connections do
-			if startsWith(key, storyModule:GetFullName()) then
-				connection:Disconnect()
-				connections[key] = nil
+			for key, connection in connections do
+				if startsWith(key, storyModule:GetFullName()) then
+					connection:Disconnect()
+					connections[key] = nil
 				end
 			end
 		end
@@ -245,14 +245,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			onStorybookModuleRemoved(moduleScript)
 
 			if moduleScript:IsDescendantOf(root) then
-			onStorybookModuleAdded(moduleScript)
+				onStorybookModuleAdded(moduleScript)
 			end
 		end
 		if isStoryModule(moduleScript) then
 			onStoryModuleRemoved(moduleScript)
 
 			if moduleScript:IsDescendantOf(root) then
-			onStoryModuleAdded(moduleScript)
+				onStoryModuleAdded(moduleScript)
 			end
 		end
 	end
@@ -293,20 +293,20 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 
 	local function processQueueItems()
-			if #newInstancesQueue > 0 then
-				for _, instance in newInstancesQueue do
-					onInstanceAdded(instance)
-				end
-				newInstancesQueue = {}
+		if #newInstancesQueue > 0 then
+			for _, instance in newInstancesQueue do
+				onInstanceAdded(instance)
 			end
+			newInstancesQueue = {}
+		end
 
 		if #changedModulesQueue > 0 then
 			for _, moduleScript in changedModulesQueue do
-					onModuleScriptChanged(moduleScript)
-				end
+				onModuleScriptChanged(moduleScript)
+			end
 			changedModulesQueue = {}
 		end
-			end
+	end
 
 	task.spawn(function()
 		while isQueueBeingProcessed do
