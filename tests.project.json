@@ -11,6 +11,9 @@
       "Packages": {
         "$path": "Packages",
         "Storyteller": {
+          "RobloxPackages": {
+            "$path": "RobloxPackages"
+          },
           "$path": "default.project.json"
         }
       }

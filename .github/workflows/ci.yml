@@ -51,8 +51,11 @@ jobs:
       - name: Install packages
         run: lute scripts/install.luau
 
+      - name: Create prod build to be analyzed
+        run: lute scripts/build.luau --channel prod
+
       - name: Run Luau analysis
-        run: lute scripts/analyze.luau
+        run: lute scripts/analyze.luau --include-build
 
   tests:
     runs-on: ubuntu-latest
