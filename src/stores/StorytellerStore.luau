@@ -285,14 +285,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 	end
 
-	for _, moduleScript in getModuleScripts(false) do
-		insertUnique(newInstancesQueue, moduleScript)
-	end
-	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
-		insertUnique(newInstancesQueue, descendant)
-	end)
-	connections.Destroying = root.Destroying:Connect(destroy)
-
 	local function processQueueItems()
 		if #newInstancesQueue > 0 then
 			for _, instance in newInstancesQueue do
@@ -309,13 +301,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 	end
 
-	task.spawn(function()
-		while isQueueBeingProcessed do
-			processQueueItems()
-			task.wait()
-		end
-	end)
-
 	local function flush()
 		processQueueItems()
 	end
@@ -325,6 +310,21 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		return #newInstancesQueue + #changedModulesQueue
 	end
 	self.getQueueSize = getQueueSize
+
+	for _, moduleScript in getModuleScripts(false) do
+		insertUnique(newInstancesQueue, moduleScript)
+	end
+	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
+		insertUnique(newInstancesQueue, descendant)
+	end)
+	connections.Destroying = root.Destroying:Connect(destroy)
+
+	task.spawn(function()
+		while isQueueBeingProcessed do
+			processQueueItems()
+			task.wait()
+		end
+	end)
 
 	return self
 end
