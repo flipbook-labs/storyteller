@@ -25,31 +25,31 @@ function InstanceQueryStore.new(root: Instance, selector: string): InstanceQuery
 		setMatches(root:QueryDescendants(selector))
 	end
 
-	local connections: { [string]: RBXScriptConnection } = {}
+	local ancestryConnections: { RBXScriptConnection } = {}
 	local effects: { Signals.dispose } = {}
 
 	-- This might be expensive when `root` is the whole DataModel. If that
 	-- winds up being the case this should be adjusted so that new
 	-- descendants are added to a queue and processed over several frames
-	connections.DescendantAdded = root.DescendantAdded:Connect(update)
+	local descendantAddedConn = root.DescendantAdded:Connect(update)
 
 	table.insert(
 		effects,
 		Signals.createEffect(function(scope)
+			for _, connection in ancestryConnections do
+				connection:Disconnect()
+			end
+
 			for _, instance in getMatches(scope) do
-				local key = `{instance:GetFullName()}_AncestryChanged`
-
-				if connections[key] then
-					connections[key]:Disconnect()
-				end
-
-				connections[key] = instance.AncestryChanged:Connect(update)
+				table.insert(ancestryConnections, instance.AncestryChanged:Connect(update))
 			end
 		end)
 	)
 
 	self.destroy = function()
-		for _, connection in connections do
+		descendantAddedConn:Disconnect()
+
+		for _, connection in ancestryConnections do
 			connection:Disconnect()
 		end
 
