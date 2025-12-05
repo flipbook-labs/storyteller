@@ -291,6 +291,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
 		insertUnique(newInstancesQueue, descendant)
 	end)
+	connections.Destroying = root.Destroying:Connect(destroy)
 
 	local function processQueueItems()
 		if #newInstancesQueue > 0 then
