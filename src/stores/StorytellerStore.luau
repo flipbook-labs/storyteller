@@ -317,7 +317,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
 		insertUnique(newInstancesQueue, descendant)
 	end)
-	connections.Destroying = root.Destroying:Connect(destroy)
+	connections.RootDestroying = root.Destroying:Connect(destroy)
+	connections.SelfDestroying = script.Destroying:Connect(destroy)
 
 	task.spawn(function()
 		while isQueueBeingProcessed do
