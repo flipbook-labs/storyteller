@@ -1,4 +1,7 @@
 {
-  "luau-lsp.sourcemap.rojoProjectFile": "analysis.project.json",
+  "luau-lsp.sourcemap.rojoProjectFile": "build.project.json",
+  "luau-lsp.fflags.override": {
+    "LuauSolverV2": "true"
+  },
   "luau-lsp.ignoreGlobs": ["**/LuauPackages/**", "**/_Index/**", "**/dist/**"]
 }
