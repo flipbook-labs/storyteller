@@ -3,6 +3,7 @@ local process = require("@lute/process")
 
 local compile = require("./lib/compile")
 local dotenv = require("./lib/dotenv")
+local find = require("./lib/find")
 local project = require("@repo/project")
 local run = require("./lib/run")
 local watch = require("./lib/watch")
@@ -52,11 +53,23 @@ end
 local function build()
 	compile()
 
+	local prunedFilePatterns = {
+		"%.spec%.luau",
+		"%.story%.luau",
+		"%.storybook%.luau",
+		"jest%.config%.luau",
+	}
+
 	if channel == "prod" then
-		run("find", { project.BUILD_PATH, "-name", "*.spec.luau", "-type", "f", "-delete" })
 		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
 		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
-		run("rm", { "-rf", `{project.BUILD_PATH}/jest.config.luau` })
+
+		for _, prunedFilePattern in prunedFilePatterns do
+			local prunedFiles = find(project.BUILD_PATH, prunedFilePattern)
+			for _, specFile in prunedFiles do
+				run("rm", { "-rf", specFile })
+			end
+		end
 	end
 
 	run("rojo", { "build", "-o", output })
