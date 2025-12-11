@@ -151,6 +151,10 @@ local function query(options: QueryOptions): QueryResult
 				table.insert(newMatches, addedInstance)
 			end
 
+			for _, changedInstance in changedInstances do
+				insertUnique(newMatches, changedInstance)
+			end
+
 			matches = newMatches
 
 			if #addedInstances > 0 then
