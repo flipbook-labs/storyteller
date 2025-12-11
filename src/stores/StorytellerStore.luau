@@ -172,7 +172,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	connections = Sift.List.join(connections, {
+		storyModulesQuery.added:Connect(function()
+			setStoryModules(storyModulesQuery.get())
+		end),
+
 		storyModulesQuery.changed:Connect(function()
+			setStoryModules(storyModulesQuery.get())
+		end),
+
+		storyModulesQuery.removed:Connect(function()
 			setStoryModules(storyModulesQuery.get())
 		end),
 
@@ -181,6 +189,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				assert(storybookModule:IsA("ModuleScript"), "Luau")
 				loadStorybook(storybookModule)
 			end
+
+			setStorybookModules(storybookModulesQuery.get())
 		end),
 
 		storybookModulesQuery.changed:Connect(function(storybookModules)
@@ -197,12 +207,21 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				assert(storybookModule:IsA("ModuleScript"), "Luau")
 				unloadStorybook(storybookModule)
 			end
+
+			setStorybookModules(storybookModulesQuery.get())
 		end),
 
 		root.Destroying:Connect(destroy),
 
 		script.Destroying:Connect(destroy),
 	})
+
+	setStoryModules(storyModulesQuery.get())
+	setStorybookModules(storybookModulesQuery.get())
+
+	for _, storybookModule in storybookModulesQuery.get() do
+		loadStorybook(storybookModule)
+	end
 
 	return self
 end
