@@ -2,11 +2,11 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 local Signals = require("@rbxpkg/Signals")
 
-local InstanceQueryStore = require("@root/stores/InstanceQueryStore")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
+local query = require("@root/stores/query")
 local types = require("@root/types")
 
 type LoadedStorybook = types.LoadedStorybook
@@ -21,68 +21,23 @@ export type StorytellerStore = {
 	getStoryModules: Signals.getter<{ ModuleScript }>,
 	getOrphanedStoryModules: Signals.getter<{ ModuleScript }>,
 
-	flush: () -> (),
-	getQueueSize: () -> number,
-
 	destroy: () -> (),
 }
-
-local function startsWith(haystack: string, needle: string)
-	return haystack:sub(1, #needle) == needle
-end
-
-local function insertUnique<T>(arr: { T }, item: T)
-	if not table.find(arr, item) then
-		table.insert(arr, item)
-	end
-end
 
 local StorytellerStore = {}
 
 function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
-	local connections: { [string]: RBXScriptConnection } = {}
+	local connections: { RBXScriptConnection } = {}
 	local effects: { Signals.dispose } = {}
-	local instanceQueryStore = InstanceQueryStore.new(root, "ModuleScript")
-
-	local newInstancesQueue: { Instance } = {}
-	local changedModulesQueue: { ModuleScript } = {}
-	local isQueueBeingProcessed = true
 
 	local isDestroyed = false
 
-	local getModuleScripts, setModuleScripts = Signals.createSignal({} :: { ModuleScript })
-	table.insert(
-		effects,
-		Signals.createEffect(function(scope)
-			-- Casting to any since we know for sure we're getting back
-			-- ModuleScripts from the query
-			local matches = instanceQueryStore.getMatches(scope) :: any
-			setModuleScripts(matches)
-		end)
-	)
-
-	local getStoryModules = Signals.createComputed(function(scope)
-		local storyModules = {}
-		for _, moduleScript in getModuleScripts(scope) do
-			if isStoryModule(moduleScript) then
-				table.insert(storyModules, moduleScript)
-			end
-		end
-		return storyModules
-	end)
+	local getStoryModules, setStoryModules = Signals.createSignal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules = Signals.createComputed(function(scope)
-		local storybookModules = {}
-		for _, moduleScript in getModuleScripts(scope) do
-			if isStorybookModule(moduleScript) then
-				table.insert(storybookModules, moduleScript)
-			end
-		end
-		return storybookModules
-	end)
+	local getStorybookModules, setStorybookModules = Signals.createSignal({} :: { ModuleScript })
 	self.getStorybookModules = getStorybookModules
 
 	local getLoadedStorybooks, setLoadedStorybooks = Signals.createSignal({} :: { LoadedStorybook })
@@ -90,6 +45,38 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local getUnavailableStorybooks, setUnavailableStorybooks = Signals.createSignal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
+
+	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
+		local orphans = {}
+		for _, storyModule in getStoryModules(scope) do
+			if isOrphanedStoryModule(storyModule, getLoadedStorybooks(scope)) then
+				table.insert(orphans, storyModule)
+			end
+		end
+		return orphans
+	end)
+	self.getOrphanedStoryModules = getOrphanedStoryModules
+
+	local storyModulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		matcher = isStoryModule,
+	})
+
+	local storybookModulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		matcher = isStorybookModule,
+	})
+
+	-- These functions are just wrappers to cast `{ Instance }` to `{
+	-- ModuleScript }` so Luau gets the memo
+	local function storyModulesQueryGet()
+		return (storyModulesQuery.get() :: any) :: { ModuleScript }
+	end
+	local function storybookModulesQueryGet()
+		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
+	end
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
@@ -154,25 +141,18 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
-		local orphans = {}
-		for _, storyModule in getStoryModules(scope) do
-			if isOrphanedStoryModule(storyModule, getLoadedStorybooks(scope)) then
-				table.insert(orphans, storyModule)
-			end
-		end
-		return orphans
-	end)
-	self.getOrphanedStoryModules = getOrphanedStoryModules
+	local function reloadStorybook(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+		loadStorybook(storybookModule)
+	end
 
 	local function destroy()
 		if isDestroyed then
 			return
 		end
 
-		isQueueBeingProcessed = false
-
-		instanceQueryStore.destroy()
+		storybookModulesQuery.destroy()
+		storyModulesQuery.destroy()
 
 		for _, connection in connections do
 			connection:Disconnect()
@@ -186,145 +166,59 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 	self.destroy = destroy
 
-	local function onStorybookModuleRemoved(storybookModule: ModuleScript)
-		unloadStorybook(storybookModule)
+	connections = Sift.List.join(connections, {
+		storyModulesQuery.added:Connect(function()
+			setStoryModules(storyModulesQueryGet())
+		end),
 
-		if not storybookModule:IsDescendantOf(root) then
-			for key, connection in connections do
-				if startsWith(key, storybookModule:GetFullName()) then
-					connection:Disconnect()
-					connections[key] = nil
-				end
+		storyModulesQuery.changed:Connect(function()
+			setStoryModules(storyModulesQueryGet())
+		end),
+
+		storyModulesQuery.removed:Connect(function()
+			setStoryModules(storyModulesQueryGet())
+		end),
+
+		storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
+			for _, storybookModule in storybookModules do
+				assert(storybookModule:IsA("ModuleScript"), "Luau")
+				loadStorybook(storybookModule)
 			end
-		end
-	end
 
-	local function reloadStorybook(storybookModule: ModuleScript)
-		unloadStorybook(storybookModule)
+			setStorybookModules(storybookModulesQueryGet())
+		end),
+
+		storybookModulesQuery.changed:Connect(function(storybookModules)
+			setStorybookModules(storybookModulesQueryGet())
+
+			for _, storybookModule in storybookModules do
+				assert(storybookModule:IsA("ModuleScript"), "Luau")
+				reloadStorybook(storybookModule)
+			end
+		end),
+
+		storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
+			for _, storybookModule in storybookModules do
+				assert(storybookModule:IsA("ModuleScript"), "Luau")
+				unloadStorybook(storybookModule)
+			end
+
+			setStorybookModules(storybookModulesQueryGet())
+		end),
+
+		root.Destroying:Connect(destroy),
+
+		script.Destroying:Connect(destroy),
+	})
+
+	local storybookModules = storybookModulesQueryGet()
+
+	setStoryModules(storyModulesQueryGet())
+	setStorybookModules(storybookModules)
+
+	for _, storybookModule in storybookModules do
 		loadStorybook(storybookModule)
 	end
-
-	local function onStorybookModuleAdded(storybookModule: ModuleScript)
-		local prefix = storybookModule:GetFullName()
-
-		loadStorybook(storybookModule)
-
-		connections[`{prefix}_StorybookAdded_NameChanged`] = storybookModule
-			:GetPropertyChangedSignal("Name")
-			:Connect(function()
-				reloadStorybook(storybookModule)
-			end)
-		connections[`{prefix}_StorybookAdded_SourceChanged`] = storybookModule
-			:GetPropertyChangedSignal("Source")
-			:Connect(function()
-				reloadStorybook(storybookModule)
-			end)
-	end
-
-	local function onStoryModuleRemoved(storyModule: ModuleScript)
-		if not storyModule:IsDescendantOf(root) then
-			for key, connection in connections do
-				if startsWith(key, storyModule:GetFullName()) then
-					connection:Disconnect()
-					connections[key] = nil
-				end
-			end
-		end
-	end
-
-	local function onStoryModuleAdded(_storyModule: ModuleScript)
-		-- noop
-	end
-
-	local function onModuleScriptChanged(moduleScript: ModuleScript)
-		setModuleScripts(function(prev)
-			return table.clone(prev)
-		end)
-
-		if isStorybookModule(moduleScript) then
-			onStorybookModuleRemoved(moduleScript)
-
-			if moduleScript:IsDescendantOf(root) then
-				onStorybookModuleAdded(moduleScript)
-			end
-		end
-		if isStoryModule(moduleScript) then
-			onStoryModuleRemoved(moduleScript)
-
-			if moduleScript:IsDescendantOf(root) then
-				onStoryModuleAdded(moduleScript)
-			end
-		end
-	end
-
-	local function onInstanceAdded(instance: Instance)
-		if instance:IsA("ModuleScript") then
-			local prefix = instance:GetFullName()
-
-			connections[`{prefix}_InstanceAdded_NameChanged`] = instance
-				:GetPropertyChangedSignal("Name")
-				:Connect(function()
-					insertUnique(changedModulesQueue, instance)
-				end)
-			connections[`{prefix}_InstanceAdded_SourceChanged`] = instance
-				:GetPropertyChangedSignal("Source")
-				:Connect(function()
-					insertUnique(changedModulesQueue, instance)
-				end)
-			connections[`{prefix}_AncestryChanged`] = instance.AncestryChanged:Connect(function()
-				insertUnique(changedModulesQueue, instance)
-			end)
-
-			-- If the ModuleScript was NOT one of these and then became one
-			if isStorybookModule(instance) then
-				onStorybookModuleAdded(instance)
-			end
-			if isStoryModule(instance) then
-				onStoryModuleAdded(instance)
-			end
-		end
-	end
-
-	local function processQueueItems()
-		if #newInstancesQueue > 0 then
-			for _, instance in newInstancesQueue do
-				onInstanceAdded(instance)
-			end
-			newInstancesQueue = {}
-		end
-
-		if #changedModulesQueue > 0 then
-			for _, moduleScript in changedModulesQueue do
-				onModuleScriptChanged(moduleScript)
-			end
-			changedModulesQueue = {}
-		end
-	end
-
-	local function flush()
-		processQueueItems()
-	end
-	self.flush = flush
-
-	local function getQueueSize()
-		return #newInstancesQueue + #changedModulesQueue
-	end
-	self.getQueueSize = getQueueSize
-
-	for _, moduleScript in getModuleScripts(false) do
-		insertUnique(newInstancesQueue, moduleScript)
-	end
-	connections.DescendantAdded = root.DescendantAdded:Connect(function(descendant)
-		insertUnique(newInstancesQueue, descendant)
-	end)
-	connections.Destroying = root.Destroying:Connect(destroy)
-
-	task.spawn(function()
-		while isQueueBeingProcessed do
-			processQueueItems()
-			task.wait()
-		end
-	end)
 
 	return self
 end

@@ -93,7 +93,7 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 end)
 
 describe("recomputing Story and Storybook modules", function()
-	test("recomputes when any ModuleScript is added or removed", function()
+	test("never recomputes when a non-matching ModuleScript is added or removed", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
@@ -112,24 +112,21 @@ describe("recomputing Story and Storybook modules", function()
 		moduleScript.Parent = root
 		task.wait()
 
-		-- Verify that the identities changed (and thus were recomputed) and that we
-		-- still have 0 Stories and Storybooks
-		expect(store.getStoryModules(false)).never.toBe(prevStoryModules)
+		-- The new ModuleScript doesn't match either query yet, so we expect no
+		-- changes
+		expect(store.getStoryModules(false)).toBe(prevStoryModules)
 		expect(#store.getStoryModules(false)).toBe(0)
-		expect(store.getStorybookModules(false)).never.toBe(prevStorybookModules)
+		expect(store.getStorybookModules(false)).toBe(prevStorybookModules)
 		expect(#store.getStorybookModules(false)).toBe(0)
-
-		prevStoryModules = store.getStoryModules(false)
-		prevStorybookModules = store.getStorybookModules(false)
 
 		moduleScript.Parent = nil
 		task.wait()
 
-		-- Same as before. The ModuleScript was removed so we need to recompute,
-		-- but there shouldn't be any change to the sizes
-		expect(store.getStoryModules(false)).never.toBe(prevStoryModules)
+		-- Same as before. Non-matching ModuleScript was removed, so no changes
+		-- necessary
+		expect(store.getStoryModules(false)).toBe(prevStoryModules)
 		expect(#store.getStoryModules(false)).toBe(0)
-		expect(store.getStorybookModules(false)).never.toBe(prevStorybookModules)
+		expect(store.getStorybookModules(false)).toBe(prevStorybookModules)
 		expect(#store.getStorybookModules(false)).toBe(0)
 	end)
 
@@ -149,10 +146,10 @@ describe("recomputing Story and Storybook modules", function()
 
 		-- A new ModuleScript was added which means we need to recalculate the
 		-- Story modules, but since the ModuleScript has no Story
-		-- characteristics we still get back 0 modules
+		-- characteristics we still get back 0 modules and the same table
 		local storyModules = store.getStoryModules(false)
 		expect(#storyModules).toBe(0)
-		expect(storyModules).never.toBe(prevStoryModules)
+		expect(storyModules).toBe(prevStoryModules)
 		prevStoryModules = storyModules
 
 		moduleScript.Name = "Foo.story"
@@ -192,7 +189,7 @@ describe("recomputing Story and Storybook modules", function()
 		-- characteristics we still get back 0 modules
 		local storybookModules = store.getStorybookModules(false)
 		expect(#storybookModules).toBe(0)
-		expect(storybookModules).never.toBe(prevStorybookModules)
+		expect(storybookModules).toBe(prevStorybookModules)
 		prevStorybookModules = storybookModules
 
 		moduleScript.Name = "Foo.storybook"
@@ -427,111 +424,5 @@ describe("orphaned stories", function()
 
 		expect(#store.getLoadedStorybooks(false)).toBe(0)
 		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA, storyB })
-	end)
-end)
-
-describe("queue processing", function()
-	test("processes items when they are newly added to the DM", function()
-		local root = Instance.new("Folder")
-
-		store = StorytellerStore.new(root)
-
-		expect(store.getQueueSize()).toBe(0)
-
-		local storybookModule = new("ModuleScript", {
-			Name = "Foo.storybook",
-			Source = [[
-				return {
-					storyRoots = {
-						script.Parent
-					}
-				}
-			]],
-		})
-
-		local storyModuleA = new("ModuleScript", {
-			Name = "A.story",
-		})
-
-		local storyModuleB = new("ModuleScript", {
-			Name = "B.story",
-		})
-
-		storybookModule.Parent = root
-		storyModuleA.Parent = root
-		storyModuleB.Parent = root
-
-		expect(store.getQueueSize()).toBe(3)
-
-		store.flush()
-
-		expect(store.getQueueSize()).toBe(0)
-		expect(#store.getLoadedStorybooks(false)).toBe(1)
-		expect(#store.getStoryModules(false)).toBe(2)
-	end)
-
-	test("an instance being changed puts it back in the queue", function()
-		local root = Instance.new("Folder")
-
-		local storybookModule = new("ModuleScript", {
-			Name = "Foo.storybook",
-			Source = [[
-				return {
-					storyRoots = {
-						script.Parent
-					}
-				}
-			]],
-		})
-
-		store = StorytellerStore.new(root)
-		storybookModule.Parent = root
-		store.flush()
-
-		expect(store.getQueueSize()).toBe(0)
-
-		storybookModule.Name = "Bar.storybook"
-
-		expect(store.getQueueSize()).toBe(1)
-
-		store.flush()
-		expect(store.getQueueSize()).toBe(0)
-	end)
-
-	test("prevents duplicates from being added to the queue", function()
-		local root = Instance.new("Folder")
-
-		local storybookModule = Instance.new("ModuleScript")
-		storybookModule.Name = "Foo.storybook"
-		storybookModule.Source = [[
-			return {
-				storyRoots = {
-					script.Parent
-				}
-			}
-		]]
-
-		store = StorytellerStore.new(root)
-
-		storybookModule.Parent = root
-
-		store.flush()
-
-		expect(store.getQueueSize()).toBe(0)
-
-		storybookModule.Name = "Bar.storybook"
-		storybookModule.Source = [[
-			return {
-				storyRoots = {
-					script.Parent.Parent
-				}
-			}
-		]]
-
-		expect(store.getQueueSize()).toBe(1)
-
-		store.flush()
-
-		expect(store.getQueueSize()).toBe(0)
 	end)
 end)
