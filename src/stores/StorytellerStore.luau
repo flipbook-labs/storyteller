@@ -213,13 +213,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end
 		end),
 
-		storybookModulesQuery.changed:Connect(function(storybookModules: { Instance })
-			for _, storybookModule in storybookModules do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-				reloadStorybook(storybookModule)
-			end
-		end),
-
 		root.Destroying:Connect(destroy),
 
 		script.Destroying:Connect(destroy),
