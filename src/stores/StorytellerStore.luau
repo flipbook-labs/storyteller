@@ -83,6 +83,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		shouldUpdate = shouldUpdateUnlockedModule,
 	})
 
+	-- These functions are just wrappers to cast `{ Instance }` to `{
+	-- ModuleScript }` so Luau gets the memo
+	local function storyModulesQueryGet()
+		return (storyModulesQuery.get() :: any) :: { ModuleScript }
+	end
+	local function storybookModulesQueryGet()
+		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
+	end
+
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
 
@@ -173,15 +182,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	connections = Sift.List.join(connections, {
 		storyModulesQuery.added:Connect(function()
-			setStoryModules(storyModulesQuery.get())
+			setStoryModules(storyModulesQueryGet())
 		end),
 
 		storyModulesQuery.changed:Connect(function()
-			setStoryModules(storyModulesQuery.get())
+			setStoryModules(storyModulesQueryGet())
 		end),
 
 		storyModulesQuery.removed:Connect(function()
-			setStoryModules(storyModulesQuery.get())
+			setStoryModules(storyModulesQueryGet())
 		end),
 
 		storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
@@ -190,11 +199,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				loadStorybook(storybookModule)
 			end
 
-			setStorybookModules(storybookModulesQuery.get())
+			setStorybookModules(storybookModulesQueryGet())
 		end),
 
 		storybookModulesQuery.changed:Connect(function(storybookModules)
-			setStorybookModules(storybookModulesQuery.get())
+			setStorybookModules(storybookModulesQueryGet())
 
 			for _, storybookModule in storybookModules do
 				assert(storybookModule:IsA("ModuleScript"), "Luau")
@@ -208,7 +217,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				unloadStorybook(storybookModule)
 			end
 
-			setStorybookModules(storybookModulesQuery.get())
+			setStorybookModules(storybookModulesQueryGet())
 		end),
 
 		root.Destroying:Connect(destroy),
@@ -216,10 +225,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		script.Destroying:Connect(destroy),
 	})
 
-	setStoryModules(storyModulesQuery.get())
-	setStorybookModules(storybookModulesQuery.get())
+	local storybookModules = storybookModulesQueryGet()
 
-	for _, storybookModule in storybookModulesQuery.get() do
+	setStoryModules(storyModulesQueryGet())
+	setStorybookModules(storybookModules)
+
+	for _, storybookModule in storybookModules do
 		loadStorybook(storybookModule)
 	end
 
