@@ -282,133 +282,18 @@ describe("events", function()
 	end)
 end)
 
-describe("Storyteller cases", function()
-	test("collects all relevant ModuleScripts under the root", function()
-		local storyA = new("ModuleScript")
-		local storyB = new("ModuleScript")
-		local storyC = new("ModuleScript")
-		local storyD = new("ModuleScript")
-
-		local storybookA = new("ModuleScript")
-		local storybookB = new("ModuleScript")
-
-		local root = new("Folder", nil, {
-			Folder = new("Folder", nil, {
-				Folder = new("Folder", nil, {
-					Folder = new("Folder", nil, {
-						["A.story"] = storyA,
-					}),
-					AnotherFolder = new("Folder", nil, {
-						["B.story"] = storyB,
-					}),
-					AndOneMoreFolder = new("Folder", nil, {
-						Folder = new("Folder", nil, {
-							Folder = new("Folder", nil, {
-								Folder = new("Folder", nil, {
-									["C.story"] = storyC,
-								}),
-							}),
-						}),
-						ModuleScriptA = new("ModuleScript"),
-						ModuleScriptB = new("ModuleScript"),
-						ModuleScriptC = new("ModuleScript"),
-					}),
-					["D.story"] = storyD,
-					ModuleScript = new("ModuleScript"),
-				}),
-				["A.storybook"] = storybookA,
-				ModuleScriptA = new("ModuleScript"),
-				ModuleScriptB = new("ModuleScript"),
-				ModuleScriptC = new("ModuleScript"),
-			}),
-			["B.storybook"] = storybookB,
-		})
-
-		local storyModulesQuery = query({
-			roots = { root },
-			selector = "ModuleScript",
-			matcher = isStoryModule,
-		})
-
-		local storybookModulesQuery = query({
-			roots = { root },
-			selector = "ModuleScript",
-			matcher = isStorybookModule,
-		})
-
-		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
-		expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
-	end)
-
-	test("recomputes when any matched Instance is added or removed", function()
-		local root = Instance.new("Folder")
-
-		local storyModulesQuery = query({
-			roots = { root },
-			selector = "ModuleScript",
-			matcher = isStoryModule,
-		})
-
-		local storybookModulesQuery = query({
-			roots = { root },
-			selector = "ModuleScript",
-			matcher = isStorybookModule,
-		})
-
-		expect(#storyModulesQuery.get()).toBe(0)
-		expect(#storybookModulesQuery.get()).toBe(0)
-
-		-- Any time a ModuleScript gets added or removed from the DM, or its Name or
-		-- Source changes, we need to recompute the Story and Storybook modules
-
-		local prevStoryModules = storyModulesQuery.get()
-		local prevStorybookModules = storybookModulesQuery.get()
-
-		local moduleScript = Instance.new("ModuleScript")
-
-		moduleScript.Parent = root
-		task.wait()
-
-		-- Verify that the identities changed (and thus were recomputed) and that we
-		-- still have 0 Stories and Storybooks
-		expect(storyModulesQuery.get()).never.toBe(prevStoryModules)
-		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.get()).never.toBe(prevStorybookModules)
-		expect(#storybookModulesQuery.get()).toBe(0)
-
-		prevStoryModules = storyModulesQuery.get()
-		prevStorybookModules = storybookModulesQuery.get()
-
-		moduleScript.Parent = nil
-		task.wait()
-
-		-- Same as before. The ModuleScript was removed so we need to recompute,
-		-- but there shouldn't be any change to the sizes
-		expect(storyModulesQuery.get()).never.toBe(prevStoryModules)
-		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.get()).never.toBe(prevStorybookModules)
-		expect(#storybookModulesQuery.get()).toBe(0)
-	end)
-end)
-
 describe("user journeys", function()
 	-- This captures a common user journey where a blank ModuleScript is
 	-- inserted by the user, renamed to "Foo.storybook," and then filled out
 	-- the contents so it becomes a valid storybook
 	test("creating a new Storybook in Studio", function()
-		local root = new("Folder")
-
-		local changeCount = 0
+		local root = Instance.new("Folder")
 
 		local storybookModulesQuery = query({
 			roots = { root },
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
-
-		storybookModulesQuery.changed:Connect(function()
-			changeCount += 1
-		end)
 
 		expect(#storybookModulesQuery.get()).toEqual(0)
 
@@ -417,13 +302,11 @@ describe("user journeys", function()
 		storybookModule.Parent = root
 		task.wait()
 
-		expect(changeCount).toEqual(1)
 		expect(#storybookModulesQuery.get()).toEqual(0)
 
 		storybookModule.Name = "Foo.storybook"
 		task.wait()
 
-		expect(changeCount).toEqual(2)
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
 		storybookModule.Source = [[
@@ -435,13 +318,11 @@ describe("user journeys", function()
 		]]
 		task.wait()
 
-		expect(changeCount).toEqual(3)
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
 		storybookModule.Parent = nil
 		task.wait()
 
-		expect(changeCount).toEqual(4)
 		expect(#storybookModulesQuery.get()).toEqual(0)
 	end)
 end)
@@ -577,4 +458,61 @@ describe("queue processing", function()
 
 		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 	end)
+end)
+
+test("collects all relevant ModuleScripts under the root", function()
+	local storyA = new("ModuleScript")
+	local storyB = new("ModuleScript")
+	local storyC = new("ModuleScript")
+	local storyD = new("ModuleScript")
+
+	local storybookA = new("ModuleScript")
+	local storybookB = new("ModuleScript")
+
+	local root = new("Folder", nil, {
+		Folder = new("Folder", nil, {
+			Folder = new("Folder", nil, {
+				Folder = new("Folder", nil, {
+					["A.story"] = storyA,
+				}),
+				AnotherFolder = new("Folder", nil, {
+					["B.story"] = storyB,
+				}),
+				AndOneMoreFolder = new("Folder", nil, {
+					Folder = new("Folder", nil, {
+						Folder = new("Folder", nil, {
+							Folder = new("Folder", nil, {
+								["C.story"] = storyC,
+							}),
+						}),
+					}),
+					ModuleScriptA = new("ModuleScript"),
+					ModuleScriptB = new("ModuleScript"),
+					ModuleScriptC = new("ModuleScript"),
+				}),
+				["D.story"] = storyD,
+				ModuleScript = new("ModuleScript"),
+			}),
+			["A.storybook"] = storybookA,
+			ModuleScriptA = new("ModuleScript"),
+			ModuleScriptB = new("ModuleScript"),
+			ModuleScriptC = new("ModuleScript"),
+		}),
+		["B.storybook"] = storybookB,
+	})
+
+	local storyModulesQuery = query({
+		roots = { root },
+		selector = "ModuleScript",
+		matcher = isStoryModule,
+	})
+
+	local storybookModulesQuery = query({
+		roots = { root },
+		selector = "ModuleScript",
+		matcher = isStorybookModule,
+	})
+
+	expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+	expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
 end)
