@@ -80,22 +80,6 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function queueWhenChanged(instance: Instance)
-		local events: { RBXScriptSignal } = {
-			instance.Changed,
-			instance.AncestryChanged,
-		}
-
-		for _, event in events do
-			table.insert(
-				connections,
-				event:Connect(function()
-					insertUnique(queue, instance)
-				end)
-			)
-		end
-	end
-
 	local function flush()
 		local addedInstances: { Instance } = {}
 		local removedInstances: { Instance } = {}
@@ -119,7 +103,12 @@ local function query(options: QueryOptions): QueryResult
 			else
 				seen[instance] = true
 
-				queueWhenChanged(instance)
+				table.insert(
+					connections,
+					instance.Changed:Connect(function()
+						insertUnique(queue, instance)
+					end)
+				)
 
 				if isMatch then
 					table.insert(addedInstances, instance)
