@@ -9,21 +9,6 @@ local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
--- https://create.roblox.com/docs/reference/engine/classes/ReflectionService#GetClass
-type ReflectedClass = {
-	Name: string,
-	Superclass: string?,
-	Subclasses: { string },
-	Display: {
-		Category: string,
-		DeprecationMessage: string?,
-	}?,
-	Permits: {
-		GetService: SecurityCapabilities?,
-		New: SecurityCapabilities?,
-	},
-}
-
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
