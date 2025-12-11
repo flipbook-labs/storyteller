@@ -34,14 +34,19 @@ export type QueryResult = {
 	getQueueSize: () -> number,
 	flush: () -> (),
 
-	-- Fired any time the matched Instances change. This happens when the Instance is...
-	-- 1. Parented to one of the `roots`
-	-- 2.
+	-- Fired any time a matched Instance is removed. This happens when...
+	-- 1. The Instance is parented to `root`
+	-- 2. The Instance is changed in such a way that starts matching the query
+	added: RBXScriptSignal<{ Instance }>,
+
+	-- Fired any time the matched Instances have their properties change.
 	changed: RBXScriptSignal<{ Instance }>,
 
+	-- Fired any time a matched Instance is removed. This happens when...
+	-- 1. The Instance is parented outside of `root`
+	-- 2. The Instance is destroyed
+	-- 3. The Instance is changed in such a way that it no longer matches
 	removed: RBXScriptSignal<{ Instance }>,
-
-	added: RBXScriptSignal<{ Instance }>,
 }
 
 local function query(options: QueryOptions): QueryResult
