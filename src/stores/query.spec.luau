@@ -151,36 +151,135 @@ describe("DataModel behavior", function()
 	end)
 end)
 
-test("updates when any properties change", function()
-	local root = Instance.new("Folder")
+describe("events", function()
+	test("fires `changed` when any matching Instances are changed", function()
+		local root = Instance.new("Folder")
 
-	local moduleScript = Instance.new("ModuleScript")
-	moduleScript.Parent = root
+		local moduleScript = Instance.new("ModuleScript")
+		moduleScript.Parent = root
 
-	local modulesQuery = query({
-		roots = { root },
-		selector = "ModuleScript",
-	})
+		local modulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+		})
 
-	local changeCount = 0
+		local changeCount = 0
 
-	modulesQuery.changed:Connect(function()
-		changeCount += 1
+		modulesQuery.changed:Connect(function()
+			changeCount += 1
+		end)
+
+		local snapshot = modulesQuery.get()
+		expect(changeCount).toBe(0)
+		expect(snapshot).toEqual({ moduleScript })
+
+		moduleScript.Name = "NewName"
+		task.wait()
+
+		moduleScript.Source = [[
+			return "Hello, World!"
+		]]
+		task.wait()
+
+		expect(changeCount).toBe(2)
+		expect(modulesQuery.get()).never.toBe(snapshot)
+		expect(modulesQuery.get()).toEqual({ moduleScript })
 	end)
 
-	local snapshot = modulesQuery.get()
-	expect(changeCount).toBe(0)
-	expect(snapshot).toEqual({ moduleScript })
+	test("fires `added` when any matching Instances are added to a root", function()
+		local root = Instance.new("Folder")
 
-	moduleScript.Name = "NewName"
-	moduleScript.Source = [[
-		return "Hello, World!"
-	]]
-	task.wait()
+		local moduleScriptA = Instance.new("ModuleScript")
+		local moduleScriptB = Instance.new("ModuleScript")
+		local moduleScriptC = Instance.new("ModuleScript")
 
-	expect(changeCount).toBe(2)
-	expect(modulesQuery.get()).never.toBe(snapshot)
-	expect(modulesQuery.get()).toEqual({ moduleScript })
+		local modulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+		})
+
+		local addCount = 0
+
+		modulesQuery.added:Connect(function()
+			addCount += 1
+		end)
+
+		moduleScriptA.Parent = root
+		task.wait()
+		expect(addCount).toBe(1)
+
+		moduleScriptB.Parent = root
+		task.wait()
+		expect(addCount).toBe(2)
+
+		moduleScriptC.Parent = root
+		task.wait()
+		expect(addCount).toBe(3)
+
+		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB, moduleScriptC })
+	end)
+
+	test("fires `removed` when any matching Instances are removed from a root", function()
+		local root = Instance.new("Folder")
+
+		local moduleScriptA = Instance.new("ModuleScript")
+		moduleScriptA.Parent = root
+
+		local moduleScriptB = Instance.new("ModuleScript")
+		moduleScriptB.Parent = root
+
+		local modulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+		})
+
+		local removeCount = 0
+
+		modulesQuery.removed:Connect(function()
+			removeCount += 1
+		end)
+
+		moduleScriptA.Parent = nil
+		task.wait()
+		expect(removeCount).toBe(1)
+
+		moduleScriptB.Parent = nil
+		task.wait()
+		expect(removeCount).toBe(2)
+
+		expect(modulesQuery.get()).toEqual({})
+	end)
+
+	test("fires `removed` when any matching Instances are destroyed", function()
+		local root = Instance.new("Folder")
+
+		local moduleScriptA = Instance.new("ModuleScript")
+		moduleScriptA.Parent = root
+
+		local moduleScriptB = Instance.new("ModuleScript")
+		moduleScriptB.Parent = root
+
+		local modulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+		})
+
+		local removeCount = 0
+
+		modulesQuery.removed:Connect(function()
+			removeCount += 1
+		end)
+
+		moduleScriptA:Destroy()
+		task.wait()
+		expect(removeCount).toBe(1)
+
+		moduleScriptB:Destroy()
+		task.wait()
+		expect(removeCount).toBe(2)
+
+		expect(modulesQuery.get()).toEqual({})
+	end)
 end)
 
 describe("Storyteller cases", function()
@@ -242,7 +341,7 @@ describe("Storyteller cases", function()
 	end)
 
 	test("recomputes when any matched Instance is added or removed", function()
-		local root = new("Folder")
+		local root = Instance.new("Folder")
 
 		local storyModulesQuery = query({
 			roots = { root },
@@ -265,7 +364,7 @@ describe("Storyteller cases", function()
 		local prevStoryModules = storyModulesQuery.get()
 		local prevStorybookModules = storybookModulesQuery.get()
 
-		local moduleScript = new("ModuleScript")
+		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
 		task.wait()
