@@ -149,16 +149,28 @@ end)
 test("recomputes when any matched Instance is added or removed", function()
 	local root = new("Folder")
 
-	store = StorytellerStore.new(root)
+	local storyModulesQuery = query({
+		roots = { root },
+		selector = "ModuleScript",
+		matcher = isStoryModule,
+		-- watchedProperties = { "Name", "Source" },
+	})
 
-	expect(#store.getStoryModules(false)).toBe(0)
-	expect(#store.getStorybookModules(false)).toBe(0)
+	local storybookModulesQuery = query({
+		roots = { root },
+		selector = "ModuleScript",
+		matcher = isStorybookModule,
+		-- watchedProperties = { "Name", "Source" },
+	})
+
+	expect(#storyModulesQuery.get()).toBe(0)
+	expect(#storybookModulesQuery.get()).toBe(0)
 
 	-- Any time a ModuleScript gets added or removed from the DM, or its Name or
 	-- Source changes, we need to recompute the Story and Storybook modules
 
-	local prevStoryModules = store.getStoryModules(false)
-	local prevStorybookModules = store.getStorybookModules(false)
+	local prevStoryModules = storyModulesQuery.get()
+	local prevStorybookModules = storybookModulesQuery.get()
 
 	local moduleScript = new("ModuleScript")
 
@@ -167,23 +179,23 @@ test("recomputes when any matched Instance is added or removed", function()
 
 	-- Verify that the identities changed (and thus were recomputed) and that we
 	-- still have 0 Stories and Storybooks
-	expect(store.getStoryModules(false)).never.toBe(prevStoryModules)
-	expect(#store.getStoryModules(false)).toBe(0)
-	expect(store.getStorybookModules(false)).never.toBe(prevStorybookModules)
-	expect(#store.getStorybookModules(false)).toBe(0)
+	expect(storyModulesQuery.get()).never.toBe(prevStoryModules)
+	expect(#storyModulesQuery.get()).toBe(0)
+	expect(storybookModulesQuery.get()).never.toBe(prevStorybookModules)
+	expect(#storybookModulesQuery.get()).toBe(0)
 
-	prevStoryModules = store.getStoryModules(false)
-	prevStorybookModules = store.getStorybookModules(false)
+	prevStoryModules = storyModulesQuery.get()
+	prevStorybookModules = storybookModulesQuery.get()
 
 	moduleScript.Parent = nil
 	task.wait()
 
 	-- Same as before. The ModuleScript was removed so we need to recompute,
 	-- but there shouldn't be any change to the sizes
-	expect(store.getStoryModules(false)).never.toBe(prevStoryModules)
-	expect(#store.getStoryModules(false)).toBe(0)
-	expect(store.getStorybookModules(false)).never.toBe(prevStorybookModules)
-	expect(#store.getStorybookModules(false)).toBe(0)
+	expect(storyModulesQuery.get()).never.toBe(prevStoryModules)
+	expect(#storyModulesQuery.get()).toBe(0)
+	expect(storybookModulesQuery.get()).never.toBe(prevStorybookModules)
+	expect(#storybookModulesQuery.get()).toBe(0)
 end)
 
 describe("user journeys", function()
@@ -253,7 +265,17 @@ describe("queue processing", function()
 			-- watchedProperties = { "Name", "Source" },
 		})
 
+		local storyModulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+			matcher = isStoryModule,
+			-- watchedProperties = { "Name", "Source" },
+		})
+
+		expect(#storybookModulesQuery.get()).toBe(0)
 		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		expect(#storyModulesQuery.get()).toBe(0)
+		expect(storyModulesQuery.getQueueSize()).toBe(0)
 
 		local storybookModule = new("ModuleScript", {
 			Name = "Foo.storybook",
@@ -278,13 +300,18 @@ describe("queue processing", function()
 		storyModuleA.Parent = root
 		storyModuleB.Parent = root
 
-		expect(store.getQueueSize()).toBe(3)
+		expect(#storybookModulesQuery.get()).toBe(0)
+		expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		expect(#storyModulesQuery.get()).toBe(0)
+		expect(storyModulesQuery.getQueueSize()).toBe(2)
 
-		store.flush()
+		storybookModulesQuery.flush()
+		storyModulesQuery.flush()
 
-		expect(store.getQueueSize()).toBe(0)
-		expect(#store.getLoadedStorybooks(false)).toBe(1)
-		expect(#store.getStoryModules(false)).toBe(2)
+		expect(#storybookModulesQuery.get()).toBe(1)
+		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		expect(#storyModulesQuery.get()).toBe(2)
+		expect(storyModulesQuery.getQueueSize()).toBe(0)
 	end)
 
 	test("an instance being changed puts it back in the queue", function()
@@ -301,18 +328,24 @@ describe("queue processing", function()
 			]],
 		})
 
-		store = StorytellerStore.new(root)
-		storybookModule.Parent = root
-		store.flush()
+		local storybookModulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+			matcher = isStorybookModule,
+			-- watchedProperties = { "Name", "Source" },
+		})
 
-		expect(store.getQueueSize()).toBe(0)
+		storybookModule.Parent = root
+		storybookModulesQuery.flush()
+
+		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 
 		storybookModule.Name = "Bar.storybook"
 
-		expect(store.getQueueSize()).toBe(1)
+		expect(storybookModulesQuery.getQueueSize()).toBe(1)
 
-		store.flush()
-		expect(store.getQueueSize()).toBe(0)
+		storybookModulesQuery.flush()
+		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 	end)
 
 	test("prevents duplicates from being added to the queue", function()
@@ -328,13 +361,18 @@ describe("queue processing", function()
 			}
 		]]
 
-		store = StorytellerStore.new(root)
+		local storybookModulesQuery = query({
+			roots = { root },
+			selector = "ModuleScript",
+			matcher = isStorybookModule,
+			-- watchedProperties = { "Name", "Source" },
+		})
 
 		storybookModule.Parent = root
 
-		store.flush()
+		storybookModulesQuery.flush()
 
-		expect(store.getQueueSize()).toBe(0)
+		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 
 		storybookModule.Name = "Bar.storybook"
 		storybookModule.Source = [[
@@ -345,10 +383,10 @@ describe("queue processing", function()
 			}
 		]]
 
-		expect(store.getQueueSize()).toBe(1)
+		expect(storybookModulesQuery.getQueueSize()).toBe(1)
 
-		store.flush()
+		storybookModulesQuery.flush()
 
-		expect(store.getQueueSize()).toBe(0)
+		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 	end)
 end)

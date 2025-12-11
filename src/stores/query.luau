@@ -15,7 +15,7 @@ export type QueryOptions = {
 
 	-- This function is used for crafting specialized queries that the engine's
 	-- selector pattern can't satisfy.
-	matcher: ((candidate: Instance) -> boolean)?,
+	matcher: ((instance: Instance) -> boolean)?,
 
 	-- Array of properties that trigger the query to recalculate matches.
 	--
@@ -26,7 +26,7 @@ export type QueryOptions = {
 	--
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
-	shouldUpdate: ((candidate: Instance, prevCandidate: Instance) -> boolean)?,
+	shouldUpdate: ((instance: Instance) -> boolean)?,
 }
 
 export type QueryResult = {
@@ -42,17 +42,28 @@ export type QueryResult = {
 	-- Fired any time the matched Instances change. This happens when the Instance is...
 	-- 1. Parented to one of the `roots`
 	-- 2.
-	changed: RBXScriptSignal,
+	changed: RBXScriptSignal<{ Instance }>,
+
+	removed: RBXScriptSignal<{ Instance }>,
+
+	added: RBXScriptSignal<{ Instance }>,
 }
 
 local function query(options: QueryOptions): QueryResult
 	local matches: { Instance } = {}
 	local queue: { Instance } = {}
+
 	local connections: { RBXScriptConnection } = {}
+
+	-- Weak table so we don't leak memory from using Instances as keys
+	local seen: { [Instance]: boolean } = {}
+	setmetatable(seen, { __mode = "k" })
 
 	local isDestroyed = false
 
+	local added = Instance.new("BindableEvent")
 	local changed = Instance.new("BindableEvent")
+	local removed = Instance.new("BindableEvent")
 
 	local function get()
 		return matches
@@ -70,38 +81,65 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function onInstanceAdded(instance: Instance)
-		-- TODO: Only connect these events once
-		local events: { RBXScriptSignal } = {
-			instance.Changed,
-			instance.AncestryChanged,
-		}
-
-		for _, event in events do
-			table.insert(
-				connections,
-				event:Connect(function()
-					insertUnique(queue, instance)
-				end)
-			)
-		end
-
-		if not options.matcher or options.matcher(instance) then
-			table.insert(matches, instance)
-		end
-
-		if options.shouldUpdate and options.shouldUpdate(instance) then
-			-- TODO: For shouldUpdate to provide prevCandidate I might need to keep
-			-- around a snapshot of _every_ match as a :Clone(). That could get
-			-- expensive fast.
-		end
-	end
-
 	local function flush()
+		local addedInstances = {}
+		local removedInstances = {}
+		local changedInstances = {}
+
+		local function processInstance(instance: Instance)
+			local isMatch = if options.matcher then options.matcher(instance) else true
+
+			if seen[instance] then
+				if isMatch then
+					if not options.shouldUpdate or options.shouldUpdate(instance) then
+						table.insert(changedInstances, instance)
+					end
+				else
+					-- Might need to do a table.find on `matches` first to make
+					-- sure `instance` _was_ a match before removing it
+					table.insert(removedInstances, instance)
+				end
+			else
+				seen[instance] = true
+
+				local events: { RBXScriptSignal } = {
+					instance.Changed,
+					instance.AncestryChanged,
+				}
+
+				for _, event in events do
+					table.insert(
+						connections,
+						event:Connect(function()
+							insertUnique(queue, instance)
+						end)
+					)
+				end
+
+				if isMatch then
+					table.insert(addedInstances, instance)
+				end
+			end
+		end
+
+		local newMatches = {}
+
 		for _, instance in queue do
-			onInstanceAdded(instance)
+			processInstance(instance)
 		end
 		queue = {}
+
+		matches = newMatches
+
+		if #addedInstances > 0 then
+			added:Fire(addedInstances)
+		end
+		if #changedInstances > 0 then
+			changed:Fire(changedInstances)
+		end
+		if #removedInstances > 0 then
+			removed:Fire(removedInstances)
+		end
 	end
 
 	for _, root in options.roots do
@@ -131,7 +169,9 @@ local function query(options: QueryOptions): QueryResult
 		getQueueSize = getQueueSize,
 		flush = flush,
 
+		added = added.Event,
 		changed = changed.Event,
+		removed = removed.Event,
 	}
 end
 
