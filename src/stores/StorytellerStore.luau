@@ -21,9 +21,6 @@ export type StorytellerStore = {
 	getStoryModules: Signals.getter<{ ModuleScript }>,
 	getOrphanedStoryModules: Signals.getter<{ ModuleScript }>,
 
-	flush: () -> (),
-	getQueueSize: () -> number,
-
 	destroy: () -> (),
 }
 
@@ -173,17 +170,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		unloadStorybook(storybookModule)
 		loadStorybook(storybookModule)
 	end
-
-	local function flush()
-		storybookModulesQuery.flush()
-		storyModulesQuery.flush()
-	end
-	self.flush = flush
-
-	local function getQueueSize()
-		return storybookModulesQuery.getQueueSize() + storyModulesQuery.getQueueSize()
-	end
-	self.getQueueSize = getQueueSize
 
 	connections = Sift.List.join(connections, {
 		storyModulesQuery.changed:Connect(function()
