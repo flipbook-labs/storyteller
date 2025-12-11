@@ -1,3 +1,5 @@
+local Sift = require("@pkg/Sift")
+
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
 		table.insert(arr, item)
@@ -122,14 +124,21 @@ local function query(options: QueryOptions): QueryResult
 			end
 		end
 
-		local newMatches = {}
-
-		for _, instance in queue do
-			processInstance(instance)
+		while #queue > 0 do
+			local candidate = table.remove(queue, 1)
+			if candidate then
+				processInstance(candidate)
+			end
 		end
-		queue = {}
 
-		matches = newMatches
+		matches = Sift.List.filter(matches, function(match)
+			for _, removedInstance in removedInstances do
+				if match == removedInstance then
+					return true
+				end
+			end
+			return false
+		end)
 
 		if #addedInstances > 0 then
 			added:Fire(addedInstances)

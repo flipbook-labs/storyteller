@@ -301,9 +301,9 @@ describe("queue processing", function()
 		storyModuleB.Parent = root
 
 		expect(#storybookModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		expect(storybookModulesQuery.getQueueSize()).toBe(3)
 		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storyModulesQuery.getQueueSize()).toBe(2)
+		expect(storyModulesQuery.getQueueSize()).toBe(3)
 
 		storybookModulesQuery.flush()
 		storyModulesQuery.flush()
