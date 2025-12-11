@@ -1,5 +1,3 @@
-local Sift = require("@pkg/Sift")
-
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
 		table.insert(arr, item)
@@ -18,11 +16,6 @@ export type QueryOptions = {
 	-- This function is used for crafting specialized queries that the engine's
 	-- selector pattern can't satisfy.
 	matcher: ((instance: Instance) -> boolean)?,
-
-	-- Array of properties that trigger the query to recalculate matches.
-	--
-	-- As an example, this can be used to listen to Name and Source changes on ModuleScripts so that even if the hierarchy
-	-- watchedProperties: { string }?,
 
 	-- This is called any time one of the matches changes.
 	--
@@ -83,16 +76,41 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
+	local function queueWhenChanged(instance: Instance)
+		local events: { RBXScriptSignal } = {
+			instance.Changed,
+			instance.AncestryChanged,
+		}
+
+		for _, event in events do
+			table.insert(
+				connections,
+				event:Connect(function()
+					insertUnique(queue, instance)
+				end)
+			)
+		end
+	end
+
+	local function isDescendantOfRoots(instance: Instance)
+		for _, root in options.roots do
+			if instance:IsDescendantOf(root) then
+				return true
+			end
+		end
+		return false
+	end
+
 	local function flush()
-		local addedInstances = {}
-		local removedInstances = {}
-		local changedInstances = {}
+		local addedInstances: { Instance } = {}
+		local removedInstances: { Instance } = {}
+		local changedInstances: { Instance } = {}
 
 		local function processInstance(instance: Instance)
 			local isMatch = if options.matcher then options.matcher(instance) else true
 
 			if seen[instance] then
-				if isMatch then
+				if isMatch and isDescendantOfRoots(instance) then
 					if not options.shouldUpdate or options.shouldUpdate(instance) then
 						table.insert(changedInstances, instance)
 					end
@@ -104,19 +122,7 @@ local function query(options: QueryOptions): QueryResult
 			else
 				seen[instance] = true
 
-				local events: { RBXScriptSignal } = {
-					instance.Changed,
-					instance.AncestryChanged,
-				}
-
-				for _, event in events do
-					table.insert(
-						connections,
-						event:Connect(function()
-							insertUnique(queue, instance)
-						end)
-					)
-				end
+				queueWhenChanged(instance)
 
 				if isMatch then
 					table.insert(addedInstances, instance)
@@ -131,23 +137,33 @@ local function query(options: QueryOptions): QueryResult
 			end
 		end
 
-		matches = Sift.List.filter(matches, function(match)
+		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
+			local newMatches = table.clone(matches)
+
 			for _, removedInstance in removedInstances do
-				if match == removedInstance then
-					return true
+				local index = table.find(matches, removedInstance)
+				if index then
+					table.remove(newMatches, index)
 				end
 			end
-			return false
-		end)
 
-		if #addedInstances > 0 then
-			added:Fire(addedInstances)
-		end
-		if #changedInstances > 0 then
-			changed:Fire(changedInstances)
-		end
-		if #removedInstances > 0 then
-			removed:Fire(removedInstances)
+			for _, addedInstance in addedInstances do
+				table.insert(newMatches, addedInstance)
+			end
+
+			matches = newMatches
+
+			if #addedInstances > 0 then
+				added:Fire(addedInstances)
+			end
+
+			if #changedInstances > 0 then
+				changed:Fire(changedInstances)
+			end
+
+			if #removedInstances > 0 then
+				removed:Fire(removedInstances)
+			end
 		end
 	end
 
@@ -164,7 +180,9 @@ local function query(options: QueryOptions): QueryResult
 		)
 	end
 
-	task.spawn(function()
+	flush()
+
+	task.defer(function()
 		while not isDestroyed do
 			flush()
 			task.wait()
