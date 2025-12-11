@@ -156,18 +156,18 @@ local function query(options: QueryOptions): QueryResult
 			end
 
 			matches = newMatches
+		end
 
-			if #addedInstances > 0 then
-				added:Fire(addedInstances)
-			end
+		if #addedInstances > 0 then
+			added:Fire(addedInstances)
+		end
 
-			if #changedInstances > 0 then
-				changed:Fire(changedInstances)
-			end
+		if #changedInstances > 0 then
+			changed:Fire(changedInstances)
+		end
 
-			if #removedInstances > 0 then
-				removed:Fire(removedInstances)
-			end
+		if #removedInstances > 0 then
+			removed:Fire(removedInstances)
 		end
 	end
 
