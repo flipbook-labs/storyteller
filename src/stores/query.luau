@@ -5,9 +5,8 @@ local function insertUnique<T>(arr: { T }, item: T)
 end
 
 export type QueryOptions = {
-	-- Array of the root Instances that will have their descendants queried for
-	-- matches.
-	roots: { Instance },
+	-- The root Instance that will have its descendants queried for matches.
+	root: Instance,
 
 	-- Selector pattern that will be used to query for matches.
 	-- Read more: https://create.roblox.com/docs/reference/engine/classes/Instance#QueryDescendants
@@ -97,15 +96,6 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function isDescendantOfRoots(instance: Instance)
-		for _, root in options.roots do
-			if instance:IsDescendantOf(root) then
-				return true
-			end
-		end
-		return false
-	end
-
 	local function flush()
 		local addedInstances: { Instance } = {}
 		local removedInstances: { Instance } = {}
@@ -115,7 +105,7 @@ local function query(options: QueryOptions): QueryResult
 			local isMatch = if options.matcher then options.matcher(instance) else true
 
 			if seen[instance] then
-				if isMatch and isDescendantOfRoots(instance) then
+				if isMatch and instance:IsDescendantOf(options.root) then
 					local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else true
 
 					if shouldUpdate then
@@ -178,17 +168,15 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	for _, root in options.roots do
-		for _, match in root:QueryDescendants(options.selector) do
-			insertUnique(queue, match)
-		end
+	table.insert(
+		connections,
+		options.root.DescendantAdded:Connect(function(instance)
+			insertUnique(queue, instance)
+		end)
+	)
 
-		table.insert(
-			connections,
-			root.DescendantAdded:Connect(function(instance)
-				insertUnique(queue, instance)
-			end)
-		)
+	for _, match in options.root:QueryDescendants(options.selector) do
+		insertUnique(queue, match)
 	end
 
 	task.spawn(function()

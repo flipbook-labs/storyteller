@@ -20,7 +20,7 @@ describe("DataModel behavior", function()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
-			roots = { root },
+			root = root,
 		})
 
 		expect(modulesQuery.get()).toEqual({})
@@ -40,7 +40,7 @@ describe("DataModel behavior", function()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
-			roots = { root },
+			root = root,
 		})
 
 		expect(modulesQuery.get()).toEqual({ moduleScript })
@@ -60,7 +60,7 @@ describe("DataModel behavior", function()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
-			roots = { root },
+			root = root,
 		})
 
 		expect(modulesQuery.get()).toEqual({ moduleScript })
@@ -72,23 +72,26 @@ describe("DataModel behavior", function()
 	end)
 
 	test("updates when reparenting a matching Instance", function()
-		local root1 = Instance.new("Folder")
-		local root2 = Instance.new("Folder")
+		local root = Instance.new("Folder")
+
+		local child = Instance.new("Folder")
+		child.Parent = root
+
 		local moduleScript = Instance.new("ModuleScript")
 
-		moduleScript.Parent = root1
+		moduleScript.Parent = root
 		task.wait()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
-			roots = { root1, root2 },
+			root = root,
 		})
 
 		local snapshot = modulesQuery.get()
 
 		expect(snapshot).toEqual({ moduleScript })
 
-		moduleScript.Parent = root2
+		moduleScript.Parent = child
 		task.wait()
 
 		-- The array of matches still has the same contents, but the table
@@ -107,7 +110,7 @@ describe("DataModel behavior", function()
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
-			roots = { root },
+			root = root,
 		})
 
 		expect(storybookModulesQuery.get()).toEqual({})
@@ -115,7 +118,7 @@ describe("DataModel behavior", function()
 		moduleScript.Name = "Foo.storybook"
 		moduleScript.Source = [[
 			return {
-				storyRoots = {}
+				storyRoot }
 			}
 		]]
 		task.wait()
@@ -130,7 +133,7 @@ describe("DataModel behavior", function()
 		moduleScript.Name = "Foo.storybook"
 		moduleScript.Source = [[
 			return {
-				storyRoots = {}
+				storyRoot }
 			}
 		]]
 		moduleScript.Parent = root
@@ -139,7 +142,7 @@ describe("DataModel behavior", function()
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
-			roots = { root },
+			root = root,
 		})
 
 		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
@@ -159,7 +162,7 @@ describe("events", function()
 		moduleScript.Parent = root
 
 		local modulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 		})
 
@@ -194,7 +197,7 @@ describe("events", function()
 		local moduleScriptC = Instance.new("ModuleScript")
 
 		local modulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 		})
 
@@ -229,7 +232,7 @@ describe("events", function()
 		moduleScriptB.Parent = root
 
 		local modulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 		})
 
@@ -260,7 +263,7 @@ describe("events", function()
 		moduleScriptB.Parent = root
 
 		local modulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 		})
 
@@ -290,7 +293,7 @@ describe("user journeys", function()
 		local root = Instance.new("Folder")
 
 		local storybookModulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
@@ -311,7 +314,7 @@ describe("user journeys", function()
 
 		storybookModule.Source = [[
 			return {
-				storyRoots = {
+				storyRoot=
 					script.Parent
 				}
 			}
@@ -332,13 +335,13 @@ describe("queue processing", function()
 		local root = Instance.new("Folder")
 
 		local storybookModulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
 
 		local storyModulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 			matcher = isStoryModule,
 		})
@@ -352,7 +355,7 @@ describe("queue processing", function()
 			Name = "Foo.storybook",
 			Source = [[
 				return {
-					storyRoots = {
+					storyRoot=
 						script.Parent
 					}
 				}
@@ -392,7 +395,7 @@ describe("queue processing", function()
 			Name = "Foo.storybook",
 			Source = [[
 				return {
-					storyRoots = {
+					storyRoot=
 						script.Parent
 					}
 				}
@@ -400,7 +403,7 @@ describe("queue processing", function()
 		})
 
 		local storybookModulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
@@ -425,14 +428,14 @@ describe("queue processing", function()
 		storybookModule.Name = "Foo.storybook"
 		storybookModule.Source = [[
 			return {
-				storyRoots = {
+				storyRoot=
 					script.Parent
 				}
 			}
 		]]
 
 		local storybookModulesQuery = query({
-			roots = { root },
+			root = root,
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
@@ -446,7 +449,7 @@ describe("queue processing", function()
 		storybookModule.Name = "Bar.storybook"
 		storybookModule.Source = [[
 			return {
-				storyRoots = {
+				storyRoot=
 					script.Parent.Parent
 				}
 			}
@@ -502,13 +505,13 @@ test("collects all relevant ModuleScripts under the root", function()
 	})
 
 	local storyModulesQuery = query({
-		roots = { root },
+		root = root,
 		selector = "ModuleScript",
 		matcher = isStoryModule,
 	})
 
 	local storybookModulesQuery = query({
-		roots = { root },
+		root = root,
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
 	})
