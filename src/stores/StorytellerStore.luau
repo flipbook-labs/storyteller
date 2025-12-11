@@ -58,13 +58,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
 	local storyModulesQuery = query({
-		roots = { root },
+		root = root,
 		selector = "ModuleScript",
 		matcher = isStoryModule,
 	})
 
 	local storybookModulesQuery = query({
-		roots = { root },
+		root = root,
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
 	})
