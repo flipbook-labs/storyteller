@@ -1,5 +1,3 @@
-local ScriptEditorService = game:GetService("ScriptEditorService")
-
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 local Signals = require("@rbxpkg/Signals")
@@ -10,6 +8,21 @@ local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
+
+-- https://create.roblox.com/docs/reference/engine/classes/ReflectionService#GetClass
+type ReflectedClass = {
+	Name: string,
+	Superclass: string?,
+	Subclasses: { string },
+	Display: {
+		Category: string,
+		DeprecationMessage: string?,
+	}?,
+	Permits: {
+		GetService: SecurityCapabilities?,
+		New: SecurityCapabilities?,
+	},
+}
 
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
@@ -31,7 +44,12 @@ export type StorytellerStore = {
 
 local function shouldUpdateUnlockedModule(instance: Instance)
 	if instance:IsA("ModuleScript") then
-		return not ScriptEditorService:FindScriptDocument(instance)
+		local success, ScriptEditorService = pcall(function()
+			return game:GetService("ScriptEditorService")
+		end)
+		if success then
+			return not ScriptEditorService:FindScriptDocument(instance)
+		end
 	end
 	return true
 end
