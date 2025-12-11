@@ -186,9 +186,7 @@ local function query(options: QueryOptions): QueryResult
 		)
 	end
 
-	flush()
-
-	task.defer(function()
+	task.spawn(function()
 		while not isDestroyed do
 			flush()
 			task.wait()
