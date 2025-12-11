@@ -58,6 +58,17 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local getUnavailableStorybooks, setUnavailableStorybooks = Signals.createSignal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
+	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
+		local orphans = {}
+		for _, storyModule in getStoryModules(scope) do
+			if isOrphanedStoryModule(storyModule, getLoadedStorybooks(scope)) then
+				table.insert(orphans, storyModule)
+			end
+		end
+		return orphans
+	end)
+	self.getOrphanedStoryModules = getOrphanedStoryModules
+
 	local storyModulesQuery = query({
 		roots = { root },
 		selector = "ModuleScript",
@@ -135,16 +146,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
-		local orphans = {}
-		for _, storyModule in getStoryModules(scope) do
-			if isOrphanedStoryModule(storyModule, getLoadedStorybooks(scope)) then
-				table.insert(orphans, storyModule)
-			end
-		end
-		return orphans
-	end)
-	self.getOrphanedStoryModules = getOrphanedStoryModules
+	local function reloadStorybook(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+		loadStorybook(storybookModule)
+	end
 
 	local function destroy()
 		if isDestroyed then
@@ -165,11 +170,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		isDestroyed = true
 	end
 	self.destroy = destroy
-
-	local function reloadStorybook(storybookModule: ModuleScript)
-		unloadStorybook(storybookModule)
-		loadStorybook(storybookModule)
-	end
 
 	connections = Sift.List.join(connections, {
 		storyModulesQuery.added:Connect(function()
