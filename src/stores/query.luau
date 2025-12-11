@@ -111,13 +111,15 @@ local function query(options: QueryOptions): QueryResult
 
 			if seen[instance] then
 				if isMatch and isDescendantOfRoots(instance) then
-					if not options.shouldUpdate or options.shouldUpdate(instance) then
+					local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else true
+
+					if shouldUpdate then
 						table.insert(changedInstances, instance)
 					end
 				else
-					-- Might need to do a table.find on `matches` first to make
-					-- sure `instance` _was_ a match before removing it
-					table.insert(removedInstances, instance)
+					if table.find(matches, instance) then
+						table.insert(removedInstances, instance)
+					end
 				end
 			else
 				seen[instance] = true
