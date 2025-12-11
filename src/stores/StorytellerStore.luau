@@ -24,18 +24,6 @@ export type StorytellerStore = {
 	destroy: () -> (),
 }
 
-local function shouldUpdateUnlockedModule(instance: Instance)
-	if instance:IsA("ModuleScript") then
-		local success, ScriptEditorService = pcall(function()
-			return game:GetService("ScriptEditorService")
-		end)
-		if success then
-			return not ScriptEditorService:FindScriptDocument(instance)
-		end
-	end
-	return true
-end
-
 local StorytellerStore = {}
 
 function StorytellerStore.new(root: Instance): StorytellerStore
@@ -73,14 +61,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		roots = { root },
 		selector = "ModuleScript",
 		matcher = isStoryModule,
-		shouldUpdate = shouldUpdateUnlockedModule,
 	})
 
 	local storybookModulesQuery = query({
 		roots = { root },
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
-		shouldUpdate = shouldUpdateUnlockedModule,
 	})
 
 	-- These functions are just wrappers to cast `{ Instance }` to `{
@@ -194,6 +180,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end),
 
 		storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
+			print("storybookModulesQuery.added", storybookModules)
 			for _, storybookModule in storybookModules do
 				assert(storybookModule:IsA("ModuleScript"), "Luau")
 				loadStorybook(storybookModule)
@@ -203,6 +190,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end),
 
 		storybookModulesQuery.changed:Connect(function(storybookModules)
+			print("storybookModulesQuery.changed", storybookModules)
 			setStorybookModules(storybookModulesQueryGet())
 
 			for _, storybookModule in storybookModules do
@@ -212,6 +200,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end),
 
 		storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
+			print("storybookModulesQuery.removed", storybookModules)
 			for _, storybookModule in storybookModules do
 				assert(storybookModule:IsA("ModuleScript"), "Luau")
 				unloadStorybook(storybookModule)
