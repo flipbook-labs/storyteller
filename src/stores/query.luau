@@ -103,6 +103,9 @@ local function query(options: QueryOptions): QueryResult
 			else
 				seen[instance] = true
 
+				-- If listening to every property change gets expensive another
+				-- option is to add `watchedProperties: { string }` to
+				-- QueryOptions so only specefied options will trigger changes
 				table.insert(
 					connections,
 					instance.Changed:Connect(function()
