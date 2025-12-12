@@ -4,20 +4,20 @@ return {
 	SOURCE_PATH = "src",
 	BUILD_PATH = "dist",
 	PACKAGES_PATH = "Packages",
-	LUNE_SCRIPTS_PATH = ".lune",
+	ROBLOX_PACKAGES_PATH = "RobloxPackages",
+	SCRIPTS_PATH = "scripts",
 
 	MODEL_FILENAME = "Storyteller.rbxm",
 
 	SOURCEMAP_PATH = "sourcemap.json",
 	DARKLUA_SOURCEMAP_PATH = "sourcemap-darklua.json",
 
-	ROJO_ANALYSIS_PROJECT = "analysis.project.json",
 	ROJO_BUILD_PROJECT = "build.project.json",
 	ROJO_TESTS_PROJECT = "tests.project.json",
 
 	FOLDERS_TO_LINT = {
 		"src",
-		".lune",
+		"scripts",
 	},
 
 	ROBLOX_UNIT_TESTING_PLACE_ID = "123506190725771",

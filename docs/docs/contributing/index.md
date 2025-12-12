@@ -11,11 +11,11 @@ You will also need [Rokit](https://github.com/rojo-rbx/rokit/) for installing th
 With the above requirements satisfied, run the following commands from your clone of the repo to start developing:
 
 ```sh
-# Install command-line tools (like Lune)
+# Install command-line tools (like Lute)
 $ rokit install
 
 # Install packages
-$ lune run install
+$ lute scripts/install.luau
 ```
 
 ## Testing
@@ -23,7 +23,7 @@ $ lune run install
 Run the following to run all unit tests for the project:
 
 ```sh
-$ lune run test
+$ lute scripts/test.luau
 ```
 
 We use jsdotlua's [Jest](https://github.com/jsdotlua/jest-lua) fork for authoring and executing unit tests. [Read the docs](https://jsdotlua.github.io/jest-lua/) and look to our existing `.spec.luau` modules for how to write tests.
@@ -34,17 +34,16 @@ If your code is not properly tested, maintainers will let you know and offer sug
 
 ## Building
 
-Part of our build process uses [darklua](https://github.com/seaofvoices/darklua) to compile our Luau source code for Roblox. This is largely to support string requires so our Storyteller source code can use the same syntax as our Lune scripts.
+Part of our build process uses [darklua](https://github.com/seaofvoices/darklua) to compile our Luau source code for Roblox. This is largely to support string requires so our Storyteller source code can use the same syntax as our Lute scripts.
 
 Run the following to build the project:
 
 ```sh
-$ lune run build
+$ lute scripts/build.luau
 ```
 
-By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--target` flag to set the environment to build for:
+By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--channel` flag to set the environment to build for:
 
 ```sh
-$ lune run build --target dev
+$ lute scripts/build.luau --channel dev
 ```
-

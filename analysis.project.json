@@ -1,9 +1,0 @@
-{
-  "name": "LuauAnalysis",
-  "tree": {
-    "Lune": {
-      "$path": ".lune"
-    },
-    "$path": "build.project.json"
-  }
-}

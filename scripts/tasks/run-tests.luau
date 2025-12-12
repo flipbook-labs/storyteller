@@ -1,3 +1,4 @@
+--!nocheck
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Jest = (require :: any)(ReplicatedStorage.Packages.Jest)
@@ -12,6 +13,8 @@ _G.__ROACT_17_MOCK_SCHEDULER__ = true
 local status, result = Jest.runCLI(root, {
 	verbose = false,
 	ci = false,
+	-- selene: allow(global_usage)
+	testPathPattern = _G.__JEST_TEST_PATH_PATTERN__,
 }, { root }):awaitStatus()
 
 if status == "Rejected" then
