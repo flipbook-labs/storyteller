@@ -2,14 +2,12 @@ local React = require("@pkg/React")
 
 local render = require("@root/render")
 local types = require("@root/types")
-local useStory = require("@root/hooks/useStory")
+local useStory = require("@root/react/useStory")
 
 local useEffect = React.useEffect
 local useRef = React.useRef
 
 type LoadedStorybook = types.LoadedStorybook
-
--- TODO: Move `hooks/*` to here. This can become a separate package later
 
 -- I should have a component provided by Storyteller for this. Then you
 -- can mount something like
