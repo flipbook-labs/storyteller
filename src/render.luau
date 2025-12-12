@@ -6,6 +6,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
+type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
 
@@ -73,17 +74,27 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: LoadedStory<T>): RenderLifecycle
+local function render<T>(container: Instance, story: LoadedStory<T>, extraProps: ExtraStoryProps?): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
 
 	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps = Sift.Dictionary.join(story.props or {}, {
-			container = container,
-			story = story,
-			theme = "Dark", -- TODO: Support theme changing
-		})
+		local props: StoryProps = Sift.Dictionary.join(
+			-- Props that can be overridden by the user
+			{
+				theme = "Dark",
+			},
+
+			extraProps,
+			story.props,
+
+			-- Props that cannot be overridden by the user
+			{
+				container = container,
+				story = story,
+			}
+		)
 
 		props.controls = Sift.Dictionary.join(
 			if story.controls then collapseControls(story.controls) else nil,

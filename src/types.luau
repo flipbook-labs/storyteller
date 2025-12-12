@@ -5,7 +5,7 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 
 local types = {}
 
-export type StudioTheme = "Light" | "Dark"
+export type Theme = "Light" | "Dark"
 
 -- https://storybook.js.org/docs/essentials/controls#annotation
 type DetailedControlValue = {}
@@ -20,9 +20,16 @@ export type StoryControls = {
 	[string]: any,
 }
 
+export type ExtraStoryProps = {
+	theme: Theme?,
+}
+
 export type StoryProps = {
+	-- The top-level Instance that contains the UI being rendered
 	container: Instance,
-	theme: StudioTheme,
+	-- The current UI theme
+	theme: Theme,
+	-- Controls added to the story that are used to modify it at runtime
 	controls: StoryControls?,
 }
 
