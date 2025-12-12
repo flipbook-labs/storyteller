@@ -43,11 +43,16 @@ export type StoryPackages = {
 	[string]: any,
 }
 
+type MapStoryFn = (story: any) -> (props: StoryProps) -> any
+type MapDefinitionFn = (story: any) -> any
+
 export type Storybook = {
 	storyRoots: { Instance },
 
 	name: string?,
 	packages: StoryPackages?,
+	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 }
 types.IStorybook = t.interface({
 	storyRoots = t.array(t.Instance),
@@ -61,6 +66,8 @@ export type LoadedStorybook = {
 	loader: ModuleLoader,
 	source: ModuleScript,
 
+	mapStory: MapStoryFn?,
+	mapDefinition: MapDefinitionFn?,
 	packages: StoryPackages?,
 }
 
@@ -76,6 +83,8 @@ export type Story<T> = {
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
+	-- TODO: Double check if Developer Storybook lets you do this
+	props: { [string]: any }?,
 }
 types.IStory = t.interface({
 	story = t.any,
@@ -94,6 +103,7 @@ export type LoadedStory<T> = {
 
 	summary: string?,
 	controls: StoryControls?,
+	props: { [string]: any }?,
 }
 
 return types

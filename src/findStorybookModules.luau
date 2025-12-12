@@ -1,5 +1,4 @@
 local isStorybookModule = require("@root/isStorybookModule")
-local matchDescendants = require("@root/matchDescendants")
 
 --[=[
 	Discovers all Storybook modules that are descendants of `parent`.
@@ -13,13 +12,16 @@ local matchDescendants = require("@root/matchDescendants")
 	@tag Discovery
 ]=]
 local function findStorybookModules(parent: Instance): { ModuleScript }
-	local storybooks = matchDescendants(parent, function(descendant)
-		return isStorybookModule(descendant)
-	end)
+	local candidates = (parent:QueryDescendants("ModuleScript") :: any) :: { ModuleScript }
+	local storybookModules: { ModuleScript } = {}
 
-	-- Luau FIXME: isStorybookModule already narrows to ModuleScript, but Luau
-	-- doesn't pick up on it
-	return (storybooks :: any) :: { ModuleScript }
+	for _, candidate in candidates do
+		if isStorybookModule(candidate) then
+			table.insert(storybookModules, candidate)
+		end
+	end
+
+	return storybookModules
 end
 
 return findStorybookModules

@@ -34,6 +34,7 @@ return {
 	-- Discovery
 	findStorybookModules = require("@self/findStorybookModules"),
 	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
+	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
 	-- Module loading
 	loadStoryModule = require("@self/loadStoryModule"),
@@ -45,4 +46,5 @@ return {
 	-- Hooks
 	useStory = require("@self/hooks/useStory"),
 	useStorybooks = require("@self/hooks/useStorybooks"),
+	useOrphanedStoryModules = require("@self/hooks/useOrphanedStoryModules"),
 }

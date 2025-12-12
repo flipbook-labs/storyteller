@@ -4,6 +4,7 @@ local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
 local beforeEach = JestGlobals.beforeEach
+local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
@@ -153,4 +154,36 @@ test("lifecycle", function()
 	lifecycle.unmount()
 
 	expect(#container:GetChildren()).toBe(0)
+end)
+
+describe("middleware", function()
+	test("supply context provider to all stories", function()
+		local ThemeContext = Roact.createContext(nil)
+
+		local function StoryThatNeedsContext()
+			return Roact.createElement(ThemeContext.Consumer, {
+				render = function(theme)
+					return Roact.createElement("TextLabel", {
+						Text = if theme == "Dark" then "Dark" else "Light",
+					})
+				end,
+			})
+		end
+
+		local story = createRoactStory(StoryThatNeedsContext)
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				return Roact.createElement(ThemeContext.Provider, {
+					value = "Dark",
+				}, Roact.createElement(element, props))
+			end
+		end
+
+		render(container, story)
+
+		local element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark")
+	end)
 end)

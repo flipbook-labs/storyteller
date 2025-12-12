@@ -1,0 +1,79 @@
+local fs = require("@lute/fs")
+
+local find = require("./lib/find")
+local findAndReplace = require("./lib/findAndReplace")
+local project = require("@repo/project")
+local run = require("./lib/run")
+
+local LUAU_PACKAGES_PATH = "LuauPackages"
+
+local function installWallyPackages()
+	run("wally", { "install" })
+	run("rojo", { "sourcemap", project.ROJO_BUILD_PROJECT, "-o", "sourcemap.json" })
+	run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
+end
+
+local function installRobloxPackages()
+	run("roblox-packages", {
+		"install",
+		"RobloxPackagesTmp",
+		"--version",
+		"0.700.0.7000935",
+
+		"-d",
+		"Signals",
+		"-d",
+		"SignalsReact",
+	})
+
+	local dest = project.ROBLOX_PACKAGES_PATH
+	if fs.exists(dest) and fs.type(dest) == "dir" then
+		run("rm", { "-rf", dest })
+	end
+	run("mv", { "RobloxPackagesTmp/Packages", dest })
+	run("rm", { "-rf", "RobloxPackagesTmp" })
+
+	-- Patch React and RoactCompat dependencies to use ours
+	for _, name in { "React", "RoactCompat", "Roact" } do
+		local linkers = find(dest, `^{name}%..*`)
+
+		for _, linker in linkers do
+			-- All Roact linkers in RobloxPackages point to Roblox's
+			-- RoactCompat, so we need to update them to point to ours instead.
+			if name == "Roact" then
+				name = "RoactCompat"
+			end
+
+			findAndReplace(
+				linker,
+				"local PackageIndex = .*_Index",
+				'local Root = script:FindFirstAncestor("RobloxPackages")'
+			)
+			findAndReplace(
+				linker,
+				"local Package = require%(.*%)",
+				`local Package = require(Root.Parent.Parent.{name})`
+			)
+		end
+	end
+end
+
+local function installLuteBatteries()
+	local commit = "7b4e269"
+	local batteries = {
+		"cli.luau",
+		"toml.luau",
+	}
+
+	local dest = `{LUAU_PACKAGES_PATH}/batteries`
+	run("mkdir", { "-p", dest })
+	for _, battery in batteries do
+		run("curl", { "-LO", `https://raw.githubusercontent.com/luau-lang/lute/{commit}/batteries/{battery}` }, {
+			cwd = dest,
+		})
+	end
+end
+
+installRobloxPackages()
+installWallyPackages()
+installLuteBatteries()
