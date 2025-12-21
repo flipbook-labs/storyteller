@@ -1,8 +1,10 @@
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local fs = require("@lute/fs")
 local process = require("@lute/process")
 
 local project = require("@repo/project")
-local run = require("./lib/run")
+
+local run = FlipbookBatteries.run
 
 local function findLuaFiles()
 	local matches = {}

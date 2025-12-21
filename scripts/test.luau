@@ -1,12 +1,13 @@
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+local cli = require("@luaupkg/batteries/cli")
 local process = require("@lute/process")
 
 local compile = require("./lib/compile")
-local dotenv = require("./lib/dotenv")
-local findAndReplace = require("./lib/findAndReplace")
-local run = require("./lib/run")
-
 local project = require("@repo/project")
+
+local dotenv = FlipbookBatteries.dotenv
+local findAndReplace = FlipbookBatteries.findAndReplace
+local run = FlipbookBatteries.run
 
 dotenv()
 
@@ -33,7 +34,7 @@ end
 
 local filter = args:get("filter")
 
-compile("dev")
+compile()
 
 run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 

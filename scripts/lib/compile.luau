@@ -1,8 +1,10 @@
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local fs = require("@lute/fs")
 
 local project = require("@repo/project")
 local rmrf = require("./rmrf")
-local run = require("./run")
+
+local run = FlipbookBatteries.run
 
 local function compile()
 	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then

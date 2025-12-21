@@ -1,4 +1,6 @@
-local run = require("./lib/run")
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+
+local run = FlipbookBatteries.run
 
 -- Moonwave cannot be installed by Rokit just yet, so we install from Cargo for
 -- now. This adds `moonwave-extractor` to the path which is what the Docusaurus

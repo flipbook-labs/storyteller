@@ -1,8 +1,10 @@
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+local cli = require("@luaupkg/batteries/cli")
 
-local dotenv = require("./lib/dotenv")
 local project = require("@repo/project")
-local run = require("./lib/run")
+
+local dotenv = FlipbookBatteries.dotenv
+local run = FlipbookBatteries.run
 
 dotenv()
 
