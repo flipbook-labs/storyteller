@@ -10,19 +10,6 @@ local useRef = React.useRef
 type LoadedStorybook = types.LoadedStorybook
 type RenderLifecycle = types.RenderLifecycle
 
--- I should have a component provided by Storyteller for this. Then you
--- can mount something like
--- ```
--- React.createElement(Storyteller.StoryRenderer, {
---     parent = props.parent,
---     storyModule = props.storyModule,
---     storybook = props.storybook,
--- })
--- ```
--- that way the consumer doesn't need to worry about creating a
--- container+ref and running into that weird-feeling deadend at the
--- bottom of the file
-
 local function StoryContainer(props: {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
@@ -32,6 +19,10 @@ local function StoryContainer(props: {
 	local ref = useRef(nil :: Frame?)
 	local story, err = useStory(props.storyModule, props.storybook)
 	local lifecycle = useRef(nil :: RenderLifecycle?)
+
+	-- TODO: Throw an error if `extraProps` includes any props that Storyteller
+	-- owns. Like `container`. These props will silently get discarded and
+	-- Storyteller will use its own
 
 	useEffect(function()
 		if ref.current and story then
@@ -77,9 +68,8 @@ local function StoryContainer(props: {
 		end
 	end, { props.onError, err } :: { unknown })
 
-	-- TODO: This should either be AutomaticSize or a ScrollingFrame
 	return React.createElement("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundTransparency = 1,
 		ref = ref,
 	})

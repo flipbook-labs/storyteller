@@ -7,7 +7,6 @@ local StoryContainer = require("./StoryContainer")
 local storyModule = Instance.new("ModuleScript")
 storyModule.Name = "Foo.story"
 storyModule.Source = [[
-	print("story")
 	return {
 		story = function(props)
 			local frame = Instance.new("Frame")
@@ -24,18 +23,13 @@ storyModule.Source = [[
 local storybook = loadStorybookModule(script.Parent["Storyteller.storybook"])
 
 return {
-	controls = {
-		font = {
-			Enum.Font.BuilderSans,
-			Enum.Font.Cartoon,
-		},
-	},
 	story = function()
 		return React.createElement(StoryContainer, {
 			storyModule = storyModule,
 			storybook = storybook,
 			extraProps = {
 				theme = "Light",
+				locale = "en-us",
 				controls = {
 					foo = true,
 				},

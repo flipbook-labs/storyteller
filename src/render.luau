@@ -81,15 +81,14 @@ local function render<T>(container: Instance, story: LoadedStory<T>, extraProps:
 
 	local function renderOnce(controls: StoryControls?)
 		local props: StoryProps = Sift.Dictionary.join(
-			-- Props that can be overridden by the user
 			{
+				-- DEPRECATED: This prop does nothing and is simply left for
+				-- backwards compatibility. Flipbook controls this property
+				-- itself to provide a dynamic value
 				theme = "Dark",
 			},
-
 			extraProps,
 			story.props,
-
-			-- Props that cannot be overridden by the user
 			{
 				container = container,
 				story = story,
