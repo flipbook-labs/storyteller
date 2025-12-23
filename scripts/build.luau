@@ -1,5 +1,6 @@
 local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
+local fs = require("@lute/fs")
 local process = require("@lute/process")
 
 local compile = require("./lib/compile")
@@ -7,6 +8,8 @@ local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
+local mkdir = FlipbookBatteries.mkdir
+local rmdir = FlipbookBatteries.rmdir
 local run = FlipbookBatteries.run
 local watch = FlipbookBatteries.watch
 
@@ -40,16 +43,17 @@ assert(typeof(output) == "string", `bad value for output (string expected, got {
 local WALLY_BUILD_DIR = ".build/wally"
 
 local function buildWallyPackage()
-	run("rm", { "-rf", WALLY_BUILD_DIR })
-
-	run("mkdir", { "-p", WALLY_BUILD_DIR })
+	rmdir(WALLY_BUILD_DIR)
+	mkdir(WALLY_BUILD_DIR)
 
 	local archivePath = `{WALLY_BUILD_DIR}/package.zip`
+
 	run("wally", { "package", "--output", archivePath })
+	run("unzip", { archivePath, "-d", WALLY_BUILD_DIR }, {
+		stdio = "default",
+	})
 
-	run("unzip", { archivePath, "-d", WALLY_BUILD_DIR })
-
-	run("rm", { archivePath })
+	fs.remove(archivePath)
 end
 
 local function build()
@@ -63,13 +67,13 @@ local function build()
 	}
 
 	if channel == "prod" then
-		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
-		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
+		rmdir(`{project.BUILD_PATH}/test-utils`)
+		rmdir(`{project.BUILD_PATH}/e2e`)
 
 		for _, prunedFilePattern in prunedFilePatterns do
 			local prunedFiles = find(project.BUILD_PATH, prunedFilePattern)
 			for _, specFile in prunedFiles do
-				run("rm", { "-rf", specFile })
+				fs.remove(specFile)
 			end
 		end
 	end
@@ -81,7 +85,7 @@ end
 
 build()
 
-if args:get("watch") then
+if args:has("watch") then
 	watch({
 		roots = {
 			`{process.cwd()}/src`,
