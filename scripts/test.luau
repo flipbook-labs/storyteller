@@ -2,7 +2,6 @@ local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
 local process = require("@lute/process")
 
-local compile = require("./lib/compile")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
@@ -34,8 +33,7 @@ end
 
 local filter = args:get("filter")
 
-compile()
-
+run("lute", { "scripts/build.luau", "--channel", "dev" })
 run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 
 local function createTestRunnerScript()

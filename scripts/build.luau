@@ -3,9 +3,9 @@ local cli = require("@luaupkg/batteries/cli")
 local fs = require("@lute/fs")
 local process = require("@lute/process")
 
-local compile = require("./lib/compile")
 local project = require("@repo/project")
 
+local copyInto = FlipbookBatteries.copyInto
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
 local mkdir = FlipbookBatteries.mkdir
@@ -42,6 +42,13 @@ assert(typeof(output) == "string", `bad value for output (string expected, got {
 
 local WALLY_BUILD_DIR = ".build/wally"
 
+local PRUNED_FILE_PATTERNS = {
+	"%.spec%.luau",
+	"%.story%.luau",
+	"%.storybook%.luau",
+	"jest%.config%.luau",
+}
+
 local function buildWallyPackage()
 	rmdir(WALLY_BUILD_DIR)
 	mkdir(WALLY_BUILD_DIR)
@@ -57,20 +64,31 @@ local function buildWallyPackage()
 end
 
 local function build()
-	compile()
+	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
+		rmdir(project.BUILD_PATH)
+	end
+	mkdir(project.BUILD_PATH)
 
-	local prunedFilePatterns = {
-		"%.spec%.luau",
-		"%.story%.luau",
-		"%.storybook%.luau",
-		"jest%.config%.luau",
-	}
+	copyInto(project.ROBLOX_PACKAGES_PATH, `{project.BUILD_PATH}/{project.ROBLOX_PACKAGES_PATH}`)
+
+	run("rojo", {
+		"sourcemap",
+		project.ROJO_BUILD_PROJECT,
+		"-o",
+		project.DARKLUA_SOURCEMAP_PATH,
+	})
+
+	run("darklua", {
+		"process",
+		project.SOURCE_PATH,
+		project.BUILD_PATH,
+	})
 
 	if channel == "prod" then
 		rmdir(`{project.BUILD_PATH}/test-utils`)
 		rmdir(`{project.BUILD_PATH}/e2e`)
 
-		for _, prunedFilePattern in prunedFilePatterns do
+		for _, prunedFilePattern in PRUNED_FILE_PATTERNS do
 			local prunedFiles = find(project.BUILD_PATH, prunedFilePattern)
 			for _, specFile in prunedFiles do
 				fs.remove(specFile)
