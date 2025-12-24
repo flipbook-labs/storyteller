@@ -213,6 +213,78 @@ describe("extraProps", function()
 	end)
 end)
 
+describe("story props", function()
+	test("props defined on the story get joined with StoryProps", function()
+		local storyProps
+
+		local story = createStory({
+			props = {
+				foo = true,
+			},
+			story = function(_storyProps)
+				storyProps = _storyProps
+				return nil
+			end,
+		})
+
+		local extraProps = {
+			theme = "Dark",
+			locale = "en-us",
+		}
+
+		act(function()
+			root:render(React.createElement(StoryContainer, {
+				story = story,
+				extraProps = extraProps,
+			}))
+		end)
+
+		expect(storyProps).toBeDefined()
+		expect(storyProps).toMatchObject({
+			foo = true,
+			theme = "Dark",
+			locale = "en-us",
+			container = expect.any("Instance"),
+			story = story,
+		})
+	end)
+
+	test("a story's props cannot override reserved props", function()
+		local storyProps
+
+		local story = createStory({
+			props = {
+				story = { foo = true },
+				container = "This is supposed to be an Instance",
+			},
+			story = function(_storyProps)
+				storyProps = _storyProps
+				return nil
+			end,
+		})
+
+		local extraProps = {
+			theme = "Dark",
+			locale = "en-us",
+		}
+
+		act(function()
+			root:render(React.createElement(StoryContainer, {
+				story = story,
+				extraProps = extraProps,
+			}))
+		end)
+
+		expect(storyProps).toBeDefined()
+		expect(storyProps).toMatchObject({
+			theme = "Dark",
+			locale = "en-us",
+			container = expect.any("Instance"),
+			story = story,
+		})
+	end)
+end)
+
 test("onError is called when a story experiences an error", function()
 	-- storyModule
 	-- storybook
