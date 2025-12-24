@@ -6,6 +6,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
+type ReservedStoryProps<T> = types.ReservedStoryProps<T>
 type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
@@ -74,31 +75,34 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: LoadedStory<T>, extraProps: ExtraStoryProps?): RenderLifecycle
+local function render<T>(
+	container: Instance,
+	story: LoadedStory<T>,
+	initialControls: StoryControls?,
+	initialExtraProps: ExtraStoryProps?
+): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
 
-	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps = Sift.Dictionary.join(
-			{
-				-- DEPRECATED: This prop does nothing and is simply left for
-				-- backwards compatibility. Flipbook controls this property
-				-- itself to provide a dynamic value
-				theme = "Dark",
-			},
-			extraProps,
-			story.props,
-			{
-				container = container,
-				story = story,
-			}
-		)
-
-		props.controls = Sift.Dictionary.join(
+	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
+		local joinedControls = Sift.Dictionary.join(
 			if story.controls then collapseControls(story.controls) else nil,
 			if controls then controls else nil
 		)
+
+		local reservedStoryProps: ReservedStoryProps<T> = {
+			container = container,
+			story = story,
+			controls = joinedControls,
+		}
+
+		local props: StoryProps = Sift.Dictionary.join({
+			-- DEPRECATED: This prop does nothing and is simply left for
+			-- backwards compatibility. Flipbook controls this property
+			-- itself to provide a dynamic value
+			theme = "Dark",
+		}, extraProps, story.props, reservedStoryProps)
 
 		if renderer.transformProps then
 			props = renderer.transformProps(props, prevProps)
@@ -111,15 +115,15 @@ local function render<T>(container: Instance, story: LoadedStory<T>, extraProps:
 		prevProps = props
 	end
 
-	local function update(newControls: StoryControls?)
+	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
-			local props = Sift.Dictionary.join(prevProps, {
-				controls = if newControls then collapseControls(newControls) else nil,
+			local props = Sift.Dictionary.join(prevProps, extraProps, {
+				controls = controls,
 			})
 
 			renderer.update(props, prevProps)
 		else
-			renderOnce(newControls)
+			renderOnce(controls, extraProps)
 		end
 	end
 
@@ -130,7 +134,7 @@ local function render<T>(container: Instance, story: LoadedStory<T>, extraProps:
 		container:ClearAllChildren()
 	end
 
-	renderOnce()
+	renderOnce(initialControls, initialExtraProps)
 
 	return {
 		update = update,

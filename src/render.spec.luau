@@ -17,7 +17,9 @@ local render
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	story = createStory(Instance.new("TextLabel"))
+	story = createStory({
+		story = Instance.new("TextLabel"),
+	})
 
 	jest.mock(script.Parent.createRendererForStory, function()
 		return mockCreateRendererForStory
