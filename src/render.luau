@@ -112,8 +112,13 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 
 	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
+			local joinedControls = Sift.Dictionary.join(
+				if story.controls then collapseControls(story.controls) else nil,
+				if controls then controls else nil
+			)
+
 			local props = Sift.Dictionary.join(prevProps, extraProps, {
-				controls = controls,
+				controls = joinedControls,
 			})
 
 			renderer.update(props, prevProps)

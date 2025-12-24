@@ -24,6 +24,7 @@ local function StoryContainer(props: {
 	local lifecycle = useRef(nil :: RenderLifecycle?)
 	local prevStory = usePrevious(props.story)
 	local prevExtraProps = usePrevious(props.extraProps)
+	local prevControls = usePrevious(props.controls)
 
 	local mount = useCallback(function()
 		if lifecycle.current then
@@ -52,7 +53,7 @@ local function StoryContainer(props: {
 		end
 
 		-- logger:Debug("updating story")
-
+		print("update", props.controls, props.extraProps)
 		local success, result = xpcall(function()
 			lifecycle.current.update(props.controls, props.extraProps)
 		end, debug.traceback)
@@ -60,7 +61,7 @@ local function StoryContainer(props: {
 		if not success and props.onError then
 			props.onError(result)
 		end
-	end, { props.extraProps, props.onError } :: { unknown })
+	end, { props.controls, props.extraProps, props.onError } :: { unknown })
 
 	local unmount = useCallback(function()
 		if not lifecycle.current then
@@ -84,7 +85,7 @@ local function StoryContainer(props: {
 				mount()
 			end
 		end
-	end, { props.story, prevStory } :: { unknown })
+	end, { mount, unmount, props.story, prevStory } :: { unknown })
 
 	-- Unmount when the StoryContainer does
 	useEffect(function()
@@ -94,12 +95,13 @@ local function StoryContainer(props: {
 	-- Update when extraProps change
 	useEffect(function()
 		local didStoryChange = prevStory and props.story == prevStory
+		local didControlsChange = prevControls and props.controls ~= prevControls
 		local didExtraPropsChange = prevExtraProps and props.extraProps ~= prevExtraProps
 
-		if lifecycle.current and didStoryChange and didExtraPropsChange then
+		if lifecycle.current and (didStoryChange or didControlsChange or didExtraPropsChange) then
 			update()
 		end
-	end, { props.story, prevStory, props.extraProps, prevExtraProps, props.onError } :: { unknown })
+	end, { update, props.story, prevStory, props.extraProps, prevExtraProps, props.onError } :: { unknown })
 
 	return React.createElement("Frame", {
 		AutomaticSize = Enum.AutomaticSize.XY,
