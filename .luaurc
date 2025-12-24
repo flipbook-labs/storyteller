@@ -1,12 +1,12 @@
 {
 	"languageMode": "strict",
 	"aliases": {
-		"pkg": "./Packages",
-		"rbxpkg": "./RobloxPackages",
-		"root": "./src",
-		"repo": ".",
 		"lute": "~/.lute/typedefs/0.1.0/lute",
 		"std": "~/.lute/typedefs/0.1.0/std",
-		"batteries": "LuauPackages/batteries"
+		"luaupkg": "./LuauPackages",
+		"pkg": "./Packages",
+		"rbxpkg": "./RobloxPackages",
+		"repo": ".",
+		"root": "./src"
 	}
 }
