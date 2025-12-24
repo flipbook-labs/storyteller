@@ -120,10 +120,12 @@ describe("extraProps", function()
 			locale = "en-us",
 		}
 
-		root:render(React.createElement(StoryContainer, {
-			story = story,
-			extraProps = extraProps,
-		}))
+		act(function()
+			root:render(React.createElement(StoryContainer, {
+				story = story,
+				extraProps = extraProps,
+			}))
+		end)
 
 		expect(storyProps).toBeDefined()
 		expect(storyProps).toMatchObject({
@@ -154,10 +156,12 @@ describe("extraProps", function()
 			story = false,
 		}
 
-		root:render(React.createElement(StoryContainer, {
-			story = story,
-			extraProps = extraProps,
-		}))
+		act(function()
+			root:render(React.createElement(StoryContainer, {
+				story = story,
+				extraProps = extraProps,
+			}))
+		end)
 
 		expect(storyProps).toBeDefined()
 		expect(storyProps).toMatchObject({
