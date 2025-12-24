@@ -25,10 +25,12 @@ beforeEach(function()
 end)
 
 test("mounts and unmounts an Instance", function()
-	local story = createStory(function()
-		local label = Instance.new("TextLabel")
-		return label
-	end)
+	local story = createStory({
+		story = function()
+			local label = Instance.new("TextLabel")
+			return label
+		end,
+	})
 
 	local lifecycle = render(container, story)
 
@@ -40,15 +42,17 @@ test("mounts and unmounts an Instance", function()
 end)
 
 test("mounts and unmounts an Instance via cleanup function", function()
-	local story = createStory(function(props)
-		local label = Instance.new("TextLabel")
+	local story = createStory({
+		story = function(props)
+			local label = Instance.new("TextLabel")
 
-		label.Parent = props.container
+			label.Parent = props.container
 
-		return function()
-			label:Destroy()
-		end
-	end)
+			return function()
+				label:Destroy()
+			end
+		end,
+	})
 
 	local lifecycle = render(container, story)
 
@@ -60,10 +64,12 @@ test("mounts and unmounts an Instance via cleanup function", function()
 end)
 
 test("mounts and unmounts an Instance implicitly", function()
-	local story = createStory(function(props)
-		local label = Instance.new("TextLabel")
-		label.Parent = props.container
-	end)
+	local story = createStory({
+		story = function(props)
+			local label = Instance.new("TextLabel")
+			label.Parent = props.container
+		end,
+	})
 
 	local lifecycle = render(container, story)
 
@@ -75,7 +81,9 @@ test("mounts and unmounts an Instance implicitly", function()
 end)
 
 test("render a GuiObject with args", function()
-	local story = createStory(ButtonStory)
+	local story = createStory({
+		story = ButtonStory,
+	})
 	story.controls = {
 		isDisabled = true,
 	}
@@ -88,7 +96,9 @@ test("render a GuiObject with args", function()
 end)
 
 test("update the GuiObject on arg changes", function()
-	local story = createStory(ButtonStory)
+	local story = createStory({
+		story = ButtonStory,
+	})
 	story.controls = {
 		isDisabled = true,
 	}
@@ -112,7 +122,9 @@ end)
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
-	local story = createStory(ButtonStory)
+	local story = createStory({
+		story = ButtonStory,
+	})
 
 	local lifecycle = render(container, story)
 
