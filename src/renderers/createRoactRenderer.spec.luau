@@ -9,8 +9,11 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local function createRoactStory(element)
-	return createStory(element, {
-		Roact = Roact,
+	return createStory({
+		story = element,
+		packages = {
+			Roact = Roact,
+		},
 	})
 end
 

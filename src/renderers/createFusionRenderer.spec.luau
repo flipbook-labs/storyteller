@@ -42,8 +42,11 @@ describe("Fusion 0.3.0", function()
 	end
 
 	local function createFusionStory(element)
-		return createStory(element, {
-			Fusion = Fusion3,
+		return createStory({
+			story = element,
+			packages = {
+				Fusion = Fusion3,
+			},
 		})
 	end
 
@@ -57,7 +60,9 @@ describe("Fusion 0.3.0", function()
 	end)
 
 	test("unmount a Fusion component", function()
-		local story = createStory(TextStory)
+		local story = createStory({
+			story = TextStory,
+		})
 		local lifecycle = render(container, story)
 
 		expect(#container:GetChildren()).toBe(1)
@@ -136,8 +141,11 @@ describe("Fusion 0.2.0", function()
 	end
 
 	local function createFusionStory(element)
-		return createStory(element, {
-			Fusion = Fusion2,
+		return createStory({
+			story = element,
+			packages = {
+				Fusion = Fusion2,
+			},
 		})
 	end
 
@@ -151,7 +159,9 @@ describe("Fusion 0.2.0", function()
 	end)
 
 	test("unmount a Fusion component", function()
-		local story = createStory(TextStory)
+		local story = createStory({
+			story = TextStory,
+		})
 		local lifecycle = render(container, story)
 
 		expect(#container:GetChildren()).toBe(1)

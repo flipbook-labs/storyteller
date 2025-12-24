@@ -13,9 +13,12 @@ local test = JestGlobals.test
 local act = ReactRoblox.act
 
 local function createReactStory(element)
-	return createStory(element, {
-		React = React,
-		ReactRoblox = ReactRoblox,
+	return createStory({
+		story = element,
+		packages = {
+			React = React,
+			ReactRoblox = ReactRoblox,
+		},
 	})
 end
 
