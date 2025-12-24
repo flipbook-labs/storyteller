@@ -43,8 +43,8 @@ return {
 	-- Rendering
 	render = require("@self/render"),
 
-	-- Hooks
-	useStory = require("@self/hooks/useStory"),
-	useStorybooks = require("@self/hooks/useStorybooks"),
-	useOrphanedStoryModules = require("@self/hooks/useOrphanedStoryModules"),
+	-- React
+	useStory = require("@self/react/useStory"),
+	useStorybooks = require("@self/react/useStorybooks"),
+	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
 }
