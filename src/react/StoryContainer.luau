@@ -38,7 +38,7 @@ local function StoryContainer(props: {
 		-- logger:Debug("mounting story")
 
 		local success, result = xpcall(function()
-			lifecycle.current = render(ref.current, props.story, props.controls, props.extraProps)
+			lifecycle.current = render(ref.current, props.story, props.extraProps, props.controls)
 		end, debug.traceback)
 
 		if not success and props.onError then

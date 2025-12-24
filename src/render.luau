@@ -78,8 +78,8 @@ end
 local function render<T>(
 	container: Instance,
 	story: LoadedStory<T>,
-	initialControls: StoryControls?,
-	initialExtraProps: ExtraStoryProps?
+	initialExtraProps: ExtraStoryProps?,
+	initialControls: StoryControls?
 ): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
