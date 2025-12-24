@@ -1,11 +1,14 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
+local Sift = require("@pkg/Sift")
 
 local types = require("@root/types")
 
-local function createStory<T>(element: T, packages: types.StoryPackages?): types.LoadedStory<T>
-	return {
+local function createStory<T>(partial: {
+	story: T,
+	[string]: any,
+}): types.LoadedStory<T>
+	return Sift.Dictionary.join({
 		name = "Sample",
-		story = element,
 		source = Instance.new("ModuleScript"),
 		storybook = {
 			name = "Storybook",
@@ -13,8 +16,7 @@ local function createStory<T>(element: T, packages: types.StoryPackages?): types
 			source = Instance.new("ModuleScript"),
 			storyRoots = {},
 		},
-		packages = packages,
-	}
+	}, partial)
 end
 
 return createStory
