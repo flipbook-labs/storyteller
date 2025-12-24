@@ -6,7 +6,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
-type ReservedStoryProps<T> = types.ReservedStoryProps<T>
+type ReservedStoryProps = types.ReservedStoryProps
 type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
@@ -75,12 +75,7 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(
-	container: Instance,
-	story: LoadedStory<T>,
-	initialExtraProps: ExtraStoryProps?,
-	initialControls: StoryControls?
-): RenderLifecycle
+local function render<T>(container: Instance, story: LoadedStory<T>, initialExtraProps: ExtraStoryProps?): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
@@ -91,7 +86,7 @@ local function render<T>(
 			if controls then controls else nil
 		)
 
-		local reservedStoryProps: ReservedStoryProps<T> = {
+		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
 			story = story,
 			controls = joinedControls,
@@ -134,7 +129,7 @@ local function render<T>(
 		container:ClearAllChildren()
 	end
 
-	renderOnce(initialControls, initialExtraProps)
+	renderOnce(nil, initialExtraProps)
 
 	return {
 		update = update,
