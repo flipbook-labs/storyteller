@@ -1,12 +1,17 @@
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+local cli = require("@luaupkg/batteries/cli")
+local fs = require("@lute/fs")
 local process = require("@lute/process")
 
-local compile = require("./lib/compile")
-local dotenv = require("./lib/dotenv")
-local find = require("./lib/find")
 local project = require("@repo/project")
-local run = require("./lib/run")
-local watch = require("./lib/watch")
+
+local copyInto = FlipbookBatteries.copyInto
+local dotenv = FlipbookBatteries.dotenv
+local find = FlipbookBatteries.find
+local mkdir = FlipbookBatteries.mkdir
+local rmdir = FlipbookBatteries.rmdir
+local run = FlipbookBatteries.run
+local watch = FlipbookBatteries.watch
 
 dotenv()
 
@@ -37,37 +42,56 @@ assert(typeof(output) == "string", `bad value for output (string expected, got {
 
 local WALLY_BUILD_DIR = ".build/wally"
 
-local function buildWallyPackage()
-	run("rm", { "-rf", WALLY_BUILD_DIR })
+local PRUNED_FILE_PATTERNS = {
+	"%.spec%.luau",
+	"%.story%.luau",
+	"%.storybook%.luau",
+	"jest%.config%.luau",
+}
 
-	run("mkdir", { "-p", WALLY_BUILD_DIR })
+local function buildWallyPackage()
+	rmdir(WALLY_BUILD_DIR)
+	mkdir(WALLY_BUILD_DIR)
 
 	local archivePath = `{WALLY_BUILD_DIR}/package.zip`
+
 	run("wally", { "package", "--output", archivePath })
+	run("unzip", { archivePath, "-d", WALLY_BUILD_DIR }, {
+		stdio = "default",
+	})
 
-	run("unzip", { archivePath, "-d", WALLY_BUILD_DIR })
-
-	run("rm", { archivePath })
+	fs.remove(archivePath)
 end
 
 local function build()
-	compile()
+	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
+		rmdir(project.BUILD_PATH)
+	end
+	mkdir(project.BUILD_PATH)
 
-	local prunedFilePatterns = {
-		"%.spec%.luau",
-		"%.story%.luau",
-		"%.storybook%.luau",
-		"jest%.config%.luau",
-	}
+	copyInto(project.ROBLOX_PACKAGES_PATH, `{project.BUILD_PATH}/{project.ROBLOX_PACKAGES_PATH}`)
+
+	run("rojo", {
+		"sourcemap",
+		project.ROJO_BUILD_PROJECT,
+		"-o",
+		project.DARKLUA_SOURCEMAP_PATH,
+	})
+
+	run("darklua", {
+		"process",
+		project.SOURCE_PATH,
+		project.BUILD_PATH,
+	})
 
 	if channel == "prod" then
-		run("rm", { "-rf", `{project.BUILD_PATH}/test-utils` })
-		run("rm", { "-rf", `{project.BUILD_PATH}/e2e` })
+		rmdir(`{project.BUILD_PATH}/test-utils`)
+		rmdir(`{project.BUILD_PATH}/e2e`)
 
-		for _, prunedFilePattern in prunedFilePatterns do
+		for _, prunedFilePattern in PRUNED_FILE_PATTERNS do
 			local prunedFiles = find(project.BUILD_PATH, prunedFilePattern)
 			for _, specFile in prunedFiles do
-				run("rm", { "-rf", specFile })
+				fs.remove(specFile)
 			end
 		end
 	end
@@ -79,7 +103,7 @@ end
 
 build()
 
-if args:get("watch") then
+if args:has("watch") then
 	watch({
 		roots = {
 			`{process.cwd()}/src`,
