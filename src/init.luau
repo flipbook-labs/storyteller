@@ -44,6 +44,7 @@ return {
 	render = require("@self/render"),
 
 	-- React
+	StoryContainer = require("@self/react/StoryContainer"),
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
