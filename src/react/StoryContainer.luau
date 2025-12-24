@@ -53,7 +53,7 @@ local function StoryContainer(props: {
 		end
 
 		-- logger:Debug("updating story")
-		print("update", props.controls, props.extraProps)
+
 		local success, result = xpcall(function()
 			lifecycle.current.update(props.controls, props.extraProps)
 		end, debug.traceback)
