@@ -11,14 +11,22 @@ export type StoryControls = {
 	[string]: any,
 }
 
-export type StoryProps = {
+export type ExtraStoryProps = {
+	[string]: any,
+}
+
+export type ReservedStoryProps = {
 	container: Instance,
-	theme: StudioTheme,
 	controls: StoryControls?,
+	-- story: LoadedStory<unknown>
+}
+
+export type StoryProps = {
+	[string]: any,
 }
 
 export type RenderLifecycle = {
-	update: (controls: StoryControls?) -> (),
+	update: (controls: StoryControls?, extraProps: ExtraStoryProps?) -> (),
 	unmount: () -> (),
 }
 
