@@ -32,11 +32,8 @@ local function StoryContainer(props: {
 		end
 
 		if not ref.current then
-			-- logger:Warn("attempted to mount story before ref was ready")
 			return
 		end
-
-		-- logger:Debug("mounting story")
 
 		local success, result = xpcall(function()
 			lifecycle.current = render(ref.current, props.story, props.extraProps)
@@ -52,8 +49,6 @@ local function StoryContainer(props: {
 			return
 		end
 
-		-- logger:Debug("updating story")
-
 		local success, result = xpcall(function()
 			lifecycle.current.update(props.controls, props.extraProps)
 		end, debug.traceback)
@@ -67,8 +62,6 @@ local function StoryContainer(props: {
 		if not lifecycle.current then
 			return
 		end
-
-		-- logger:Debug("unmounting story")
 
 		lifecycle.current.unmount()
 		lifecycle.current = nil
