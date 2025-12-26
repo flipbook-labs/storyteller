@@ -76,11 +76,17 @@ local function StoryContainer(props: {
 
 	-- Main mounting and unmounting logic
 	useEffect(function()
-		if lifecycle.current then
-			if prevStory and props.story ~= prevStory then
-				unmount()
-			end
-		else
+		local isFirstRender = prevStory == nil
+		local didStoryChange = prevStory and props.story ~= prevStory
+
+		if isFirstRender and ref.current then
+			mount()
+			return
+		end
+
+		if didStoryChange then
+			unmount()
+
 			if ref.current and props.story then
 				mount()
 			end

@@ -7,6 +7,7 @@ local createStory = require("@root/test-utils/createStory")
 local StoryContainer = require("./StoryContainer")
 
 local act = ReactRoblox.act
+local jest = JestGlobals.jest
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -101,6 +102,53 @@ describe("controls", function()
 			bar = "Hello, World!",
 			font = Enum.Font.GothamBold,
 		})
+	end)
+
+	test("component updates when controls change", function()
+		local storyProps
+
+		local story = createStory({
+			controls = {
+				foo = true,
+				bar = "Hello, World!",
+			},
+			story = function(_storyProps)
+				storyProps = _storyProps
+				return nil
+			end,
+		})
+
+		local setControls
+
+		local function Wrapper()
+			local controls
+			controls, setControls = React.useState({
+				foo = true,
+				bar = "Hello, World!",
+			})
+
+			return React.createElement(StoryContainer, {
+				story = story,
+				controls = controls,
+			})
+		end
+
+		act(function()
+			root:render(React.createElement(Wrapper))
+		end)
+
+		local snapshot = storyProps
+
+		act(function()
+			setControls({
+				foo = false,
+				bar = "Goodbye!",
+			})
+		end)
+
+		expect(storyProps).never.toBe(snapshot)
+		expect(storyProps.controls.foo).toBe(false)
+		expect(storyProps.controls.bar).toBe("Goodbye!")
 	end)
 end)
 
@@ -213,6 +261,50 @@ describe("extraProps", function()
 	end)
 end)
 
+test("unmounts old story and mounts new story when story changes", function()
+	local story1 = createStory({
+		story = function()
+			local frame = Instance.new("Frame")
+			frame.Name = "Story1Frame"
+
+			return frame
+		end,
+	})
+
+	local story2 = createStory({
+		story = function()
+			local frame = Instance.new("Frame")
+			frame.Name = "Story2Frame"
+
+			return frame
+		end,
+	})
+
+	local setStory
+
+	local function Wrapper()
+		local story
+		story, setStory = React.useState(story1)
+
+		return React.createElement(StoryContainer, {
+			story = story,
+		})
+	end
+
+	act(function()
+		root:render(React.createElement(Wrapper))
+	end)
+
+	expect(container:FindFirstChild("Story1Frame", true)).toBeDefined()
+
+	act(function()
+		setStory(story2)
+	end)
+
+	expect(container:FindFirstChild("Story1Frame", true)).toBeUndefined()
+	expect(container:FindFirstChild("Story2Frame", true)).toBeDefined()
+end)
+
 describe("story props", function()
 	test("props defined on the story get joined with StoryProps", function()
 		local storyProps
@@ -285,8 +377,52 @@ describe("story props", function()
 	end)
 end)
 
-test("onError is called when a story experiences an error", function()
-	-- storyModule
-	-- storybook
-	-- onError
+test("lifecycle cleanup is verified after unmount", function()
+	local story = createStory({
+		story = function()
+			local frame = Instance.new("Frame")
+			frame.Name = "CleanupTestFrame"
+
+			return frame
+		end,
+	})
+
+	act(function()
+		root:render(React.createElement(StoryContainer, {
+			story = story,
+		}))
+	end)
+
+	expect(container:FindFirstChild("CleanupTestFrame", true)).toBeDefined()
+
+	act(function()
+		root:unmount()
+	end)
+
+	expect(container:FindFirstChild("CleanupTestFrame", true)).toBeUndefined()
+end)
+
+test("onError is called when a story experiences an error during mount", function()
+	local mockOnError = jest.fn()
+
+	local story = createStory({
+		story = function()
+			error("Test error during update")
+			return nil
+		end,
+	})
+
+	expect(mockOnError).never.toHaveBeenCalled()
+
+	act(function()
+		root:render(React.createElement(StoryContainer, {
+			story = story,
+			controls = {
+				foo = false,
+			},
+			onError = mockOnError,
+		}))
+	end)
+
+	expect(mockOnError).toHaveBeenCalled()
 end)
