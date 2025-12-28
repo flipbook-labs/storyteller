@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type SliderControl = types.SliderControl
+type SliderControl = ControlTypes.SliderControl
 
 local function createSliderControl(default: number?, range: NumberRange?, step: number?): SliderControl
 	return {

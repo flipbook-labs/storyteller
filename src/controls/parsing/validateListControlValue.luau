@@ -1,6 +1,6 @@
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type ListBasedStoryControl<T> = types.ListBasedStoryControl<T>
+type ListBasedStoryControl<T> = ControlTypes.ListBasedStoryControl<T>
 
 local function validateListControlValue<T>(
 	controlName: string,

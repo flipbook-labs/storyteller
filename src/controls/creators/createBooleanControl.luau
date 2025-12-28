@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type BooleanControl = types.BooleanControl
+type BooleanControl = ControlTypes.BooleanControl
 
 local function createBooleanControl(default: boolean): BooleanControl
 	return {

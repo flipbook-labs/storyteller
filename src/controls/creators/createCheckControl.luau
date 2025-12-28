@@ -1,8 +1,8 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type CheckControl<T> = types.CheckControl<T>
-type Mapping<T> = types.Mapping<T>
+type CheckControl<T> = ControlTypes.CheckControl<T>
+type Mapping<T> = ControlTypes.Mapping<T>
 
 local function createCheckControl<T>(options: { string }, default: { string }?, mapping: Mapping<T>?): CheckControl<T>
 	return {

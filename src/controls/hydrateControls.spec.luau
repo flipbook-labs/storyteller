@@ -1,14 +1,14 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createSelectControl = require("@root/controls/creators/createSelectControl")
-local types = require("@root/controls/types")
 
 local hydrateControls = require("./hydrateControls")
 
-type StoryControlsSchema = types.StoryControlsSchema
-type StoryControls = types.StoryControls
-type StoryControl = types.StoryControl
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControls = ControlTypes.StoryControls
+type StoryControl = ControlTypes.StoryControl
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect

@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type NumberControl = types.NumberControl
+type NumberControl = ControlTypes.NumberControl
 
 local function createNumberControl(default: number?, range: NumberRange?, step: number?): NumberControl
 	if default and range then

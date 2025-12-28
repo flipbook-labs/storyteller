@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type StoryControl = types.StoryControl
+type StoryControl = ControlTypes.StoryControl
 
 local function transformControlValue<T>(controlSchema: StoryControl, controlValue: unknown?): unknown?
 	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default

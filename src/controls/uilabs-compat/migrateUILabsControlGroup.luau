@@ -1,11 +1,12 @@
+local ControlTypes = require("@root/controls/ControlTypes")
 local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
 local migrateUILabsControl = require("@root/controls/uilabs-compat/migrateUILabsControl")
-local types = require("@root/controls/types")
 
 type ControlGroup = UILabsTypes.ControlGroup
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
-local function migrateUILabsControlGroup(controlGroup: ControlGroup): types.StoryControlsSchema?
-	local controls: types.StoryControlsSchema = {}
+local function migrateUILabsControlGroup(controlGroup: ControlGroup): StoryControlsSchema?
+	local controls: StoryControlsSchema = {}
 
 	local hasControls = false
 

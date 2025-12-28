@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type StringControl = types.StringControl
+type StringControl = ControlTypes.StringControl
 
 local function createStringControl(default: string?): StringControl
 	return {

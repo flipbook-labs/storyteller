@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type DateControl = types.DateControl
+type DateControl = ControlTypes.DateControl
 
 local function createDateControl(default: DateTime?): DateControl
 	return {

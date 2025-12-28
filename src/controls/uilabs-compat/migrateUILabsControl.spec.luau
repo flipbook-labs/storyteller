@@ -2,11 +2,8 @@ local JestGlobals = require("@pkg/JestGlobals")
 local UILabs = require("@pkg/UILabs")
 
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
 
 local migrateUILabsControl = require("./migrateUILabsControl")
-
-type StoryControlsSchema = types.StoryControlsSchema
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect

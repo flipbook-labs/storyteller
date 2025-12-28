@@ -1,7 +1,7 @@
 local ControlType = require("@root/controls/enums/ControlType")
-local types = require("@root/controls/types")
+local ControlTypes = require("@root/controls/ControlTypes")
 
-type ColorControl = types.ColorControl
+type ColorControl = ControlTypes.ColorControl
 
 local function createColorControl(default: Color3?): ColorControl
 	return {
