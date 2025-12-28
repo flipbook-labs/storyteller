@@ -2,6 +2,11 @@ local JestGlobals = require("@pkg/JestGlobals")
 local UILabs = require("@pkg/UILabs")
 
 local ControlType = require("@root/controls/enums/ControlType")
+local ControlTypes = require("@root/controls/ControlTypes")
+local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
+
+type UILabsControl = UILabsTypes.Control
+type ColorControl = ControlTypes.ColorControl
 
 local migrateUILabsControl = require("./migrateUILabsControl")
 
@@ -11,7 +16,7 @@ local test = JestGlobals.test
 
 describe("UILabs.Boolean", function()
 	test("maps to ControlType.Boolean", function()
-		local control = UILabs.Boolean(true)
+		local control = (UILabs.Boolean(true) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Boolean,
@@ -22,7 +27,7 @@ end)
 
 describe("UILabs.Number", function()
 	test("maps to ControlType.Number", function()
-		local control = UILabs.Number(100)
+		local control = (UILabs.Number(100) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Number,
@@ -31,7 +36,7 @@ describe("UILabs.Number", function()
 	end)
 
 	test("copies range (min/max) and step", function()
-		local control = UILabs.Number(100, 0, 100, 1)
+		local control = (UILabs.Number(100, 0, 100, 1) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Number,
@@ -46,7 +51,7 @@ describe("UILabs.String", function()
 	-- TODO: Should we support the "Filters" key?
 
 	test("maps to ControlType.String", function()
-		local control = UILabs.String("Hello, World!")
+		local control = (UILabs.String("Hello, World!") :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.String,
@@ -57,11 +62,11 @@ end)
 
 describe("UILabs.Choose", function()
 	test("maps to ControlType.Select", function()
-		local control = UILabs.Choose({
+		local control = (UILabs.Choose({
 			"Option 1",
 			"Option 2",
 			"Option 3",
-		})
+		}) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Select,
@@ -74,11 +79,11 @@ describe("UILabs.Choose", function()
 	end)
 
 	test("includes the default choice", function()
-		local control = UILabs.Choose({
+		local control = (UILabs.Choose({
 			"Option 1",
 			"Option 2",
 			"Option 3",
-		}, 2)
+		}, 2) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Select,
@@ -94,11 +99,13 @@ end)
 
 describe("UILabs.EnumList", function()
 	test("maps to ControlType.Select", function()
-		local control = UILabs.EnumList({
-			Option1 = "Option 1",
-			Option2 = "Option 2",
-			Option3 = "Option 3",
-		}, "Option1")
+		local control = (
+			UILabs.EnumList({
+				Option1 = "Option 1",
+				Option2 = "Option 2",
+				Option3 = "Option 3",
+			}, "Option1") :: any
+		) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Select,
@@ -114,25 +121,25 @@ end)
 
 describe("UILabs.Object", function()
 	test("maps to nothing for now", function()
-		local control = UILabs.Object("ModuleScript")
+		local control = (UILabs.Object("ModuleScript") :: any) :: UILabsControl
 		expect(migrateUILabsControl(control)).toBeUndefined()
 	end)
 end)
 
 describe("UILabs.RGBA", function()
 	test("maps to ControlType.Color", function()
-		local control = UILabs.RGBA(Color3.fromRGB(255, 0, 200), 0.2)
+		local control = (UILabs.RGBA(Color3.fromRGB(255, 0, 200), 0.2) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Color,
-			default = control.ControlValue.Color,
+			default = (control :: any).ControlValue.Color,
 		})
 	end)
 end)
 
 describe("UILabs.Slider", function()
 	test("maps to ControlType.Slider", function()
-		local control = UILabs.Slider(50, 0, 100, 5)
+		local control = (UILabs.Slider(50, 0, 100, 5) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			control = ControlType.Slider,

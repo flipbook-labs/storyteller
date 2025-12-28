@@ -3,6 +3,7 @@ local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
 local migrateUILabsControl = require("@root/controls/uilabs-compat/migrateUILabsControl")
 local migrateUILabsControlGroup = require("@root/controls/uilabs-compat/migrateUILabsControlGroup")
 
+type UILabsControl = UILabsTypes.Control
 type UILabsControlsSchema = UILabsTypes.ControlsSchema
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
@@ -11,7 +12,7 @@ local function migrateUILabsControlsSchema(schema: UILabsControlsSchema): StoryC
 
 	for key, value in schema do
 		if value.EntryType == "Control" then
-			local migrated = migrateUILabsControl(value)
+			local migrated = migrateUILabsControl(value :: UILabsControl)
 
 			if migrated then
 				newSchema[key] = migrated

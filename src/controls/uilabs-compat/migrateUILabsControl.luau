@@ -4,7 +4,7 @@ local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
 
-type Control = UILabsTypes.Control
+type UILabsControl = UILabsTypes.Control
 
 type StoryControl = ControlTypes.StoryControl
 type StringControl = ControlTypes.StringControl
@@ -14,7 +14,7 @@ type SelectControl<T> = ControlTypes.SelectControl<T>
 type SliderControl = ControlTypes.SliderControl
 type ColorControl = ControlTypes.ColorControl
 
-local function migrateUILabsControl(control: Control): StoryControl?
+local function migrateUILabsControl(control: UILabsControl): StoryControl?
 	if control.Type == "String" then
 		local migrated: StringControl = {
 			control = ControlType.String,

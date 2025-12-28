@@ -64,7 +64,7 @@ export type Control =
 	| EnumListControl<unknown>
 
 export type ControlGroup = {
-	EntryType: "ControlGroup",
+	EntryType: "ControlGroup" | string,
 	Controls: { [string]: Control },
 }
 
