@@ -3,11 +3,10 @@ local types = require("@root/controls/types")
 
 type StringControl = types.StringControl
 
-local function createStringControl(default: string?, placeholder: string?): StringControl
+local function createStringControl(default: string?): StringControl
 	return {
 		control = ControlType.String,
 		default = default,
-		placeholder = placeholder,
 	}
 end
 

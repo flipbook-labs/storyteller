@@ -1,11 +1,14 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
+local createSelectControl = require("@root/controls/creators/createSelectControl")
 local types = require("@root/controls/types")
 
 local hydrateControls = require("./hydrateControls")
 
 type StoryControlsSchema = types.StoryControlsSchema
+type StoryControls = types.StoryControls
+type StoryControl = types.StoryControl
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
@@ -93,7 +96,7 @@ test("hydrates a schema using all control types", function()
 
 	assertAllControlTypesAreIncluded(schema)
 
-	local controls = {
+	local controls: StoryControls = {
 		greeting = "Hello, World!",
 		toggle = true,
 		slider = 50,
@@ -144,7 +147,7 @@ test("hydrates list-based controls", function()
 		},
 	}
 
-	local controls = {
+	local controls: StoryControls = {
 		dropdown = "Option 1",
 		radio = "Option 2",
 		check = { "Option 1", "Option 2" },
@@ -163,22 +166,22 @@ end)
 
 test("mapping list-based controls", function()
 	local schema: StoryControlsSchema = {
-		font = {
-			control = ControlType.Select,
-			options = {
+		font = createSelectControl(
+			{
 				"BuilderSans",
 				"BuilderSansBold",
 				"BuilderSansExtraBold",
 			},
-			mapping = {
+			nil,
+			{
 				BuilderSans = Enum.Font.BuilderSans,
 				BuilderSansBold = Enum.Font.BuilderSansBold,
 				BuilderSansExtraBold = Enum.Font.BuilderSansExtraBold,
-			},
-		},
+			}
+		),
 	}
 
-	local controls = {
+	local controls: StoryControls = {
 		font = "BuilderSans",
 	}
 
@@ -268,7 +271,7 @@ test("default value is used when one is not supplied", function()
 	assertAllControlTypesAreIncluded(schema)
 
 	-- We don't supply any controls here since we want to test the defaults
-	local controls = {}
+	local controls: StoryControls = {}
 
 	local expected = {
 		greeting = "Hello, World!",
@@ -301,7 +304,7 @@ describe("Boolean", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			isDisabled = true,
 		}
 
@@ -322,7 +325,7 @@ describe("Number", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local hydrated = hydrateControls(schema, controls)
 
@@ -340,7 +343,7 @@ describe("Number", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			number = -100,
 		}
 
@@ -360,7 +363,7 @@ describe("Number", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		expect(function()
 			hydrateControls(schema, controls)
@@ -377,7 +380,7 @@ describe("String", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local hydrated = hydrateControls(schema, controls)
 
@@ -400,7 +403,7 @@ describe("Check", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			options = { "Option 2" },
 		}
 
@@ -426,7 +429,7 @@ describe("Check", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local expected = {
 			options = { "Option 2" },
@@ -449,7 +452,7 @@ describe("Check", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			options = { "Not an option" },
 		}
 
@@ -469,7 +472,7 @@ describe("Color", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local hydrated = hydrateControls(schema, controls)
 
@@ -490,7 +493,7 @@ describe("Date", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local hydrated = hydrateControls(schema, controls)
 
@@ -513,7 +516,7 @@ describe("MultiSelect", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			choices = { "Option 2" },
 		}
 
@@ -539,7 +542,7 @@ describe("MultiSelect", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local expected = {
 			choices = { "Option 2" },
@@ -562,7 +565,7 @@ describe("MultiSelect", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			choices = { "Not an option" },
 		}
 
@@ -585,7 +588,7 @@ describe("Radio", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			radio = "Option 2",
 		}
 
@@ -609,7 +612,7 @@ describe("Radio", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local expected = {
 			radio = "Option 2",
@@ -632,7 +635,7 @@ describe("Radio", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			radio = "Not an option",
 		}
 
@@ -655,7 +658,7 @@ describe("Select", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			dropdown = "Option 2",
 		}
 
@@ -681,7 +684,7 @@ describe("Select", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		local expected = {
 			dropdown = "Option 2",
@@ -704,7 +707,7 @@ describe("Select", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			dropdown = "Not an option",
 		}
 
@@ -724,7 +727,7 @@ describe("Slider", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			number = 50,
 		}
 
@@ -746,7 +749,7 @@ describe("Slider", function()
 			},
 		}
 
-		local controls = {
+		local controls: StoryControls = {
 			number = -100,
 		}
 
@@ -766,7 +769,7 @@ describe("Slider", function()
 			},
 		}
 
-		local controls = {}
+		local controls: StoryControls = {}
 
 		expect(function()
 			hydrateControls(schema, controls)

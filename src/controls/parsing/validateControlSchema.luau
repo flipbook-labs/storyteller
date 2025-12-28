@@ -38,7 +38,7 @@ local function validateControlSchema(controlName: string, controlSchema: StoryCo
 
 		if controlSchema.control == ControlType.Radio or controlSchema.control == ControlType.Select then
 			assert(
-				table.find(controlSchema.options, defaultValue),
+				table.find(controlSchema.options, tostring(defaultValue)),
 				`failed to hydrate "{controlName}" (value "{defaultValue}" not found in 'options')`
 			)
 		end

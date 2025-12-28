@@ -1,12 +1,11 @@
 local ControlType = require("@root/controls/enums/ControlType")
+local transformControlValue = require("@root/controls/parsing/transformControlValue")
 local types = require("@root/controls/types")
+local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
+local validateListControlValue = require("@root/controls/parsing/validateListControlValue")
 
 type StoryControlsSchema = types.StoryControlsSchema
 type StoryControls = types.StoryControls
-
-local transformControlValue = require("@root/controls/Parsing/transformControlValue")
-local validateControlSchema = require("@root/controls/Parsing/validateControlSchema")
-local validateListControlValue = require("@root/controls/Parsing/validateListControlValue")
 
 --[[
 	As a principle:

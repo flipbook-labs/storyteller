@@ -2,7 +2,7 @@ local ControlType = require("@root/controls/enums/ControlType")
 
 type ControlType = ControlType.ControlType
 
-export type Mapping = { [any]: any }
+export type Mapping<T> = { [string]: T }
 
 type BaseControl<ControlType, Value> = {
 	control: ControlType,
@@ -14,28 +14,29 @@ type BaseNumberControl<ControlType> = BaseControl<ControlType, number> & {
 	range: NumberRange?,
 }
 
-type BaseListControl<ControlType, Value> = BaseControl<ControlType, Value> & {
-	options: { Value },
-	mapping: Mapping?,
+type SelectOneControl<ControlType, Value> = BaseControl<ControlType, string> & {
+	options: { string },
+	mapping: Mapping<Value>?,
 }
 
-export type StringControl = BaseControl<"String", string>
+type SelectManyControl<ControlType, Value> = BaseControl<ControlType, { string }> & {
+	options: { string },
+	mapping: Mapping<Value>?,
+}
+
 export type BooleanControl = BaseControl<"Boolean", boolean>
-export type NumberControl = BaseNumberControl<"Number">
-export type SliderControl = BaseNumberControl<"Slider">
-export type SelectControl<T> = BaseListControl<"Select", T>
-export type MultiSelectControl<T> = BaseListControl<"MultiSelect", T>
-export type CheckControl<T> = BaseListControl<"Check", T>
-export type RadioControl<T> = BaseListControl<"Radio", T>
+export type CheckControl<T> = SelectManyControl<"Check", T>
 export type ColorControl = BaseControl<"Color", Color3>
 export type ColourControl = ColorControl
 export type DateControl = BaseControl<"Date", DateTime>
+export type MultiSelectControl<T> = SelectManyControl<"MultiSelect", T>
+export type NumberControl = BaseNumberControl<"Number">
+export type RadioControl<T> = SelectOneControl<"Radio", T>
+export type SelectControl<T> = SelectOneControl<"Select", T>
+export type SliderControl = BaseNumberControl<"Slider">
+export type StringControl = BaseControl<"String", string>
 
-export type ListBasedStoryControl =
-	SelectControl<unknown>
-	| MultiSelectControl<unknown>
-	| CheckControl<unknown>
-	| RadioControl<unknown>
+export type ListBasedStoryControl<T> = SelectControl<T> | MultiSelectControl<T> | CheckControl<T> | RadioControl<T>
 
 export type StoryControl =
 	StringControl
@@ -44,7 +45,7 @@ export type StoryControl =
 	| SliderControl
 	| ColorControl
 	| DateControl
-	| ListBasedStoryControl
+	| ListBasedStoryControl<unknown>
 
 export type StoryControlsSchema = {
 	[string]: StoryControl,

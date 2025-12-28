@@ -3,7 +3,7 @@ local types = require("@root/controls/types")
 
 type StoryControl = types.StoryControl
 
-local function transformControlValue<T>(controlSchema: StoryControl, controlValue: Tunknown): unknown?
+local function transformControlValue<T>(controlSchema: StoryControl, controlValue: unknown?): unknown?
 	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default
 
 	if controlSchema.control == ControlType.Number or controlSchema.control == ControlType.Slider then
@@ -35,13 +35,13 @@ local function transformControlValue<T>(controlSchema: StoryControl, controlValu
 	if controlSchema.control == ControlType.Radio or controlSchema.control == ControlType.Select then
 		local mapping = controlSchema.mapping
 		if mapping then
-			local mappedControlValue = mapping[controlValueOrDefault]
+			local mappedControlValue = mapping[tostring(controlValueOrDefault)]
 			if mappedControlValue then
 				return mappedControlValue
 			end
 		end
 
-		if table.find(controlSchema.options, controlValueOrDefault) then
+		if table.find(controlSchema.options, tostring(controlValueOrDefault)) then
 			return controlValueOrDefault
 		end
 	end
