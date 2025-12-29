@@ -3,7 +3,7 @@ local UILabs = require("@pkg/UILabs")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local UILabsTypes = require("@root/controls/migrations/UILabsTypes")
+local UILabsTypes = require("@root/controls/migrations/ui-labs-v2.4.2/UILabsTypes")
 
 type UILabsControl = UILabsTypes.Control
 type ColorControl = ControlTypes.ColorControl
