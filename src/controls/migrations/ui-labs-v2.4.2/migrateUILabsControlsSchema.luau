@@ -1,7 +1,7 @@
 local ControlTypes = require("@root/controls/ControlTypes")
-local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
-local migrateUILabsControl = require("@root/controls/uilabs-compat/migrateUILabsControl")
-local migrateUILabsControlGroup = require("@root/controls/uilabs-compat/migrateUILabsControlGroup")
+local UILabsTypes = require("@root/controls/migrations/ui-labs-v2.4.2/UILabsTypes")
+local migrateUILabsControl = require("@root/controls/migrations/ui-labs-v2.4.2/migrateUILabsControl")
+local migrateUILabsControlGroup = require("@root/controls/migrations/ui-labs-v2.4.2/migrateUILabsControlGroup")
 
 type UILabsControl = UILabsTypes.Control
 type UILabsControlsSchema = UILabsTypes.ControlsSchema

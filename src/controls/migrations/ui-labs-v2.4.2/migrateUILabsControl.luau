@@ -2,7 +2,7 @@ local Sift = require("@pkg/Sift")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
+local UILabsTypes = require("@root/controls/migrations/ui-labs-v2.4.2/UILabsTypes")
 
 type UILabsControl = UILabsTypes.Control
 

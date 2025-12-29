@@ -3,7 +3,7 @@ local UILabs = require("@pkg/UILabs")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local UILabsTypes = require("@root/controls/uilabs-compat/UILabsTypes")
+local UILabsTypes = require("@root/controls/migrations/ui-labs-v2.4.2/UILabsTypes")
 
 local migrateUILabsControlsSchema = require("./migrateUILabsControlsSchema")
 
