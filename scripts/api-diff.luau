@@ -1,3 +1,4 @@
+local fs = require("@lute/fs")
 local process = require("@lute/process")
 
 type APIExport = {
@@ -59,6 +60,18 @@ local function parseInitLuau(content: string): APISurface
 end
 
 local function getFileAtRef(ref: string, filePath: string): string?
+	-- Handle working directory (uncommitted changes)
+	if ref == "WORKING" or ref == "." then
+		if not fs.exists(filePath) then
+			return nil
+		end
+		local handle = fs.open(filePath, "r")
+		local content = fs.read(handle)
+		fs.close(handle)
+		return content
+	end
+
+	-- Try git first
 	local result = process.run({
 		"git",
 		"show",
@@ -200,7 +213,9 @@ end
 local function main(args: { any })
 	if #args < 3 then
 		print("Usage: lute scripts/tasks/api-diff.luau <baseline-ref> <current-ref>")
-		print("Example: lute scripts/tasks/api-diff.luau v1.0.0 HEAD")
+		print("Examples:")
+		print("  lute scripts/api-diff.luau v1.0.0 HEAD")
+		print("  lute scripts/api-diff.luau HEAD WORKING    # uncommitted changes")
 		process.exit(1)
 	end
 
