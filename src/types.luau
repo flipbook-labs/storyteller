@@ -1,15 +1,13 @@
+local ControlTypes = require("@root/controls/ControlTypes")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
+type StoryControls = ControlTypes.StoryControls
 
 local types = {}
 
 export type StudioTheme = "Light" | "Dark"
-
-export type StoryControls = {
-	[string]: any,
-}
 
 export type ExtraStoryProps = {
 	[string]: any,
@@ -78,7 +76,8 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
-	controls: StoryControls?,
+	-- breaking change: controls are now required
+	controls: StoryControls,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
