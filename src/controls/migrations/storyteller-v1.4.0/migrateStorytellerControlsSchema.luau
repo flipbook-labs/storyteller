@@ -1,14 +1,17 @@
-local Sift = require("@pkg/Sift")
-
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
+type Mapping<T> = ControlTypes.Mapping<T>
+type StoryControl = ControlTypes.StoryControl
 type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type ListBasedStoryControl<T> = ControlTypes.ListBasedStoryControl<T>
+
 type ControlType = ControlType.ControlType
 
+type LegacyStoryControl = string | boolean | number | EnumItem | { LegacyStoryControl }
 type LegacyStoryControls = {
-	[string]: any,
+	[string]: LegacyStoryControl,
 }
 
 local dataTypeToControlType: { [string]: ControlType } = {
@@ -17,45 +20,46 @@ local dataTypeToControlType: { [string]: ControlType } = {
 	["number"] = ControlType.Number,
 }
 
-local function migrateStorytellerV140ControlsSchema(schema: LegacyStoryControls)
-	-- Implicitly set the default of an array
+local function migrateStorytellerControlsSchema(schema: LegacyStoryControls)
 	local migratedSchema: StoryControlsSchema = {}
 
 	for key, value in schema do
-		local valueType = typeof(value)
-		local controlType: ControlType = dataTypeToControlType[valueType]
-
-		if valueType == "table" then
+		if typeof(value) == "table" then
 			local mapping = {}
 
 			local options = {}
-			for otherKey, otherValue in value do
+			for _, otherValue in value do
 				if typeof(otherValue) == "string" then
 					table.insert(options, otherValue)
-					mapping[otherKey] = otherValue
 				else
 					table.insert(options, tostring(otherValue))
-					mapping[otherKey] = otherValue
+					mapping[tostring(otherValue)] = otherValue
 				end
 			end
 
 			local default = options[1]
 
-			migratedSchema[key] = {
-				control = controlType,
+			local migratedControl: ListBasedStoryControl<unknown> = {
+				control = ControlType.Select,
 				options = options,
 				mapping = mapping,
 				default = default,
 			}
+
+			migratedSchema[key] = migratedControl
 		else
-			migratedSchema[key] = {
+			local controlType: ControlType = dataTypeToControlType[typeof(value)]
+
+			local migratedControl: StoryControl = {
 				control = controlType,
 				default = value,
 			}
+
+			migratedSchema[key] = migratedControl
 		end
 	end
 
 	return migratedSchema
 end
 
-return migrateStorytellerV140ControlsSchema
+return migrateStorytellerControlsSchema
