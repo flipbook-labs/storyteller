@@ -36,16 +36,11 @@ export type SelectControl<T> = SelectOneControl<"Select", T>
 export type SliderControl = BaseNumberControl<"Slider">
 export type StringControl = BaseControl<"String", string>
 
+export type PrimitiveStoryControl = StringControl | BooleanControl | NumberControl
+export type ExtendedStoryControl = SliderControl | ColorControl | DateControl
 export type ListBasedStoryControl<T> = SelectControl<T> | MultiSelectControl<T> | CheckControl<T> | RadioControl<T>
 
-export type StoryControl =
-	StringControl
-	| BooleanControl
-	| NumberControl
-	| SliderControl
-	| ColorControl
-	| DateControl
-	| ListBasedStoryControl<unknown>
+export type StoryControl = PrimitiveStoryControl | ExtendedStoryControl | ListBasedStoryControl<unknown>
 
 export type StoryControlsSchema = {
 	[string]: StoryControl,
