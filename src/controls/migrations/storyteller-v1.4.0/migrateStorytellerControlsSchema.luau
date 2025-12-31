@@ -7,6 +7,7 @@ type StoryControl = ControlTypes.StoryControl
 type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type ListBasedStoryControl<T> = ControlTypes.ListBasedStoryControl<T>
+type StoryControlValue = ControlTypes.StoryControlValue
 
 type ControlType = ControlType.ControlType
 
@@ -19,7 +20,7 @@ local dataTypeToControlType: { [string]: ControlType } = {
 	["number"] = ControlType.Number,
 }
 
-local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchema)
+local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchema): StoryControlsSchema
 	local migratedSchema: StoryControlsSchema = {}
 
 	for key, value in schema do
