@@ -1,3 +1,4 @@
+local ControlTypes = require("@root/controls/ControlTypes")
 local JestGlobals = require("@pkg/JestGlobals")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
@@ -9,6 +10,7 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 
 type StoryRenderer<T> = types.StoryRenderer<T>
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
 local container: Instance
 local story: types.LoadedStory<TextLabel>
@@ -88,7 +90,7 @@ end)
 test("props are passed to shouldUpdate", function()
 	local props
 
-	local controls = {
+	local controls: StoryControlsSchema = {
 		foo = true,
 	}
 
@@ -186,13 +188,14 @@ test("prevProps is nil on the first render", function()
 end)
 
 test("array controls are collapsed to the first story", function()
-	story.controls = {
+	local controls: StoryControlsSchema = {
 		font = {
 			Enum.Font.BuilderSans,
 			Enum.Font.RobotoMono,
 			Enum.Font.Merriweather,
-		},
+		} :: { EnumItem },
 	}
+	story.controls = controls
 
 	local font: Enum.Font?
 

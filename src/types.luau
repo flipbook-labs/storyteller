@@ -1,15 +1,16 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
 
+local ControlTypes = require("@root/controls/ControlTypes")
+
 type ModuleLoader = ModuleLoader.ModuleLoader
+
+export type StoryControlsSchema = ControlTypes.StoryControlsSchema
+export type StoryControls = ControlTypes.StoryControls
 
 local types = {}
 
 export type StudioTheme = "Light" | "Dark"
-
-export type StoryControls = {
-	[string]: any,
-}
 
 export type ExtraStoryProps = {
 	[string]: any,
@@ -78,11 +79,10 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
-	controls: StoryControls?,
+	controls: StoryControlsSchema?,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	-- TODO: Double check if Developer Storybook lets you do this
 	props: { [string]: any }?,
 }
 types.IStory = t.interface({
@@ -101,7 +101,7 @@ export type LoadedStory<T> = {
 	packages: StoryPackages?,
 
 	summary: string?,
-	controls: StoryControls?,
+	controls: StoryControlsSchema?,
 	props: { [string]: any }?,
 }
 
