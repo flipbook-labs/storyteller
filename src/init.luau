@@ -1,5 +1,4 @@
-local ControlType = require("@self/controls/enums/ControlType")
-local ControlTypes = require("@self/controls/ControlTypes")
+local controls = require("@self/controls")
 local types = require("@self/types")
 
 --[=[
@@ -27,22 +26,21 @@ export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
 
-export type BooleanControl = ControlTypes.BooleanControl
-export type CheckControl<T> = ControlTypes.CheckControl<T>
-export type ColorControl = ControlTypes.ColorControl
-export type ColourControl = ControlTypes.ColourControl
-export type DateControl = ControlTypes.DateControl
-export type MultiSelectControl<T> = ControlTypes.MultiSelectControl<T>
-export type NumberControl = ControlTypes.NumberControl
-export type RadioControl<T> = ControlTypes.RadioControl<T>
-export type SelectControl<T> = ControlTypes.SelectControl<T>
-export type SliderControl = ControlTypes.SliderControl
-export type StringControl = ControlTypes.StringControl
-export type StoryControl = ControlTypes.StoryControl
-export type StoryControlsSchema = ControlTypes.StoryControlsSchema
-export type StoryControls = ControlTypes.StoryControls
-
-export type ControlType = ControlType.ControlType
+export type BooleanControl = controls.BooleanControl
+export type CheckControl<T> = controls.CheckControl<T>
+export type ColorControl = controls.ColorControl
+export type ColourControl = controls.ColourControl
+export type DateControl = controls.DateControl
+export type MultiSelectControl<T> = controls.MultiSelectControl<T>
+export type NumberControl = controls.NumberControl
+export type RadioControl<T> = controls.RadioControl<T>
+export type SelectControl<T> = controls.SelectControl<T>
+export type SliderControl = controls.SliderControl
+export type StringControl = controls.StringControl
+export type StoryControl = controls.StoryControl
+export type StoryControlsSchema = controls.StoryControlsSchema
+export type StoryControls = controls.StoryControls
+export type ControlType = controls.ControlType
 
 return {
 	-- Validation
@@ -68,17 +66,17 @@ return {
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
 
 	-- Enums
-	ControlType = ControlType,
+	ControlType = controls.ControlType,
 
 	-- Controls
-	boolean = require("@self/controls/creators/createBooleanControl"),
-	check = require("@self/controls/creators/createCheckControl"),
-	choose = require("@self/controls/creators/createSelectControl"),
-	color = require("@self/controls/creators/createColorControl"),
-	date = require("@self/controls/creators/createDateControl"),
-	multiChoose = require("@self/controls/creators/createMultiSelectControl"),
-	number = require("@self/controls/creators/createNumberControl"),
-	radio = require("@self/controls/creators/createRadioControl"),
-	slider = require("@self/controls/creators/createSliderControl"),
-	text = require("@self/controls/creators/createStringControl"),
+	boolean = controls.createBooleanControl,
+	check = controls.createCheckControl,
+	choose = controls.createSelectControl,
+	color = controls.createColorControl,
+	date = controls.createDateControl,
+	multiChoose = controls.createMultiSelectControl,
+	number = controls.createNumberControl,
+	radio = controls.createRadioControl,
+	slider = controls.createSliderControl,
+	text = controls.createStringControl,
 }

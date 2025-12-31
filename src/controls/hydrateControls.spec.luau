@@ -2,7 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local createSelectControl = require("@root/controls/creators/createSelectControl")
+local createSelectControl = require("@root/controls/constructors/createSelectControl")
 
 local hydrateControls = require("./hydrateControls")
 

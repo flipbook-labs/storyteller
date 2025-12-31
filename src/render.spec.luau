@@ -1,5 +1,6 @@
-local ControlTypes = require("@root/controls/ControlTypes")
 local JestGlobals = require("@pkg/JestGlobals")
+
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
@@ -10,7 +11,7 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 
 type StoryRenderer<T> = types.StoryRenderer<T>
-type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControlsSchema = controls.StoryControlsSchema
 
 local container: Instance
 local story: types.LoadedStory<TextLabel>
