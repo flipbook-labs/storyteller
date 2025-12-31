@@ -21,7 +21,7 @@ local function assertAllControlTypesAreIncluded(schema: StoryControlsSchema)
 		local found = false
 
 		for _, controlSchema in schema do
-			if controlSchema.control == controlType then
+			if typeof(controlSchema) == "table" and rawget(controlSchema, "control") == controlType then
 				found = true
 			end
 		end
