@@ -9,6 +9,7 @@ local hydrateControls = require("./hydrateControls")
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
+type Mapping = ControlTypes.Mapping
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
@@ -177,7 +178,7 @@ test("mapping list-based controls", function()
 				BuilderSans = Enum.Font.BuilderSans,
 				BuilderSansBold = Enum.Font.BuilderSansBold,
 				BuilderSansExtraBold = Enum.Font.BuilderSansExtraBold,
-			}
+			} :: Mapping
 		),
 	}
 
@@ -312,7 +313,7 @@ test("plain values in the schema get mapped to the relevant control type", funct
 		},
 	}
 
-	local controls = {
+	local controls: StoryControls = {
 		toggle = false,
 		number = 20,
 	}

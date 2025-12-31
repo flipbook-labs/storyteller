@@ -44,7 +44,9 @@ local function hydrateControls(schema: StoryControlsSchema, controls: StoryContr
 
 			local transformed = transformControlValue(controlSchema, controlValue)
 
-			hydrated[controlName] = transformed
+			if transformed ~= nil then
+				hydrated[controlName] = transformed
+			end
 		else
 			local controlValue: StoryControlValue?
 

@@ -1,10 +1,10 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
-type MultiSelectControl<T> = ControlTypes.MultiSelectControl<T>
-type Mapping<T> = ControlTypes.Mapping<T>
+type MultiSelectControl = ControlTypes.MultiSelectControl
+type Mapping = ControlTypes.Mapping
 
-local function createMultiSelectControl<T>(options: { string }, mapping: Mapping<T>?): MultiSelectControl<T>
+local function createMultiSelectControl(options: { string }, mapping: Mapping?): MultiSelectControl
 	return {
 		control = ControlType.MultiSelect,
 		options = options,
