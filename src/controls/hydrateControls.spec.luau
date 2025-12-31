@@ -295,6 +295,41 @@ test("default value is used when one is not supplied", function()
 	expect(hydrateControls(schema, controls)).toMatchObject(expected)
 end)
 
+test("plain values in the schema get mapped to the relevant control type", function()
+	local now = DateTime.now()
+
+	local schema: StoryControlsSchema = {
+		greeting = "Hello, World!",
+		toggle = true,
+		number = {
+			control = ControlType.Number,
+			range = NumberRange.new(0, 10),
+		},
+		color = Color3.fromRGB(255, 255, 255),
+		date = {
+			control = ControlType.Date,
+			default = now,
+		},
+	}
+
+	local controls = {
+		toggle = false,
+		number = 20,
+	}
+
+	local expected = {
+		greeting = "Hello, World!",
+		toggle = false,
+		number = 10,
+		color = Color3.fromRGB(255, 255, 255),
+		date = now,
+	}
+
+	local hydrated = hydrateControls(schema, controls)
+
+	expect(hydrated).toMatchObject(expected)
+end)
+
 describe("Boolean", function()
 	test("hydrates a schema with a Boolean control", function()
 		local schema: StoryControlsSchema = {

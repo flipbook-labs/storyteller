@@ -2,8 +2,9 @@ local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
 type StoryControl = ControlTypes.StoryControl
+type StoryControlValue = ControlTypes.StoryControlValue
 
-local function transformControlValue(controlSchema: StoryControl, controlValue: unknown?): unknown?
+local function transformControlValue(controlSchema: StoryControl, controlValue: StoryControlValue?): StoryControlValue
 	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default
 
 	if controlSchema.control == ControlType.Number or controlSchema.control == ControlType.Slider then
