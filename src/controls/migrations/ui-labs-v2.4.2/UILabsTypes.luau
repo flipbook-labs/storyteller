@@ -68,7 +68,7 @@ export type ControlGroup = {
 	Controls: { [string]: Control },
 }
 
-export type ControlsSchema = {
+export type StoryControlsSchema = {
 	[string]: Control | ControlGroup,
 }
 

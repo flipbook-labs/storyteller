@@ -1,5 +1,6 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
+local types = require("./types")
 
 type Mapping<T> = ControlTypes.Mapping<T>
 type StoryControl = ControlTypes.StoryControl
@@ -9,10 +10,8 @@ type ListBasedStoryControl<T> = ControlTypes.ListBasedStoryControl<T>
 
 type ControlType = ControlType.ControlType
 
-type LegacyStoryControl = string | boolean | number | EnumItem | { LegacyStoryControl }
-type LegacyStoryControls = {
-	[string]: LegacyStoryControl,
-}
+type LegacyStoryControl = types.StoryControl
+type LegacyStoryControlsSchema = types.StoryControlsSchema
 
 local dataTypeToControlType: { [string]: ControlType } = {
 	["string"] = ControlType.String,
@@ -20,7 +19,7 @@ local dataTypeToControlType: { [string]: ControlType } = {
 	["number"] = ControlType.Number,
 }
 
-local function migrateStorytellerControlsSchema(schema: LegacyStoryControls)
+local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchema)
 	local migratedSchema: StoryControlsSchema = {}
 
 	for key, value in schema do
