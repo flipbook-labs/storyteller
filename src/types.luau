@@ -1,15 +1,16 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
 
+local controls = require("@root/controls")
+
 type ModuleLoader = ModuleLoader.ModuleLoader
+
+export type StoryControlsSchema = controls.StoryControlsSchema
+export type StoryControls = controls.StoryControls
 
 local types = {}
 
 export type StudioTheme = "Light" | "Dark"
-
-export type StoryControls = {
-	[string]: any,
-}
 
 export type ExtraStoryProps = {
 	[string]: any,
