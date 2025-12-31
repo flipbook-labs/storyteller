@@ -1,0 +1,52 @@
+local ControlType = require("@root/controls/enums/ControlType")
+local ControlTypes = require("@root/controls/ControlTypes")
+
+type StoryControl = ControlTypes.StoryControl
+
+local function transformControlValue(controlSchema: StoryControl, controlValue: unknown?): unknown?
+	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default
+
+	if controlSchema.control == ControlType.Number or controlSchema.control == ControlType.Slider then
+		if typeof(controlValueOrDefault) == "number" then
+			local range = controlSchema.range
+
+			if range then
+				return math.clamp(controlValueOrDefault, range.Min, range.Max)
+			end
+		end
+	end
+
+	if controlSchema.control == ControlType.Check or controlSchema.control == ControlType.MultiSelect then
+		if typeof(controlValueOrDefault) == "table" then
+			local result = {}
+			local mapping = controlSchema.mapping
+
+			for _, option in controlValueOrDefault :: { [any]: any } do
+				if mapping then
+					table.insert(result, mapping[option])
+				else
+					table.insert(result, option)
+				end
+			end
+			return result
+		end
+	end
+
+	if controlSchema.control == ControlType.Radio or controlSchema.control == ControlType.Select then
+		local mapping = controlSchema.mapping
+		if mapping then
+			local mappedControlValue = mapping[tostring(controlValueOrDefault)]
+			if mappedControlValue then
+				return mappedControlValue
+			end
+		end
+
+		if table.find(controlSchema.options, tostring(controlValueOrDefault)) then
+			return controlValueOrDefault
+		end
+	end
+
+	return controlValueOrDefault
+end
+
+return transformControlValue
