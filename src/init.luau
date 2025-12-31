@@ -1,4 +1,3 @@
-local controls = require("@self/controls")
 local types = require("@self/types")
 
 --[=[
@@ -23,24 +22,9 @@ export type LoadedStory<T> = types.LoadedStory<T>
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
+export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-
-export type BooleanControl = controls.BooleanControl
-export type CheckControl<T> = controls.CheckControl<T>
-export type ColorControl = controls.ColorControl
-export type ColourControl = controls.ColourControl
-export type DateControl = controls.DateControl
-export type MultiSelectControl<T> = controls.MultiSelectControl<T>
-export type NumberControl = controls.NumberControl
-export type RadioControl<T> = controls.RadioControl<T>
-export type SelectControl<T> = controls.SelectControl<T>
-export type SliderControl = controls.SliderControl
-export type StringControl = controls.StringControl
-export type StoryControl = controls.StoryControl
-export type StoryControlsSchema = controls.StoryControlsSchema
-export type StoryControls = controls.StoryControls
-export type ControlType = controls.ControlType
 
 return {
 	-- Validation
@@ -64,19 +48,4 @@ return {
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
-
-	-- Enums
-	ControlType = controls.ControlType,
-
-	-- Controls
-	boolean = controls.createBooleanControl,
-	check = controls.createCheckControl,
-	choose = controls.createSelectControl,
-	color = controls.createColorControl,
-	date = controls.createDateControl,
-	multiChoose = controls.createMultiSelectControl,
-	number = controls.createNumberControl,
-	radio = controls.createRadioControl,
-	slider = controls.createSliderControl,
-	text = controls.createStringControl,
 }
