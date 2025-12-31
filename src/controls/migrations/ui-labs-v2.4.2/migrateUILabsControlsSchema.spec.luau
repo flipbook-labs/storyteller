@@ -13,7 +13,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 test("migrates a complex UI Labs schema to Flipbook's schema", function()
-	local schema: UILabsTypes.ControlsSchema = {
+	local schema: UILabsTypes.StoryControlsSchema = {
 		message = UILabs.String("Hello, World!") :: any,
 
 		group = UILabs.ControlGroup({

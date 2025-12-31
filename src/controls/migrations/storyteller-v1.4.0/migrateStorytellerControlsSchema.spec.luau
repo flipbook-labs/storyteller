@@ -1,17 +1,17 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
-local ControlTypes = require("@root/controls/ControlTypes")
+local types = require("./types")
 
 local migrateStorytellerControlsSchema = require("./migrateStorytellerControlsSchema")
 
-type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControlsSchema = types.StoryControlsSchema
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 test("migrates a complex Storyteller controls schema", function()
-	local schema = {
+	local schema: StoryControlsSchema = {
 		toggle = true,
 		text = "Hello, World!",
 		number = 100,
@@ -19,7 +19,7 @@ test("migrates a complex Storyteller controls schema", function()
 			Enum.Font.BuilderSans,
 			Enum.Font.BuilderSansBold,
 			Enum.Font.BuilderSansExtraBold,
-		},
+		} :: { EnumItem },
 	}
 
 	local migrated = migrateStorytellerControlsSchema(schema)

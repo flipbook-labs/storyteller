@@ -36,6 +36,17 @@ export type SelectControl<T> = SelectOneControl<"Select", T>
 export type SliderControl = BaseNumberControl<"Slider">
 export type StringControl = BaseControl<"String", string>
 
+-- Make sure to update this when adding new control types!
+export type StoryControlValue =
+	boolean
+	| number
+	| string
+	-- Roblox datatypes
+	| Color3
+	| DateTime
+	| EnumItem
+	| { StoryControlValue }
+
 export type PrimitiveStoryControl = StringControl | BooleanControl | NumberControl
 export type ExtendedStoryControl = SliderControl | ColorControl | DateControl
 export type ListBasedStoryControl<T> = SelectControl<T> | MultiSelectControl<T> | CheckControl<T> | RadioControl<T>
@@ -43,11 +54,11 @@ export type ListBasedStoryControl<T> = SelectControl<T> | MultiSelectControl<T> 
 export type StoryControl = PrimitiveStoryControl | ExtendedStoryControl | ListBasedStoryControl<unknown>
 
 export type StoryControlsSchema = {
-	[string]: StoryControl,
+	[string]: StoryControl | StoryControlValue,
 }
 
 export type StoryControls = {
-	[string]: unknown,
+	[string]: StoryControlValue,
 }
 
 return nil

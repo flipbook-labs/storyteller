@@ -4,10 +4,10 @@ local migrateUILabsControl = require("@root/controls/migrations/ui-labs-v2.4.2/m
 local migrateUILabsControlGroup = require("@root/controls/migrations/ui-labs-v2.4.2/migrateUILabsControlGroup")
 
 type UILabsControl = UILabsTypes.Control
-type UILabsControlsSchema = UILabsTypes.ControlsSchema
+type UILabsStoryControlsSchema = UILabsTypes.StoryControlsSchema
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
-local function migrateUILabsControlsSchema(schema: UILabsControlsSchema): StoryControlsSchema
+local function migrateUILabsControlsSchema(schema: UILabsStoryControlsSchema): StoryControlsSchema
 	local newSchema: StoryControlsSchema = {}
 
 	for key, value in schema do

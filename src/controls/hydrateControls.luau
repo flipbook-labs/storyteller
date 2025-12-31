@@ -50,7 +50,7 @@ local function hydrateControls(
 
 	local hydrated: StoryControls = {}
 
-	for controlName, controlSchema in schema do
+	for controlName, controlSchema in pairs(schema) do
 		local controlValue = controls[controlName]
 
 		validateControlSchema(controlName, controlSchema)
