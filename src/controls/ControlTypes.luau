@@ -1,57 +1,130 @@
+local gt = require("@pkg/GreenTea")
+
 local ControlType = require("@root/controls/enums/ControlType")
 
 type ControlType = ControlType.ControlType
 
-export type Mapping<T> = { [string]: T }
+local export = {}
 
-type BaseControl<ControlType, Value> = {
-	control: ControlType,
-	default: Value?,
-}
+local Mapping = gt.build(gt.dictionary(gt.string(), gt.any()))
+type Mapping = typeof(Mapping:type())
 
-type BaseNumberControl<ControlType> = BaseControl<ControlType, number> & {
-	step: number?,
-	range: NumberRange?,
-}
+local function BaseControl<T>(controlType: ControlType, valueType: T)
+	return gt.table({
+		control = gt.literal(controlType),
+		default = gt.optional(valueType),
+	})
+end
 
-type SelectOneControl<ControlType, Value> = BaseControl<ControlType, string> & {
-	options: { string },
-	mapping: Mapping<Value>?,
-}
+local function BaseNumberControl(controlType)
+	return gt.table({
+		control = gt.literal(controlType),
+		default = gt.optional(gt.number()),
+		step = gt.optional(gt.number()),
+		range = gt.optional(gt.isTypeof("NumberRange")),
+	})
+end
 
-type SelectManyControl<ControlType, Value> = BaseControl<ControlType, { string }> & {
-	options: { string },
-	mapping: Mapping<Value>?,
-}
+local function SelectOneControl(controlType)
+	return gt.table({
+		control = gt.literal(controlType),
+		options = gt.array(gt.string()),
+		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
+		default = gt.optional(gt.string()),
+	})
+end
 
-export type BooleanControl = BaseControl<"Boolean", boolean>
-export type CheckControl<T> = SelectManyControl<"Check", T>
-export type ColorControl = BaseControl<"Color", Color3>
+local function SelectManyControl(controlType)
+	return gt.table({
+		control = gt.literal(controlType),
+		options = gt.array(gt.string()),
+		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
+		default = gt.optional(gt.array(gt.string())),
+	})
+end
+
+local BooleanControl = gt.build(BaseControl("Boolean", gt.boolean()))
+export.BooleanControl = BooleanControl
+export type BooleanControl = typeof(BooleanControl:type())
+
+local StringControl = gt.build(BaseControl("String", gt.string()))
+export.StringControl = StringControl
+export type StringControl = typeof(StringControl:type())
+
+local NumberControl = gt.build(BaseNumberControl("Number"))
+export.NumberControl = NumberControl
+export type NumberControl = typeof(NumberControl:type())
+
+local SliderControl = gt.build(BaseNumberControl("Slider"))
+export.SliderControl = SliderControl
+export type SliderControl = typeof(SliderControl:type())
+
+local ColorControl = gt.build(BaseControl("Color", gt.Color3()))
+export.ColorControl = ColorControl
+export type ColorControl = typeof(ColorControl:type())
 export type ColourControl = ColorControl
-export type DateControl = BaseControl<"Date", DateTime>
-export type MultiSelectControl<T> = SelectManyControl<"MultiSelect", T>
-export type NumberControl = BaseNumberControl<"Number">
-export type RadioControl<T> = SelectOneControl<"Radio", T>
-export type SelectControl<T> = SelectOneControl<"Select", T>
-export type SliderControl = BaseNumberControl<"Slider">
-export type StringControl = BaseControl<"String", string>
 
--- Make sure to update this when adding new control types!
-export type StoryControlValue =
-	boolean
-	| number
-	| string
-	-- Roblox datatypes
-	| Color3
-	| DateTime
-	| EnumItem
-	| { StoryControlValue }
+local DateControl = gt.build(BaseControl("Date", gt.isTypeof("DateTime")))
+export.DateControl = DateControl
+export type DateControl = typeof(DateControl:type())
 
-export type PrimitiveStoryControl = StringControl | BooleanControl | NumberControl
-export type ExtendedStoryControl = SliderControl | ColorControl | DateControl
+local SelectControl = gt.build(SelectOneControl("Select"))
+export.SelectControl = SelectControl
+export type SelectControl<T> = typeof(SelectControl:type())
+
+local RadioControl = gt.build(SelectOneControl("Radio"))
+export.RadioControl = RadioControl
+export type RadioControl<T> = typeof(RadioControl:type())
+
+local MultiSelectControl = gt.build(SelectManyControl("MultiSelect"))
+export.MultiSelectControl = MultiSelectControl
+export type MultiSelectControl<T> = typeof(MultiSelectControl:type())
+
+local CheckControl = gt.build(SelectManyControl("Check"))
+export.CheckControl = CheckControl
+export type CheckControl<T> = typeof(CheckControl:type())
+
+local StoryControlValueBase
+StoryControlValueBase = gt.union(
+	gt.boolean(),
+	gt.number(),
+	gt.string(),
+	gt.Color3(),
+	-- gt.isTypeof("DateTime"),
+	-- gt.isTypeof("EnumItem"),
+	gt.array(StoryControlValueBase)
+)
+
+local StoryControlValue = gt.build(StoryControlValueBase)
+export.StoryControlValue = StoryControlValue
+export type StoryControlValue = typeof(StoryControlValue:type())
+
+local PrimitiveStoryControl = gt.build(gt.union(StringControl:type(), BooleanControl:type(), NumberControl:type()))
+export.PrimitiveStoryControl = PrimitiveStoryControl
+export type PrimitiveStoryControl = typeof(PrimitiveStoryControl:type())
+
+local ExtendedStoryControl = gt.build(gt.union(SliderControl:type(), ColorControl:type(), DateControl:type()))
+export.ExtendedStoryControl = ExtendedStoryControl
+export type ExtendedStoryControl = typeof(ExtendedStoryControl:type())
+
 export type ListBasedStoryControl<T> = SelectControl<T> | MultiSelectControl<T> | CheckControl<T> | RadioControl<T>
 
-export type StoryControl = PrimitiveStoryControl | ExtendedStoryControl | ListBasedStoryControl<unknown>
+local StoryControl = gt.build(
+	gt.union(
+		StringControl:type(),
+		BooleanControl:type(),
+		NumberControl:type(),
+		SliderControl:type(),
+		ColorControl:type(),
+		DateControl:type(),
+		SelectControl:type(),
+		MultiSelectControl:type(),
+		CheckControl:type(),
+		RadioControl:type()
+	)
+)
+export.StoryControl = StoryControl
+export type StoryControl = typeof(StoryControl:type())
 
 export type StoryControlsSchema = {
 	[string]: StoryControl | StoryControlValue,
@@ -61,4 +134,4 @@ export type StoryControls = {
 	[string]: StoryControlValue,
 }
 
-return nil
+return export
