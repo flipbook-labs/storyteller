@@ -9,7 +9,7 @@ local function createNumberControl(default: number?, range: NumberRange?, step: 
 	end
 
 	return {
-		control = ControlType.Number,
+		type = ControlType.Number,
 		default = default,
 		range = range,
 		step = step,

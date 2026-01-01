@@ -5,7 +5,7 @@ type SliderControl = ControlTypes.SliderControl
 
 local function createSliderControl(default: number?, range: NumberRange?, step: number?): SliderControl
 	return {
-		control = ControlType.Slider,
+		type = ControlType.Slider,
 		default = default,
 		range = range,
 		step = step,

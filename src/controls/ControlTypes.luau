@@ -5,7 +5,7 @@ type ControlType = ControlType.ControlType
 export type Mapping = { [string]: StoryControlValue }
 
 type BaseControl<ControlType, Value> = {
-	control: ControlType,
+	type: ControlType,
 	default: Value?,
 }
 

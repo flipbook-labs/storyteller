@@ -6,7 +6,7 @@ type Mapping = ControlTypes.Mapping
 
 local function createCheckControl(options: { string }, default: { string }?, mapping: Mapping?): CheckControl
 	return {
-		control = ControlType.Check,
+		type = ControlType.Check,
 		options = options,
 		default = default,
 		mapping = mapping,

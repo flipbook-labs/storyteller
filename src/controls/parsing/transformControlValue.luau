@@ -7,7 +7,7 @@ type StoryControlValue = ControlTypes.StoryControlValue
 local function transformControlValue(controlSchema: StoryControl, controlValue: StoryControlValue?): StoryControlValue?
 	local controlValueOrDefault: StoryControlValue? = if controlValue then controlValue else controlSchema.default
 
-	if controlSchema.control == ControlType.Number or controlSchema.control == ControlType.Slider then
+	if controlSchema.type == ControlType.Number or controlSchema.type == ControlType.Slider then
 		if typeof(controlValueOrDefault) == "number" then
 			local range = controlSchema.range
 
@@ -17,7 +17,7 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 		end
 	end
 
-	if controlSchema.control == ControlType.Check or controlSchema.control == ControlType.MultiSelect then
+	if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
 		if typeof(controlValueOrDefault) == "table" then
 			local result = {}
 			local mapping = controlSchema.mapping
@@ -33,7 +33,7 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 		end
 	end
 
-	if controlSchema.control == ControlType.Radio or controlSchema.control == ControlType.Select then
+	if controlSchema.type == ControlType.Radio or controlSchema.type == ControlType.Select then
 		local mapping = controlSchema.mapping
 		if mapping then
 			local mappedControlValue = mapping[tostring(controlValueOrDefault)]

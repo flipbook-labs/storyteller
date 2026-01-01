@@ -5,7 +5,7 @@ type DateControl = ControlTypes.DateControl
 
 local function createDateControl(default: DateTime?): DateControl
 	return {
-		control = ControlType.Date,
+		type = ControlType.Date,
 		default = default,
 	}
 end

@@ -34,10 +34,10 @@ local function hydrateControls(schema: StoryControlsSchema, controls: StoryContr
 			validateControlSchema(controlName, controlSchema)
 
 			if
-				controlSchema.control == ControlType.Check
-				or controlSchema.control == ControlType.MultiSelect
-				or controlSchema.control == ControlType.Radio
-				or controlSchema.control == ControlType.Select
+				controlSchema.type == ControlType.Check
+				or controlSchema.type == ControlType.MultiSelect
+				or controlSchema.type == ControlType.Radio
+				or controlSchema.type == ControlType.Select
 			then
 				validateListControlValue(controlName, controlSchema, controlValue)
 			end

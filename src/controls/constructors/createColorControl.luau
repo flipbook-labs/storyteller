@@ -5,7 +5,7 @@ type ColorControl = ControlTypes.ColorControl
 
 local function createColorControl(default: Color3?): ColorControl
 	return {
-		control = ControlType.Color,
+		type = ControlType.Color,
 		default = default,
 	}
 end

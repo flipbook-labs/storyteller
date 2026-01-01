@@ -6,7 +6,7 @@ type Mapping = ControlTypes.Mapping
 
 local function createSelectControl(options: { string }, default: string?, mapping: Mapping?): SelectControl
 	return {
-		control = ControlType.Select,
+		type = ControlType.Select,
 		options = options,
 		default = default,
 		mapping = mapping,

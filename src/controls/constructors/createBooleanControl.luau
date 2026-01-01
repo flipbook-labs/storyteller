@@ -5,7 +5,7 @@ type BooleanControl = ControlTypes.BooleanControl
 
 local function createBooleanControl(default: boolean?): BooleanControl
 	return {
-		control = ControlType.Boolean,
+		type = ControlType.Boolean,
 		default = default,
 	}
 end

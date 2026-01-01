@@ -5,7 +5,7 @@ type StringControl = ControlTypes.StringControl
 
 local function createStringControl(default: string?): StringControl
 	return {
-		control = ControlType.String,
+		type = ControlType.String,
 		default = default,
 	}
 end

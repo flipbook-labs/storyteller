@@ -6,7 +6,7 @@ type Mapping = ControlTypes.Mapping
 
 local function createMultiSelectControl(options: { string }, mapping: Mapping?): MultiSelectControl
 	return {
-		control = ControlType.MultiSelect,
+		type = ControlType.MultiSelect,
 		options = options,
 		mapping = mapping,
 	}
