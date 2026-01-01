@@ -3,6 +3,7 @@ local ControlType = require("@root/controls/enums/ControlType")
 type ControlType = ControlType.ControlType
 
 export type Mapping = { [string]: StoryControlValue }
+export type ControlOptions = { string }
 
 type BaseControl<ControlType, Value> = {
 	type: ControlType,
@@ -15,12 +16,12 @@ type BaseNumberControl<ControlType> = BaseControl<ControlType, number> & {
 }
 
 type SelectOneControl<ControlType> = BaseControl<ControlType, string> & {
-	options: { string },
+	options: ControlOptions,
 	mapping: Mapping?,
 }
 
-type SelectManyControl<ControlType> = BaseControl<ControlType, { string }> & {
-	options: { string },
+type SelectManyControl<ControlType> = BaseControl<ControlType, ControlOptions> & {
+	options: ControlOptions,
 	mapping: Mapping?,
 }
 
@@ -50,6 +51,7 @@ export type StoryControlValue =
 export type PrimitiveStoryControl = StringControl | BooleanControl | NumberControl
 export type ExtendedStoryControl = SliderControl | ColorControl | DateControl
 export type ListBasedStoryControl = SelectControl | MultiSelectControl | CheckControl | RadioControl
+export type NumberBasedStoryControl = SliderControl | NumberControl
 
 export type StoryControl = PrimitiveStoryControl | ExtendedStoryControl | ListBasedStoryControl
 
