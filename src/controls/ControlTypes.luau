@@ -1,4 +1,8 @@
+local t = require("@pkg/t")
+
 local ControlType = require("@root/controls/enums/ControlType")
+
+local types = {}
 
 type ControlType = ControlType.ControlType
 
@@ -47,6 +51,8 @@ export type StoryControlValue =
 	| DateTime
 	| EnumItem
 	| { StoryControlValue }
+local StoryControlValue = t.union(t.boolean, t.number, t.string, t.Color3, t.DateTime, t.EnumItem)
+types.StoryControlValue = t.union(StoryControlValue, t.array(StoryControlValue))
 
 export type PrimitiveStoryControl = StringControl | BooleanControl | NumberControl
 export type ExtendedStoryControl = SliderControl | ColorControl | DateControl
@@ -63,4 +69,4 @@ export type StoryControls = {
 	[string]: StoryControlValue,
 }
 
-return nil
+return types
