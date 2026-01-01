@@ -79,7 +79,7 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
-	controls: StoryControls?,
+	controls: StoryControlsSchema?,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
@@ -101,7 +101,7 @@ export type LoadedStory<T> = {
 	packages: StoryPackages?,
 
 	summary: string?,
-	controls: StoryControls?,
+	controls: StoryControlsSchema?,
 	props: { [string]: any }?,
 }
 

@@ -100,11 +100,10 @@ end)
 
 test("pass controls as props", function()
 	local story = createReactStory(ButtonStory)
-	local controls: StoryControls = {
-		isDisabled = true,
-	}
 
-	story.controls = controls
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControls
 
 	render(container, story)
 
@@ -119,11 +118,10 @@ end)
 
 test("update the component on arg changes", function()
 	local story = createReactStory(ButtonStory)
-	local controls: StoryControls = {
-		isDisabled = true,
-	}
 
-	story.controls = controls
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControls
 
 	local lifecycle = render(container, story)
 
@@ -166,11 +164,10 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createReactStory(ButtonStory)
-	local controls: StoryControls = {
-		isDisabled = false,
-	}
 
-	story.controls = controls
+	story.controls = {
+		isDisabled = false,
+	} :: StoryControls
 
 	local lifecycle = render(container, story)
 

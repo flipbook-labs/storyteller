@@ -77,11 +77,10 @@ describe("Fusion 0.3.0", function()
 
 	test("controls are transformed into Values", function()
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		render(container, story)
 
@@ -94,11 +93,10 @@ describe("Fusion 0.3.0", function()
 		expect(#container:GetChildren()).toBe(0)
 
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		local lifecycle = render(container, story)
 
@@ -180,11 +178,10 @@ describe("Fusion 0.2.0", function()
 
 	test("controls are transformed into Values", function()
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		render(container, story)
 
@@ -197,11 +194,10 @@ describe("Fusion 0.2.0", function()
 		expect(#container:GetChildren()).toBe(0)
 
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		local lifecycle = render(container, story)
 

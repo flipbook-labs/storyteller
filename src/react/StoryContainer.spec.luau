@@ -127,15 +127,15 @@ describe("controls", function()
 		local setControls
 
 		local function Wrapper()
-			local controls: StoryControls
-			controls, setControls = React.useState({
+			local storyControls: StoryControls
+			storyControls, setControls = React.useState({
 				foo = true,
 				bar = "Hello, World!",
 			} :: StoryControls)
 
 			return React.createElement(StoryContainer, {
 				story = story,
-				controls = controls,
+				controls = storyControls,
 			})
 		end
 

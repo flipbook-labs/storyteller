@@ -87,11 +87,10 @@ test("render a GuiObject with args", function()
 	local story = createStory({
 		story = ButtonStory,
 	})
-	local controls: StoryControls = {
-		isDisabled = true,
-	}
 
-	story.controls = controls
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControls
 
 	render(container, story)
 
@@ -104,11 +103,10 @@ test("update the GuiObject on arg changes", function()
 	local story = createStory({
 		story = ButtonStory,
 	})
-	local controls: StoryControls = {
-		isDisabled = true,
-	}
 
-	story.controls = controls
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControls
 
 	local lifecycle = render(container, story)
 
