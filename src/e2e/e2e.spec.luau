@@ -2,6 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local controls = require("@root/controls")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
 local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
@@ -14,6 +15,8 @@ local describeEach = describe.each :: any
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local act = ReactRoblox.act
+
+type StoryControls = controls.StoryControls
 
 local storybookModules = findStorybookModules(script.Parent.storybooks)
 
@@ -107,7 +110,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 				lifecycle.update({
 					isDisabled = true,
-				})
+				} :: StoryControls)
 
 				afterRender()
 

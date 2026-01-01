@@ -5,18 +5,19 @@ local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
+type StoryControlsSchema = types.StoryControlsSchema
 type StoryProps = types.StoryProps
 type ReservedStoryProps = types.ReservedStoryProps
 type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
 
-local function collapseControls(controls: StoryControls): StoryControls
+local function collapseControls(controls: StoryControlsSchema): StoryControls
 	return Sift.Dictionary.map(controls, function(control)
 		-- Array values are collapsed to their first element to be passed off to
 		-- the story as props
 		if Sift.List.is(control) then
-			return control[1]
+			return (control :: { any })[1]
 		else
 			return control
 		end

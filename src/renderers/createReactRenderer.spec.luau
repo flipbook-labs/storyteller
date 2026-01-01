@@ -2,6 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -11,6 +12,8 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local act = ReactRoblox.act
+
+type StoryControls = controls.StoryControls
 
 local function createReactStory(element)
 	return createStory({
@@ -97,9 +100,10 @@ end)
 
 test("pass controls as props", function()
 	local story = createReactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = true,
-	}
+	} :: StoryControls
 
 	render(container, story)
 
@@ -114,9 +118,10 @@ end)
 
 test("update the component on arg changes", function()
 	local story = createReactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = true,
-	}
+	} :: StoryControls
 
 	local lifecycle = render(container, story)
 
@@ -130,7 +135,7 @@ test("update the component on arg changes", function()
 
 	lifecycle.update({
 		isDisabled = false,
-	})
+	} :: StoryControls)
 
 	act(function()
 		task.wait()
@@ -159,9 +164,10 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createReactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = false,
-	}
+	} :: StoryControls
 
 	local lifecycle = render(container, story)
 
@@ -177,7 +183,7 @@ test("lifecycle", function()
 
 	lifecycle.update({
 		isDisabled = true,
-	})
+	} :: StoryControls)
 
 	act(function()
 		task.wait()

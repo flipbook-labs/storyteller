@@ -2,9 +2,15 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
+local types = require("@root/types")
 
 local StoryContainer = require("./StoryContainer")
+
+type StoryControls = controls.StoryControls
+type StoryControlsSchema = controls.StoryControlsSchema
+type LoadedStory<T> = types.LoadedStory<T>
 
 local act = ReactRoblox.act
 local jest = JestGlobals.jest
@@ -93,7 +99,7 @@ describe("controls", function()
 				controls = {
 					foo = false,
 					font = Enum.Font.GothamBold,
-				},
+				} :: StoryControls,
 			}))
 		end)
 
@@ -121,15 +127,15 @@ describe("controls", function()
 		local setControls
 
 		local function Wrapper()
-			local controls
-			controls, setControls = React.useState({
+			local storyControls: StoryControls
+			storyControls, setControls = React.useState({
 				foo = true,
 				bar = "Hello, World!",
-			})
+			} :: StoryControls)
 
 			return React.createElement(StoryContainer, {
 				story = story,
-				controls = controls,
+				controls = storyControls,
 			})
 		end
 
@@ -143,7 +149,7 @@ describe("controls", function()
 			setControls({
 				foo = false,
 				bar = "Goodbye!",
-			})
+			} :: StoryControls)
 		end)
 
 		expect(storyProps).never.toBe(snapshot)
@@ -419,7 +425,7 @@ test("onError is called when a story experiences an error during mount", functio
 			story = story,
 			controls = {
 				foo = false,
-			},
+			} :: StoryControls,
 			onError = mockOnError,
 		}))
 	end)
