@@ -1,5 +1,3 @@
-local ControlType = require("@self/controls/enums/ControlType")
-local ControlTypes = require("@self/controls/ControlTypes")
 local types = require("@self/types")
 
 --[=[
@@ -23,25 +21,11 @@ export type Story<T> = types.Story<T>
 export type LoadedStory<T> = types.LoadedStory<T>
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
+export type UnavailableStorybook = types.UnavailableStorybook
+export type StoryControlsSchema = types.StoryControlsSchema
+export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-
-export type BooleanControl = ControlTypes.BooleanControl
-export type CheckControl<T> = ControlTypes.CheckControl<T>
-export type ColorControl = ControlTypes.ColorControl
-export type ColourControl = ControlTypes.ColourControl
-export type DateControl = ControlTypes.DateControl
-export type MultiSelectControl<T> = ControlTypes.MultiSelectControl<T>
-export type NumberControl = ControlTypes.NumberControl
-export type RadioControl<T> = ControlTypes.RadioControl<T>
-export type SelectControl<T> = ControlTypes.SelectControl<T>
-export type SliderControl = ControlTypes.SliderControl
-export type StringControl = ControlTypes.StringControl
-export type StoryControl = ControlTypes.StoryControl
-export type StoryControlsSchema = ControlTypes.StoryControlsSchema
-export type StoryControls = ControlTypes.StoryControls
-
-export type ControlType = ControlType.ControlType
 
 return {
 	-- Validation
@@ -65,19 +49,4 @@ return {
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
-
-	-- Enums
-	ControlType = ControlType,
-
-	-- Controls
-	boolean = require("@self/controls/creators/createBooleanControl"),
-	check = require("@self/controls/creators/createCheckControl"),
-	choose = require("@self/controls/creators/createSelectControl"),
-	color = require("@self/controls/creators/createColorControl"),
-	date = require("@self/controls/creators/createDateControl"),
-	multiChoose = require("@self/controls/creators/createMultiSelectControl"),
-	number = require("@self/controls/creators/createNumberControl"),
-	radio = require("@self/controls/creators/createRadioControl"),
-	slider = require("@self/controls/creators/createSliderControl"),
-	text = require("@self/controls/creators/createStringControl"),
 }
