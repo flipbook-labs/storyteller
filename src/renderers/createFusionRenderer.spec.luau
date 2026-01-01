@@ -2,7 +2,7 @@ local Fusion2 = require("@pkg/Fusion")
 local Fusion3 = require("@pkg/Fusion3")
 local JestGlobals = require("@pkg/JestGlobals")
 
-local ControlTypes = require("@root/controls/ControlTypes")
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -11,7 +11,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local describe = JestGlobals.describe
 
-type StoryControls = ControlTypes.StoryControls
+type StoryControls = controls.StoryControls
 
 local container
 
@@ -77,11 +77,10 @@ describe("Fusion 0.3.0", function()
 
 	test("controls are transformed into Values", function()
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		render(container, story)
 
@@ -94,11 +93,10 @@ describe("Fusion 0.3.0", function()
 		expect(#container:GetChildren()).toBe(0)
 
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		local lifecycle = render(container, story)
 
@@ -180,11 +178,10 @@ describe("Fusion 0.2.0", function()
 
 	test("controls are transformed into Values", function()
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		render(container, story)
 
@@ -197,11 +194,10 @@ describe("Fusion 0.2.0", function()
 		expect(#container:GetChildren()).toBe(0)
 
 		local story = createFusionStory(ButtonStory)
-		local controls: StoryControls = {
-			isDisabled = true,
-		}
 
-		story.controls = controls
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControls
 
 		local lifecycle = render(container, story)
 
