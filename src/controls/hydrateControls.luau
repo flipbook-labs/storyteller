@@ -28,22 +28,11 @@ local function hydrateControls(
 	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema,
 	controls: StoryControls
 ): StoryControls
-	if not ControlTypes.StoryControlsSchema(schema) then
-		local migratedSchema = migrateControlsSchema(schema)
-		local success, message = ControlTypes.StoryControlsSchema(migratedSchema)
-
-		if migratedSchema and success then
-			schema = migratedSchema
-		else
-			error(
-				`failed to parse controls schema (schema doesn't match a known format and couldn't be migrated)\nerr: {message}`
-			)
-		end
-	end
+	local migratedSchema = migrateControlsSchema(schema)
 
 	local hydrated: StoryControls = {}
 
-	for controlName, controlSchemaOrValue in schema do
+	for controlName, controlSchemaOrValue in migratedSchema do
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
