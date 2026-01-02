@@ -1,12 +1,12 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 
-export type StoryControlsSchema = controls.StoryControlsSchema
-export type StoryControls = controls.StoryControls
+export type StoryControlsSchema = ControlTypes.StoryControlsSchema
+export type StoryControls = ControlTypes.StoryControls
 
 local types = {}
 

@@ -1,7 +1,7 @@
 local Sift = require("@pkg/Sift")
 
-local controls = require("@root/controls")
 local createRendererForStory = require("@root/createRendererForStory")
+local hydrateControls = require("@root/controls/hydrateControls")
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
@@ -70,10 +70,10 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 
 	local prevProps: StoryProps?
 
-	local function renderOnce(storyControls: StoryControls?, extraProps: ExtraStoryProps?)
+	local function createStoryProps(controls: StoryControls?, extraProps: ExtraStoryProps?): StoryProps
 		local hydratedControls = if story.controls
-			then controls.hydrateControls(story.controls, if storyControls then storyControls else {})
-			else nil
+			then hydrateControls(story.controls, if controls then controls else {})
+			else controls
 
 		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
@@ -92,6 +92,12 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 			props = renderer.transformProps(props, prevProps)
 		end
 
+		return props
+	end
+
+	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
+		local props = createStoryProps(controls, extraProps)
+
 		if not renderer.shouldUpdate or renderer.shouldUpdate(props, prevProps) then
 			renderer.mount(container, story, props)
 		end
@@ -99,17 +105,11 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 		prevProps = props
 	end
 
-	local function update(storyControls: StoryControls?, extraProps: ExtraStoryProps?)
+	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
-			local hydratedControls = if story.controls and storyControls
-				then controls.hydrateControls(story.controls, storyControls)
-				else nil
-
-			local props = Sift.Dictionary.join(prevProps, extraProps, {
-				controls = hydratedControls,
-			})
-
+			local props = createStoryProps(controls, extraProps)
 			renderer.update(props, prevProps)
+			prevProps = props
 		else
 			renderOnce(controls, extraProps)
 		end
