@@ -1,6 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.4.0")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
@@ -26,7 +25,7 @@ type StoryControlValue = ControlTypes.StoryControlValue
 ]]
 
 local function hydrateControls(
-	schema: StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema | UILabsV242Migration.StoryControlsSchema,
+	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema,
 	controls: StoryControls
 ): StoryControls
 	if not ControlTypes.StoryControlsSchema(schema) then
