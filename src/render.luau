@@ -1,11 +1,12 @@
 local Sift = require("@pkg/Sift")
 
+local controls = require("@root/controls")
 local createRendererForStory = require("@root/createRendererForStory")
-local hydrateControls = require("@root/controls/hydrateControls")
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
+type StoryControlsSchema = types.StoryControlsSchema
 type StoryProps = types.StoryProps
 type ReservedStoryProps = types.ReservedStoryProps
 type ExtraStoryProps = types.ExtraStoryProps
@@ -69,9 +70,9 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 
 	local prevProps: StoryProps?
 
-	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
+	local function renderOnce(storyControls: StoryControls?, extraProps: ExtraStoryProps?)
 		local hydratedControls = if story.controls
-			then hydrateControls(story.controls, if controls then controls else {})
+			then controls.hydrateControls(story.controls, if storyControls then storyControls else {})
 			else nil
 
 		local reservedStoryProps: ReservedStoryProps = {
@@ -98,10 +99,10 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 		prevProps = props
 	end
 
-	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
+	local function update(storyControls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
-			local hydratedControls = if story.controls and controls
-				then hydrateControls(story.controls, controls)
+			local hydratedControls = if story.controls and storyControls
+				then controls.hydrateControls(story.controls, storyControls)
 				else nil
 
 			local props = Sift.Dictionary.join(prevProps, extraProps, {
