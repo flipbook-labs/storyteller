@@ -16,11 +16,11 @@ test("migrates the individual controls and returns a migrated array", function()
 
 	expect(migrateUILabsControlGroup(group)).toMatchObject({
 		Message = {
-			control = ControlType.String,
+			type = ControlType.String,
 			default = "Testing!",
 		},
 		Toggle = {
-			control = ControlType.Boolean,
+			type = ControlType.Boolean,
 			default = false,
 		},
 	})

@@ -122,6 +122,10 @@ local StoryControl = gt.build(gt.union(PrimitiveStoryControl, AdvancedStoryContr
 export.StoryControl = StoryControl
 export type StoryControl = typeof(StoryControl:type())
 
+local StoryControlsSchema = gt.build(gt.dictionary(gt.string, gt.union(StoryControl, StoryControlValue)))
+export.StoryControlsSchema = StoryControlsSchema
+export type StoryControlsSchema = typeof(StoryControlsSchema:type())
+
 local StoryControls = gt.build(gt.dictionary(gt.string(), StoryControl))
 export.StoryControls = StoryControls
 export type StoryControls = typeof(StoryControls:type())

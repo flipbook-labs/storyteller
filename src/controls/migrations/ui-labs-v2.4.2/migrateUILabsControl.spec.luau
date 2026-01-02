@@ -19,7 +19,7 @@ describe("UILabs.Boolean", function()
 		local control = (UILabs.Boolean(true) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Boolean,
+			type = ControlType.Boolean,
 			default = true,
 		})
 	end)
@@ -30,7 +30,7 @@ describe("UILabs.Number", function()
 		local control = (UILabs.Number(100) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Number,
+			type = ControlType.Number,
 			default = 100,
 		})
 	end)
@@ -39,7 +39,7 @@ describe("UILabs.Number", function()
 		local control = (UILabs.Number(100, 0, 100, 1) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Number,
+			type = ControlType.Number,
 			default = 100,
 			range = NumberRange.new(0, 100),
 			step = 1,
@@ -54,7 +54,7 @@ describe("UILabs.String", function()
 		local control = (UILabs.String("Hello, World!") :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.String,
+			type = ControlType.String,
 			default = "Hello, World!",
 		})
 	end)
@@ -69,7 +69,7 @@ describe("UILabs.Choose", function()
 		}) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -86,7 +86,7 @@ describe("UILabs.Choose", function()
 		}, 2) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -108,7 +108,7 @@ describe("UILabs.EnumList", function()
 		) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -131,7 +131,7 @@ describe("UILabs.RGBA", function()
 		local control = (UILabs.RGBA(Color3.fromRGB(255, 0, 200), 0.2) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Color,
+			type = ControlType.Color,
 			default = (control :: any).ControlValue.Color,
 		})
 	end)
@@ -142,7 +142,7 @@ describe("UILabs.Slider", function()
 		local control = (UILabs.Slider(50, 0, 100, 5) :: any) :: UILabsControl
 
 		expect(migrateUILabsControl(control)).toMatchObject({
-			control = ControlType.Slider,
+			type = ControlType.Slider,
 			range = NumberRange.new(0, 100),
 			default = 50,
 			step = 5,

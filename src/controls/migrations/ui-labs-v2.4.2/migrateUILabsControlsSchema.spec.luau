@@ -29,15 +29,15 @@ test("migrates a complex UI Labs schema to Flipbook's schema", function()
 
 	expect(migrateUILabsControlsSchema(schema)).toMatchObject({
 		message = {
-			control = ControlType.String,
+			type = ControlType.String,
 			default = "Hello, World!",
 		},
 		toggle = {
-			control = ControlType.Boolean,
+			type = ControlType.Boolean,
 			default = false,
 		},
 		choice = {
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
