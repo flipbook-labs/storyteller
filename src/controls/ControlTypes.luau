@@ -72,19 +72,19 @@ export type DateControl = typeof(DateControl:type())
 
 local SelectControl = gt.build(SelectOneControl("Select"))
 export.SelectControl = SelectControl
-export type SelectControl<T> = typeof(SelectControl:type())
+export type SelectControl = typeof(SelectControl:type())
 
 local RadioControl = gt.build(SelectOneControl("Radio"))
 export.RadioControl = RadioControl
-export type RadioControl<T> = typeof(RadioControl:type())
+export type RadioControl = typeof(RadioControl:type())
 
 local MultiSelectControl = gt.build(SelectManyControl("MultiSelect"))
 export.MultiSelectControl = MultiSelectControl
-export type MultiSelectControl<T> = typeof(MultiSelectControl:type())
+export type MultiSelectControl = typeof(MultiSelectControl:type())
 
 local CheckControl = gt.build(SelectManyControl("Check"))
 export.CheckControl = CheckControl
-export type CheckControl<T> = typeof(CheckControl:type())
+export type CheckControl = typeof(CheckControl:type())
 
 -- Make sure to update this when adding new control types!
 local StoryControlValueBase = gt.union(

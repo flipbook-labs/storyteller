@@ -82,8 +82,6 @@ describe("Fusion 0.3.0", function()
 			isDisabled = true,
 		} :: StoryControls
 
-		story.controls = controls
-
 		render(container, story)
 
 		local element = container:FindFirstChildWhichIsA("TextButton")
@@ -99,8 +97,6 @@ describe("Fusion 0.3.0", function()
 		story.controls = {
 			isDisabled = true,
 		} :: StoryControls
-
-		story.controls = controls
 
 		local lifecycle = render(container, story)
 
@@ -187,8 +183,6 @@ describe("Fusion 0.2.0", function()
 			isDisabled = true,
 		} :: StoryControls
 
-		story.controls = controls
-
 		render(container, story)
 
 		local element = container:FindFirstChildWhichIsA("TextButton")
@@ -204,8 +198,6 @@ describe("Fusion 0.2.0", function()
 		story.controls = {
 			isDisabled = true,
 		} :: StoryControls
-
-		story.controls = controls
 
 		local lifecycle = render(container, story)
 

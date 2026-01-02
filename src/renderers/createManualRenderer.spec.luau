@@ -92,8 +92,6 @@ test("render a GuiObject with args", function()
 		isDisabled = true,
 	} :: StoryControls
 
-	story.controls = controls
-
 	render(container, story)
 
 	local element = container:FindFirstChildWhichIsA("TextButton")
@@ -109,8 +107,6 @@ test("update the GuiObject on arg changes", function()
 	story.controls = {
 		isDisabled = true,
 	} :: StoryControls
-
-	story.controls = controls
 
 	local lifecycle = render(container, story)
 
