@@ -1,5 +1,3 @@
-local t = require("@pkg/t")
-
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.4.0")
@@ -16,13 +14,6 @@ type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
 
-local IStoryControl = t.interface({
-	control = t.string,
-	default = t.optional(t.any),
-})
-
-local IStoryControlsSchema = t.map(t.string, IStoryControl)
-
 --[[
 	As a principle:
 	1. Throw when there's an issue with the schema
@@ -38,10 +29,9 @@ local function hydrateControls(
 	schema: StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema | UILabsV242Migration.StoryControlsSchema,
 	controls: StoryControls
 ): StoryControls
-	if not IStoryControlsSchema(schema) then
+	if not ControlTypes.StoryControlsSchema(schema) then
 		local migratedSchema = migrateControlsSchema(schema)
-
-		local success, message = IStoryControlsSchema(migratedSchema)
+		local success, message = ControlTypes.StoryControlsSchema(migratedSchema)
 
 		if migratedSchema and success then
 			schema = migratedSchema
