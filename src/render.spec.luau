@@ -231,3 +231,23 @@ test("extra props can be supplied for things like the UI theme", function()
 		})
 	)
 end)
+
+test("always passes reserved props", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story)
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			story = story,
+			controls = expect.any("table"),
+		})
+	)
+end)
