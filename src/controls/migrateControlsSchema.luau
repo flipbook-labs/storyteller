@@ -1,5 +1,4 @@
 local ControlTypes = require("@root/controls/ControlTypes")
-local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.4.0")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 
 type StoryControls = ControlTypes.StoryControls
@@ -19,10 +18,6 @@ local migrations: { Migration } = {
 	{
 		matcher = UILabsV242Migration.isUILabsControlsSchema,
 		migrator = UILabsV242Migration.migrateUILabsControlsSchema,
-	},
-	{
-		matcher = StorytellerV140Migration.isStorytellerControlsSchema,
-		migrator = StorytellerV140Migration.migrateStorytellerControlsSchema,
 	},
 }
 
