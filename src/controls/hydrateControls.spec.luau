@@ -2,13 +2,14 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local createSelectControl = require("@root/controls/creators/createSelectControl")
+local createSelectControl = require("@root/controls/constructors/createSelectControl")
 
 local hydrateControls = require("./hydrateControls")
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
+type Mapping = ControlTypes.Mapping
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
@@ -21,7 +22,7 @@ local function assertAllControlTypesAreIncluded(schema: StoryControlsSchema)
 		local found = false
 
 		for _, controlSchema in schema do
-			if typeof(controlSchema) == "table" and rawget(controlSchema, "control") == controlType then
+			if typeof(controlSchema) == "table" and rawget(controlSchema, "type") == controlType then
 				found = true
 			end
 		end
@@ -38,30 +39,30 @@ test("hydrates a schema using all control types", function()
 	local schema: StoryControlsSchema = {
 		-- Primitives
 		greeting = {
-			control = ControlType.String,
+			type = ControlType.String,
 		},
 		toggle = {
-			control = ControlType.Boolean,
+			type = ControlType.Boolean,
 		},
 		number = {
-			control = ControlType.Number,
+			type = ControlType.Number,
 			range = NumberRange.new(1, 100),
 		},
 		-- Advanced
 		slider = {
-			control = ControlType.Slider,
+			type = ControlType.Slider,
 			step = 1,
 			range = NumberRange.new(1, 100),
 		},
 		color = {
-			control = ControlType.Color,
+			type = ControlType.Color,
 		},
 		date = {
-			control = ControlType.Date,
+			type = ControlType.Date,
 		},
 		-- List-based
 		dropdown = {
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -69,7 +70,7 @@ test("hydrates a schema using all control types", function()
 			},
 		},
 		multiSelect = {
-			control = ControlType.MultiSelect,
+			type = ControlType.MultiSelect,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -77,7 +78,7 @@ test("hydrates a schema using all control types", function()
 			},
 		},
 		check = {
-			control = ControlType.Check,
+			type = ControlType.Check,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -85,7 +86,7 @@ test("hydrates a schema using all control types", function()
 			},
 		},
 		radio = {
-			control = ControlType.Radio,
+			type = ControlType.Radio,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -114,7 +115,7 @@ end)
 test("hydrates list-based controls", function()
 	local schema: StoryControlsSchema = {
 		dropdown = {
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -122,7 +123,7 @@ test("hydrates list-based controls", function()
 			},
 		},
 		multiSelect = {
-			control = ControlType.MultiSelect,
+			type = ControlType.MultiSelect,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -130,7 +131,7 @@ test("hydrates list-based controls", function()
 			},
 		},
 		check = {
-			control = ControlType.Check,
+			type = ControlType.Check,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -138,7 +139,7 @@ test("hydrates list-based controls", function()
 			},
 		},
 		radio = {
-			control = ControlType.Radio,
+			type = ControlType.Radio,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -177,7 +178,7 @@ test("mapping list-based controls", function()
 				BuilderSans = Enum.Font.BuilderSans,
 				BuilderSansBold = Enum.Font.BuilderSansBold,
 				BuilderSansExtraBold = Enum.Font.BuilderSansExtraBold,
-			}
+			} :: Mapping
 		),
 	}
 
@@ -196,36 +197,36 @@ test("default value is used when one is not supplied", function()
 	local schema: StoryControlsSchema = {
 		-- Primitives
 		greeting = {
-			control = ControlType.String,
+			type = ControlType.String,
 			default = "Hello, World!",
 		},
 		toggle = {
-			control = ControlType.Boolean,
+			type = ControlType.Boolean,
 			default = false,
 		},
 		number = {
-			control = ControlType.Number,
+			type = ControlType.Number,
 			default = 1,
 			range = NumberRange.new(1, 100),
 		},
 		-- Advanced
 		slider = {
-			control = ControlType.Slider,
+			type = ControlType.Slider,
 			default = 1,
 			step = 1,
 			range = NumberRange.new(1, 100),
 		},
 		color = {
-			control = ControlType.Color,
+			type = ControlType.Color,
 			default = Color3.fromRGB(255, 255, 255),
 		},
 		date = {
-			control = ControlType.Date,
+			type = ControlType.Date,
 			default = DateTime.now(),
 		},
 		-- List-based
 		dropdown = {
-			control = ControlType.Select,
+			type = ControlType.Select,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -234,7 +235,7 @@ test("default value is used when one is not supplied", function()
 			default = "Option 1",
 		},
 		multiSelect = {
-			control = ControlType.MultiSelect,
+			type = ControlType.MultiSelect,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -246,7 +247,7 @@ test("default value is used when one is not supplied", function()
 			},
 		},
 		check = {
-			control = ControlType.Check,
+			type = ControlType.Check,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -258,7 +259,7 @@ test("default value is used when one is not supplied", function()
 			},
 		},
 		radio = {
-			control = ControlType.Radio,
+			type = ControlType.Radio,
 			options = {
 				"Option 1",
 				"Option 2",
@@ -295,11 +296,46 @@ test("default value is used when one is not supplied", function()
 	expect(hydrateControls(schema, controls)).toMatchObject(expected)
 end)
 
+test("plain values in the schema get mapped to the relevant control type", function()
+	local now = DateTime.now()
+
+	local schema: StoryControlsSchema = {
+		greeting = "Hello, World!",
+		toggle = true,
+		number = {
+			type = ControlType.Number,
+			range = NumberRange.new(0, 10),
+		},
+		color = Color3.fromRGB(255, 255, 255),
+		date = {
+			type = ControlType.Date,
+			default = now,
+		},
+	}
+
+	local controls: StoryControls = {
+		toggle = false,
+		number = 20,
+	}
+
+	local expected = {
+		greeting = "Hello, World!",
+		toggle = false,
+		number = 10,
+		color = Color3.fromRGB(255, 255, 255),
+		date = now,
+	}
+
+	local hydrated = hydrateControls(schema, controls)
+
+	expect(hydrated).toMatchObject(expected)
+end)
+
 describe("Boolean", function()
 	test("hydrates a schema with a Boolean control", function()
 		local schema: StoryControlsSchema = {
 			isDisabled = {
-				control = ControlType.Boolean,
+				type = ControlType.Boolean,
 				default = false,
 			},
 		}
@@ -320,7 +356,7 @@ describe("Number", function()
 	test("hydrates a schema with a Number control", function()
 		local schema: StoryControlsSchema = {
 			num = {
-				control = ControlType.Number,
+				type = ControlType.Number,
 				default = 100,
 			},
 		}
@@ -337,7 +373,7 @@ describe("Number", function()
 	test("constrains the control value to the range", function()
 		local schema: StoryControlsSchema = {
 			number = {
-				control = ControlType.Number,
+				type = ControlType.Number,
 				default = 1,
 				range = NumberRange.new(1, 100),
 			},
@@ -357,7 +393,7 @@ describe("Number", function()
 	test("throws when schema default value is out of range", function()
 		local schema: StoryControlsSchema = {
 			number = {
-				control = ControlType.Number,
+				type = ControlType.Number,
 				default = -100,
 				range = NumberRange.new(1, 100),
 			},
@@ -375,7 +411,7 @@ describe("String", function()
 	test("hydrates a schema with a String control", function()
 		local schema: StoryControlsSchema = {
 			text = {
-				control = ControlType.String,
+				type = ControlType.String,
 				default = "Hello, World!",
 			},
 		}
@@ -394,7 +430,7 @@ describe("Check", function()
 	test("hydrates a schema with a Check control", function()
 		local schema: StoryControlsSchema = {
 			options = {
-				control = ControlType.Check,
+				type = ControlType.Check,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -417,7 +453,7 @@ describe("Check", function()
 	test("uses the default when no control value is set", function()
 		local schema: StoryControlsSchema = {
 			options = {
-				control = ControlType.Check,
+				type = ControlType.Check,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -443,7 +479,7 @@ describe("Check", function()
 	test("throws when passing an invalid option", function()
 		local schema: StoryControlsSchema = {
 			options = {
-				control = ControlType.Check,
+				type = ControlType.Check,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -467,7 +503,7 @@ describe("Color", function()
 		local color = Color3.fromRGB(255, 255, 255)
 		local schema: StoryControlsSchema = {
 			color = {
-				control = ControlType.Color,
+				type = ControlType.Color,
 				default = color,
 			},
 		}
@@ -488,7 +524,7 @@ describe("Date", function()
 
 		local schema: StoryControlsSchema = {
 			date = {
-				control = ControlType.Date,
+				type = ControlType.Date,
 				default = date,
 			},
 		}
@@ -507,7 +543,7 @@ describe("MultiSelect", function()
 	test("hydrates a schema with a MultiSelect control", function()
 		local schema: StoryControlsSchema = {
 			choices = {
-				control = ControlType.MultiSelect,
+				type = ControlType.MultiSelect,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -530,7 +566,7 @@ describe("MultiSelect", function()
 	test("uses the default when no control value is set", function()
 		local schema: StoryControlsSchema = {
 			choices = {
-				control = ControlType.MultiSelect,
+				type = ControlType.MultiSelect,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -556,7 +592,7 @@ describe("MultiSelect", function()
 	test("throws when passing an invalid option", function()
 		local schema: StoryControlsSchema = {
 			choices = {
-				control = ControlType.MultiSelect,
+				type = ControlType.MultiSelect,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -579,7 +615,7 @@ describe("Radio", function()
 	test("hydrates a schema with a Radio control", function()
 		local schema: StoryControlsSchema = {
 			radio = {
-				control = ControlType.Radio,
+				type = ControlType.Radio,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -602,7 +638,7 @@ describe("Radio", function()
 	test("uses the default when no control value is set", function()
 		local schema: StoryControlsSchema = {
 			radio = {
-				control = ControlType.Radio,
+				type = ControlType.Radio,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -626,7 +662,7 @@ describe("Radio", function()
 	test("throws when passing an invalid option", function()
 		local schema: StoryControlsSchema = {
 			radio = {
-				control = ControlType.Radio,
+				type = ControlType.Radio,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -649,7 +685,7 @@ describe("Select", function()
 	test("hydrates a schema with a Select control", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
-				control = ControlType.Select,
+				type = ControlType.Select,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -674,7 +710,7 @@ describe("Select", function()
 	test("uses the default when no control value is set", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
-				control = ControlType.Select,
+				type = ControlType.Select,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -698,7 +734,7 @@ describe("Select", function()
 	test("throws when passing an invalid option", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
-				control = ControlType.Select,
+				type = ControlType.Select,
 				options = {
 					"Option 1",
 					"Option 2",
@@ -721,7 +757,7 @@ describe("Slider", function()
 	test("hydrates a schema with a Slider control", function()
 		local schema: StoryControlsSchema = {
 			number = {
-				control = ControlType.Slider,
+				type = ControlType.Slider,
 				default = 1,
 				range = NumberRange.new(1, 100),
 			},
@@ -743,7 +779,7 @@ describe("Slider", function()
 	test("constrains the control value to the range", function()
 		local schema: StoryControlsSchema = {
 			number = {
-				control = ControlType.Slider,
+				type = ControlType.Slider,
 				default = 1,
 				range = NumberRange.new(1, 100),
 			},
@@ -763,7 +799,7 @@ describe("Slider", function()
 	test("throws when schema default value is out of range", function()
 		local schema: StoryControlsSchema = {
 			slider = {
-				control = ControlType.Slider,
+				type = ControlType.Slider,
 				default = -100,
 				range = NumberRange.new(1, 100),
 			},

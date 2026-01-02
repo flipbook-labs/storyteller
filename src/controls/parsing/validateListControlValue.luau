@@ -1,10 +1,10 @@
 local ControlTypes = require("@root/controls/ControlTypes")
 
-type ListBasedStoryControl<T> = ControlTypes.ListBasedStoryControl<T>
+type ListBasedStoryControl = ControlTypes.ListBasedStoryControl
 
-local function validateListControlValue<T>(
+local function validateListControlValue(
 	controlName: string,
-	controlSchema: ListBasedStoryControl<T>,
+	controlSchema: ListBasedStoryControl,
 	controlValue: unknown?
 )
 	local options = {}
@@ -18,22 +18,17 @@ local function validateListControlValue<T>(
 	end
 
 	for _, optionValue in options do
+		assert(
+			table.find(controlSchema.options, optionValue),
+			`failed to hydrate "{controlName}" (expected control value "{optionValue}" to be included in 'options')`
+		)
+
 		if controlSchema.mapping then
 			local mappedOptionValue = if controlSchema.mapping then controlSchema.mapping[optionValue] else nil
 
 			assert(
 				mappedOptionValue,
 				`failed to hydrate "{controlName}" (could not map "{optionValue}" to one of the values in 'mapping')`
-			)
-
-			assert(
-				table.find(controlSchema.options, mappedOptionValue),
-				`failed to hydrate "{controlName}" (could not map "{mappedOptionValue}" to one of the values in 'options')`
-			)
-		else
-			assert(
-				table.find(controlSchema.options, optionValue),
-				`failed to hydrate "{controlName}" (expected control value "{optionValue}" to be included in 'options')`
 			)
 		end
 	end

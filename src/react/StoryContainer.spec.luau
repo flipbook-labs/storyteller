@@ -2,14 +2,14 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local ControlTypes = require("@root/controls/ControlTypes")
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
 local StoryContainer = require("./StoryContainer")
 
-type StoryControls = ControlTypes.StoryControls
-type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControls = controls.StoryControls
+type StoryControlsSchema = controls.StoryControlsSchema
 type LoadedStory<T> = types.LoadedStory<T>
 
 local act = ReactRoblox.act
@@ -127,15 +127,15 @@ describe("controls", function()
 		local setControls
 
 		local function Wrapper()
-			local controls: StoryControls
-			controls, setControls = React.useState({
+			local storyControls: StoryControls
+			storyControls, setControls = React.useState({
 				foo = true,
 				bar = "Hello, World!",
 			} :: StoryControls)
 
 			return React.createElement(StoryContainer, {
 				story = story,
-				controls = controls,
+				controls = storyControls,
 			})
 		end
 

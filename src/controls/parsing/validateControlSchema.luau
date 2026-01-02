@@ -7,7 +7,7 @@ local function validateControlSchema(controlName: string, controlSchema: StoryCo
 	local defaultValue = controlSchema.default
 
 	if defaultValue then
-		if controlSchema.control == ControlType.Number or controlSchema.control == ControlType.Slider then
+		if controlSchema.type == ControlType.Number or controlSchema.type == ControlType.Slider then
 			assert(
 				typeof(defaultValue) == "number",
 				`failed to hydrate "{controlName}" (number expected for default value, got "{typeof(defaultValue)})`
@@ -22,7 +22,7 @@ local function validateControlSchema(controlName: string, controlSchema: StoryCo
 			end
 		end
 
-		if controlSchema.control == ControlType.Check or controlSchema.control == ControlType.MultiSelect then
+		if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
 			assert(
 				typeof(defaultValue) == "table",
 				`failed to hydrate "{controlName}" (array expected for default value, got "{typeof(defaultValue)}")`
@@ -36,7 +36,7 @@ local function validateControlSchema(controlName: string, controlSchema: StoryCo
 			end
 		end
 
-		if controlSchema.control == ControlType.Radio or controlSchema.control == ControlType.Select then
+		if controlSchema.type == ControlType.Radio or controlSchema.type == ControlType.Select then
 			assert(
 				table.find(controlSchema.options, tostring(defaultValue)),
 				`failed to hydrate "{controlName}" (value "{defaultValue}" not found in 'options')`

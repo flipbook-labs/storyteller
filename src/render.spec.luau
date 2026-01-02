@@ -1,5 +1,6 @@
-local ControlTypes = require("@root/controls/ControlTypes")
 local JestGlobals = require("@pkg/JestGlobals")
+
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
@@ -10,7 +11,7 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 
 type StoryRenderer<T> = types.StoryRenderer<T>
-type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControlsSchema = controls.StoryControlsSchema
 
 local container: Instance
 local story: types.LoadedStory<TextLabel>
@@ -90,11 +91,11 @@ end)
 test("props are passed to shouldUpdate", function()
 	local props
 
-	local controls: StoryControlsSchema = {
+	local schema: StoryControlsSchema = {
 		foo = true,
 	}
 
-	story.controls = controls
+	story.controls = schema
 
 	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = function(_props)
@@ -108,7 +109,7 @@ test("props are passed to shouldUpdate", function()
 
 	expect(props).toMatchObject({
 		container = container,
-		controls = controls,
+		controls = schema,
 	})
 end)
 
@@ -188,14 +189,14 @@ test("prevProps is nil on the first render", function()
 end)
 
 test("array controls are collapsed to the first story", function()
-	local controls: StoryControlsSchema = {
+	local schema: StoryControlsSchema = {
 		font = {
 			Enum.Font.BuilderSans,
 			Enum.Font.RobotoMono,
 			Enum.Font.Merriweather,
 		} :: { EnumItem },
 	}
-	story.controls = controls
+	story.controls = schema
 
 	local font: Enum.Font?
 
