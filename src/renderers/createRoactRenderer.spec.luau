@@ -76,8 +76,6 @@ test("pass controls as props", function()
 		isDisabled = true,
 	} :: StoryControls
 
-	story.controls = controls
-
 	render(container, story)
 
 	local button = container:FindFirstChildWhichIsA("TextButton")
@@ -92,8 +90,6 @@ test("update the component on arg changes", function()
 	story.controls = {
 		isDisabled = true,
 	} :: StoryControls
-
-	story.controls = controls
 
 	local lifecycle = render(container, story)
 
@@ -144,8 +140,6 @@ test("lifecycle", function()
 	story.controls = {
 		isDisabled = false,
 	} :: StoryControls
-
-	story.controls = controls
 
 	local lifecycle = render(container, story)
 

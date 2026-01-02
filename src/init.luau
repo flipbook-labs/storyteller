@@ -28,19 +28,20 @@ export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
 
 export type BooleanControl = ControlTypes.BooleanControl
-export type CheckControl<T> = ControlTypes.CheckControl<T>
+export type CheckControl = ControlTypes.CheckControl
 export type ColorControl = ControlTypes.ColorControl
 export type ColourControl = ControlTypes.ColourControl
 export type DateControl = ControlTypes.DateControl
-export type MultiSelectControl<T> = ControlTypes.MultiSelectControl<T>
+export type MultiSelectControl = ControlTypes.MultiSelectControl
 export type NumberControl = ControlTypes.NumberControl
-export type RadioControl<T> = ControlTypes.RadioControl<T>
-export type SelectControl<T> = ControlTypes.SelectControl<T>
+export type RadioControl = ControlTypes.RadioControl
+export type SelectControl = ControlTypes.SelectControl
 export type SliderControl = ControlTypes.SliderControl
 export type StringControl = ControlTypes.StringControl
 export type StoryControl = ControlTypes.StoryControl
 export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControls = ControlTypes.StoryControls
+export type StoryControlValue = ControlTypes.StoryControlValue
 
 export type ControlType = ControlType.ControlType
 
@@ -71,14 +72,14 @@ return {
 	ControlType = ControlType,
 
 	-- Controls
-	boolean = require("@self/controls/creators/createBooleanControl"),
-	check = require("@self/controls/creators/createCheckControl"),
-	choose = require("@self/controls/creators/createSelectControl"),
-	color = require("@self/controls/creators/createColorControl"),
-	date = require("@self/controls/creators/createDateControl"),
-	multiChoose = require("@self/controls/creators/createMultiSelectControl"),
-	number = require("@self/controls/creators/createNumberControl"),
-	radio = require("@self/controls/creators/createRadioControl"),
-	slider = require("@self/controls/creators/createSliderControl"),
-	text = require("@self/controls/creators/createStringControl"),
+	createBooleanControl = require("@self/controls/constructors/createBooleanControl"),
+	createCheckControl = require("@self/controls/constructors/createCheckControl"),
+	createColorControl = require("@self/controls/constructors/createColorControl"),
+	createDateControl = require("@self/controls/constructors/createDateControl"),
+	createMultiSelectControl = require("@self/controls/constructors/createMultiSelectControl"),
+	createNumberControl = require("@self/controls/constructors/createNumberControl"),
+	createRadioControl = require("@self/controls/constructors/createRadioControl"),
+	createSelectControl = require("@self/controls/constructors/createSelectControl"),
+	createSliderControl = require("@self/controls/constructors/createSliderControl"),
+	createStringControl = require("@self/controls/constructors/createStringControl"),
 }
