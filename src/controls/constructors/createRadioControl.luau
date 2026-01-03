@@ -1,15 +1,14 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
+type ControlOptions = ControlTypes.ControlOptions
 type RadioControl = ControlTypes.RadioControl
-type Mapping = ControlTypes.Mapping
 
-local function createRadioControl(options: { string }, default: string?, mapping: Mapping?): RadioControl
+local function createRadioControl(options: ControlOptions, default: string?): RadioControl
 	local control: RadioControl = {
 		type = ControlType.Radio,
 		options = options,
 		default = default,
-		mapping = mapping,
 	}
 
 	ControlTypes.RadioControl:assert(control)

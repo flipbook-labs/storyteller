@@ -167,27 +167,39 @@ end)
 
 test("mapping list-based controls", function()
 	local schema: StoryControlsSchema = {
-		font = createSelectControl(
-			{
-				"BuilderSans",
-				"BuilderSansBold",
-				"BuilderSansExtraBold",
-			},
-			nil,
-			{
-				BuilderSans = Enum.Font.BuilderSans,
-				BuilderSansBold = Enum.Font.BuilderSansBold,
-				BuilderSansExtraBold = Enum.Font.BuilderSansExtraBold,
-			} :: Mapping
-		),
+		font = createSelectControl({
+			["Builder Sans"] = Enum.Font.BuilderSans,
+			["Builder Sans (Bold)"] = Enum.Font.BuilderSansBold,
+			["Builder Sans (Extra Bold)"] = Enum.Font.BuilderSansExtraBold,
+		}),
 	}
 
 	local controls: StoryControls = {
-		font = "BuilderSans",
+		font = "Builder Sans (Bold)",
 	}
 
 	local expected = {
-		font = Enum.Font.BuilderSans,
+		font = Enum.Font.BuilderSansBold,
+	}
+
+	expect(hydrateControls(schema, controls)).toMatchObject(expected)
+end)
+
+test("using non-strings for list-based control maps to strings behind the scenes", function()
+	local schema: StoryControlsSchema = {
+		font = createSelectControl({
+			Enum.Font.BuilderSans,
+			Enum.Font.BuilderSansBold,
+			Enum.Font.BuilderSansExtraBold,
+		}),
+	}
+
+	local controls: StoryControls = {
+		font = tostring(Enum.Font.BuilderSansBold),
+	}
+
+	local expected = {
+		font = Enum.Font.BuilderSansBold,
 	}
 
 	expect(hydrateControls(schema, controls)).toMatchObject(expected)

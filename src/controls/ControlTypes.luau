@@ -1,3 +1,4 @@
+local Sift = require("@pkg/Sift")
 local gt = require("@pkg/GreenTea")
 
 local ControlType = require("@root/controls/enums/ControlType")
@@ -7,7 +8,7 @@ type ControlType = ControlType.ControlType
 local export = {}
 
 -- Make sure to update this when adding new control types!
-type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem
+export type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem
 local StoryControlValueBase: StoryControlValueBase = gt.union(
 	-- Primitives
 	gt.boolean() :: boolean | number | string | Color3 | DateTime | EnumItem,
@@ -19,16 +20,21 @@ local StoryControlValueBase: StoryControlValueBase = gt.union(
 	gt.isTypeof("DateTime") :: DateTime,
 	gt.isTypeof("EnumItem") :: EnumItem
 )
+export.StoryControlValueBase = gt.build(StoryControlValueBase)
 
 local StoryControlValue = gt.union(StoryControlValueBase, gt.array(StoryControlValueBase))
 export.StoryControlValue = gt.build(StoryControlValue)
 export type StoryControlValue = typeof(StoryControlValue)
 
-local Mapping = gt.dictionary(gt.string(), StoryControlValue)
-export.Mapping = gt.build(Mapping)
-export type Mapping = typeof(Mapping)
+local MappedControlOptions = gt.dictionary(gt.string(), StoryControlValueBase)
+export.MappedControlOptions = gt.build(MappedControlOptions)
+export type MappedControlOptions = typeof(MappedControlOptions)
 
-local ControlOptions = gt.array(gt.string())
+local SimpleControlOptions = gt.array(gt.string())
+export.SimpleControlOptions = gt.build(SimpleControlOptions)
+export type SimpleControlOptions = typeof(SimpleControlOptions)
+
+local ControlOptions = gt.union(SimpleControlOptions, MappedControlOptions)
 export.ControlOptions = gt.build(ControlOptions)
 export type ControlOptions = typeof(ControlOptions)
 
@@ -62,16 +68,27 @@ local function BaseNumberControl(controlType: ControlType)
 	)
 end
 
+local function getPossibleOptions(controlOptions: ControlOptions): { string }
+	if export.SimpleControlOptions:matches(controlOptions) then
+		return controlOptions :: SimpleControlOptions
+	elseif export.MappedControlOptions:matches(controlOptions) then
+		return Sift.Dictionary.keys(controlOptions)
+	end
+
+	return {}
+end
+
 local function SelectOneControl(controlType: ControlType)
 	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
-		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
 		default = gt.optional(gt.string()),
 	})
 
 	return gt.withCustom(control, function(input: typeof(control))
-		if input.default and not table.find(input.options, input.default) then
+		local options = getPossibleOptions(input.options)
+
+		if input.default and not table.find(options, input.default) then
 			return false, `value "{input.default}" not found in 'options'`
 		end
 
@@ -83,23 +100,16 @@ local function SelectManyControl(controlType: ControlType)
 	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
-		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
-		default = gt.optional(ControlOptions),
+		default = gt.optional(gt.array(gt.string())),
 	})
 
 	return gt.withCustom(control, function(input: typeof(control))
 		if input.default then
-			for _, defaultOption in input.default do
-				if not table.find(input.options, defaultOption) then
-					return false, `value "{defaultOption}" not found in 'options'`
-				end
-			end
-		end
+			local options = getPossibleOptions(input.options)
 
-		for _, option in input.options do
-			if input.mapping then
-				if input.mapping[option] == nil then
-					return false, `could not map "{option}" to one of the values in 'mapping'`
+			for _, defaultOption in input.default do
+				if not table.find(options, defaultOption) then
+					return false, `value "{defaultOption}" not found in 'options'`
 				end
 			end
 		end

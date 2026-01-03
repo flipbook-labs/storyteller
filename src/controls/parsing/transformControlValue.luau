@@ -1,10 +1,30 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
+local getPossibleControlOptions = require("@root/controls/parsing/getPossibleControlOptions")
 
 type StoryControl = ControlTypes.StoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
+type StoryControlValueBase = ControlTypes.StoryControlValueBase
 type NumberBasedStoryControl = ControlTypes.NumberBasedStoryControl
 type ListBasedStoryControl = ControlTypes.ListBasedStoryControl
+type MappedControlOptions = ControlTypes.MappedControlOptions
+
+local function transformControlOption(
+	controlSchema: ListBasedStoryControl,
+	controlValue: StoryControlValueBase?
+): StoryControlValueBase?
+	for _, option in getPossibleControlOptions(controlSchema.options) do
+		if option == controlValue then
+			if ControlTypes.MappedControlOptions:matches(controlSchema.options) then
+				local options = controlSchema.options :: MappedControlOptions
+				return options[tostring(controlValue)]
+			else
+				return controlValue
+			end
+		end
+	end
+	return nil
+end
 
 local function transformControlValue(controlSchema: StoryControl, controlValue: StoryControlValue?): StoryControlValue?
 	local controlValueOrDefault: StoryControlValue? = if controlValue then controlValue else controlSchema.default
@@ -22,17 +42,12 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 	end
 
 	if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
-		local listBasedControl = controlSchema :: ListBasedStoryControl
-
 		if typeof(controlValueOrDefault) == "table" then
-			local result = {}
-			local mapping = listBasedControl.mapping
-
+			local result: { StoryControlValueBase } = {}
 			for _, option in controlValueOrDefault do
-				if mapping then
-					table.insert(result, mapping[tostring(option)])
-				else
-					table.insert(result, option)
+				local transformed = transformControlOption(controlSchema :: ListBasedStoryControl, option)
+				if transformed then
+					table.insert(result, transformed)
 				end
 			end
 			return result
@@ -40,15 +55,7 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 	end
 
 	if controlSchema.type == ControlType.Radio or controlSchema.type == ControlType.Select then
-		local listBasedControl = controlSchema :: ListBasedStoryControl
-
-		local mapping = listBasedControl.mapping
-		if mapping then
-			local mappedControlValue = mapping[tostring(controlValueOrDefault)]
-			if mappedControlValue then
-				return mappedControlValue
-			end
-		end
+		return transformControlOption(controlSchema :: ListBasedStoryControl, controlValueOrDefault)
 	end
 
 	return controlValueOrDefault
