@@ -4,7 +4,7 @@ local ControlType = require("@root/controls/enums/ControlType")
 
 local types = {}
 
-type ControlType = ControlType.ControlType
+export type ControlType = ControlType.ControlType
 
 export type Mapping = { [string]: StoryControlValue }
 export type ControlOptions = { string }

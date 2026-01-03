@@ -1,4 +1,3 @@
-local ControlType = require("@self/controls/enums/ControlType")
 local ControlTypes = require("@self/controls/ControlTypes")
 local types = require("@self/types")
 
@@ -24,17 +23,14 @@ export type LoadedStory<T> = types.LoadedStory<T>
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
-export type StoryControlsSchema = types.StoryControlsSchema
-export type StoryControls = types.StoryControls
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-
-export type ControlType = ControlType.ControlType
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
 export type ColorControl = ControlTypes.ColorControl
 export type ColourControl = ControlTypes.ColourControl
+export type ControlType = ControlTypes.ControlType
 export type DateControl = ControlTypes.DateControl
 export type MultiSelectControl = ControlTypes.MultiSelectControl
 export type NumberControl = ControlTypes.NumberControl
@@ -42,11 +38,14 @@ export type RadioControl = ControlTypes.RadioControl
 export type SelectControl = ControlTypes.SelectControl
 export type SliderControl = ControlTypes.SliderControl
 export type StoryControl = ControlTypes.StoryControl
+export type StoryControls = ControlTypes.StoryControls
+export type StoryControlsSchema = ControlTypes.StoryControlsSchema
+export type StoryControlValue = ControlTypes.StoryControlValue
 export type StringControl = ControlTypes.StringControl
 
 return {
 	-- Enums
-	ControlType = ControlType,
+	ControlType = require("@self/controls/enums/ControlType"),
 
 	-- Validation
 	isStorybookModule = require("@self/isStoryModule"),
