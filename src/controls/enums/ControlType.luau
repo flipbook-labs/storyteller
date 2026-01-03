@@ -1,4 +1,16 @@
-export type ControlType = "String" | "Boolean" | "Number" | "Select" | "MultiSelect" | "Radio" | "Check" | "Color" | "Date"
+export type ControlType =
+	-- Primitives
+	"Boolean"
+	| "Number"
+	| "String"
+	-- Advanced
+	| "Check"
+	| "Color"
+	| "Date"
+	| "MultiSelect"
+	| "Radio"
+	| "Select"
+	| "Slider"
 
 local ControlType = {
 	-- Primitives
