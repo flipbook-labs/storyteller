@@ -1,4 +1,3 @@
-local ControlType = require("@self/controls/enums/ControlType")
 local ControlTypes = require("@self/controls/ControlTypes")
 local types = require("@self/types")
 
@@ -31,21 +30,23 @@ export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
 export type ColorControl = ControlTypes.ColorControl
 export type ColourControl = ControlTypes.ColourControl
+export type ControlType = ControlTypes.ControlType
 export type DateControl = ControlTypes.DateControl
 export type MultiSelectControl = ControlTypes.MultiSelectControl
 export type NumberControl = ControlTypes.NumberControl
 export type RadioControl = ControlTypes.RadioControl
 export type SelectControl = ControlTypes.SelectControl
 export type SliderControl = ControlTypes.SliderControl
-export type StringControl = ControlTypes.StringControl
 export type StoryControl = ControlTypes.StoryControl
-export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControls = ControlTypes.StoryControls
+export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControlValue = ControlTypes.StoryControlValue
-
-export type ControlType = ControlType.ControlType
+export type StringControl = ControlTypes.StringControl
 
 return {
+	-- Enums
+	ControlType = require("@self/controls/enums/ControlType"),
+
 	-- Validation
 	isStorybookModule = require("@self/isStoryModule"),
 	isStoryModule = require("@self/isStoryModule"),
@@ -68,9 +69,6 @@ return {
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
 
-	-- Enums
-	ControlType = ControlType,
-
 	-- Controls
 	createBooleanControl = require("@self/controls/constructors/createBooleanControl"),
 	createCheckControl = require("@self/controls/constructors/createCheckControl"),
@@ -82,4 +80,5 @@ return {
 	createSelectControl = require("@self/controls/constructors/createSelectControl"),
 	createSliderControl = require("@self/controls/constructors/createSliderControl"),
 	createStringControl = require("@self/controls/constructors/createStringControl"),
+	hydrateControls = require("@self/controls/hydrateControls"),
 }

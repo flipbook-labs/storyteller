@@ -2,7 +2,7 @@ local gt = require("@pkg/GreenTea")
 
 local ControlType = require("@root/controls/enums/ControlType")
 
-type ControlType = ControlType.ControlType
+export type ControlType = ControlType.ControlType
 
 local export = {}
 
