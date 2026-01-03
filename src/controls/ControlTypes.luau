@@ -44,7 +44,7 @@ local function BaseNumberControl(controlType: ControlType)
 		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(gt.number()),
 		step = gt.optional(gt.number()),
-		range = gt.optional(gt.isTypeof("NumberRange")),
+		range = gt.optional(gt.isA("NumberRange")),
 	})
 
 	return gt.withCustom(

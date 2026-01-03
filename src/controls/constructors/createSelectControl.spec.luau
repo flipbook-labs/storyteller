@@ -1,6 +1,10 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
+local ControlTypes = require("@root/controls/ControlTypes")
+
 local createSelectControl = require("./createSelectControl")
+
+type Mapping = ControlTypes.Mapping
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -21,7 +25,7 @@ test("throws when the mapping is incomplete", function()
 			"Option1",
 			{
 				Option1 = "Option 1",
-			}
+			} :: Mapping
 		)
 	end).toThrow()
 end)
