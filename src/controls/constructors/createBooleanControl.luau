@@ -1,6 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
 
 type BooleanControl = ControlTypes.BooleanControl
 
@@ -10,7 +9,7 @@ local function createBooleanControl(default: boolean?): BooleanControl
 		default = default,
 	}
 
-	validateControlSchema(ControlType.Boolean, control)
+	ControlTypes.BooleanControl:assert(control)
 
 	return control
 end

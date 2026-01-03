@@ -1,6 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
 
 type MultiSelectControl = ControlTypes.MultiSelectControl
 type Mapping = ControlTypes.Mapping
@@ -12,7 +11,7 @@ local function createMultiSelectControl(options: { string }, mapping: Mapping?):
 		mapping = mapping,
 	}
 
-	validateControlSchema(ControlType.MultiSelect, control)
+	ControlTypes.MultiSelectControl:assert(control)
 
 	return control
 end

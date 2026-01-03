@@ -40,30 +40,72 @@ local function BaseControl<T>(controlType: ControlType, valueType: T)
 end
 
 local function BaseNumberControl(controlType: ControlType)
-	return gt.struct({
+	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(gt.number()),
 		step = gt.optional(gt.number()),
 		range = gt.optional(gt.isTypeof("NumberRange")),
 	})
+
+	return gt.withCustom(
+		control,
+		-- Is it safe to assume that `input` should be typed as the fisrt arg?
+		function(input: typeof(control))
+			if input.default and input.range then
+				if input.default < input.range.Min or input.default > input.range.Max then
+					return false,
+						`default value "{input.default}" must be a number within the range [{input.range.Min}, {input.range.Max}]`
+				end
+			end
+			return true, nil
+		end
+	)
 end
 
 local function SelectOneControl(controlType: ControlType)
-	return gt.struct({
+	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
 		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
 		default = gt.optional(gt.string()),
 	})
+
+	return gt.withCustom(control, function(input: typeof(control))
+		if input.default and not table.find(input.options, input.default) then
+			return false, `value "{input.default}" not found in 'options'`
+		end
+
+		return true, nil
+	end)
 end
 
 local function SelectManyControl(controlType: ControlType)
-	return gt.struct({
+	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
 		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
 		default = gt.optional(ControlOptions),
 	})
+
+	return gt.withCustom(control, function(input: typeof(control))
+		if input.default then
+			for _, defaultOption in input.default do
+				if not table.find(input.options, defaultOption) then
+					return false, `value "{defaultOption}" not found in 'options'`
+				end
+			end
+		end
+
+		for _, option in input.options do
+			if input.mapping then
+				if input.mapping[option] == nil then
+					return false, `could not map "{option}" to one of the values in 'mapping'`
+				end
+			end
+		end
+
+		return true, nil
+	end)
 end
 
 local BooleanControl = BaseControl(ControlType.Boolean, gt.boolean())

@@ -1,6 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
 
 type ColorControl = ControlTypes.ColorControl
 
@@ -10,7 +9,7 @@ local function createColorControl(default: Color3?): ColorControl
 		default = default,
 	}
 
-	validateControlSchema(ControlType.Color, control)
+	ControlTypes.ColorControl:assert(control)
 
 	return control
 end

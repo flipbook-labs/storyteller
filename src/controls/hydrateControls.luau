@@ -1,12 +1,9 @@
-local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
 local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
-local validateListControlValue = require("@root/controls/parsing/validateListControlValue")
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
@@ -39,16 +36,7 @@ local function hydrateControls(
 		if controlSchema then
 			local controlValue: StoryControlValue? = controls[controlName]
 
-			validateControlSchema(controlName, controlSchema)
-
-			if
-				controlSchema.type == ControlType.Check
-				or controlSchema.type == ControlType.MultiSelect
-				or controlSchema.type == ControlType.Radio
-				or controlSchema.type == ControlType.Select
-			then
-				validateListControlValue(controlName, controlSchema :: ListBasedControlSchema, controlValue)
-			end
+			ControlTypes.StoryControlsSchema:assert(controlSchema)
 
 			local transformed = transformControlValue(controlSchema, controlValue)
 

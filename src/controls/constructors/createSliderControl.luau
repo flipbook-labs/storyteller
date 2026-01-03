@@ -1,6 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
 
 type SliderControl = ControlTypes.SliderControl
 
@@ -12,7 +11,7 @@ local function createSliderControl(default: number?, range: NumberRange?, step: 
 		step = step,
 	}
 
-	validateControlSchema(ControlType.Slider, control)
+	ControlTypes.SliderControl:assert(control)
 
 	return control
 end
