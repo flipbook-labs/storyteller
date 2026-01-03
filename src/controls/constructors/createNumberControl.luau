@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type NumberControl = ControlTypes.NumberControl
 
 local function createNumberControl(default: number?, range: NumberRange?, step: number?): NumberControl
-	local control = {
+	local control: NumberControl = {
 		type = ControlType.Number,
 		default = default,
 		range = range,

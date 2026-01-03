@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type DateControl = ControlTypes.DateControl
 
 local function createDateControl(default: DateTime?): DateControl
-	local control = {
+	local control: DateControl = {
 		type = ControlType.Date,
 		default = default,
 	}

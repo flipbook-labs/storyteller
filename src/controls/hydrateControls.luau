@@ -11,6 +11,7 @@ local validateListControlValue = require("@root/controls/parsing/validateListCon
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
+type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
 
 --[[
@@ -46,7 +47,7 @@ local function hydrateControls(
 				or controlSchema.type == ControlType.Radio
 				or controlSchema.type == ControlType.Select
 			then
-				validateListControlValue(controlName, controlSchema, controlValue)
+				validateListControlValue(controlName, controlSchema :: ListBasedControlSchema, controlValue)
 			end
 
 			local transformed = transformControlValue(controlSchema, controlValue)

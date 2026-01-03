@@ -7,130 +7,136 @@ type ControlType = ControlType.ControlType
 local export = {}
 
 -- Make sure to update this when adding new control types!
-local StoryControlValueBase = gt.union(
-	gt.union(
-		-- Primitives
-		gt.boolean(),
-		gt.number(),
-		gt.string()
-	),
-	gt.union(
-		-- Roblox datatypes
-		gt.Color3(),
-		gt.isTypeof("DateTime") :: DateTime,
-		gt.isTypeof("EnumItem") :: EnumItem
-	)
+type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem
+local StoryControlValueBase: StoryControlValueBase = gt.union(
+	-- Primitives
+	gt.boolean() :: boolean | number | string | Color3 | DateTime | EnumItem,
+	gt.number(),
+	gt.string(),
+
+	-- Roblox datatypes
+	gt.Color3(),
+	gt.isTypeof("DateTime") :: DateTime,
+	gt.isTypeof("EnumItem") :: EnumItem
 )
-local StoryControlValue = gt.build(gt.union(StoryControlValueBase, gt.array(StoryControlValueBase)))
-export.StoryControlValue = StoryControlValue
-export type StoryControlValue = typeof(StoryControlValue:type())
 
-local Mapping = gt.build(gt.dictionary(gt.string(), StoryControlValue))
-export.Mapping = Mapping
-export type Mapping = typeof(Mapping:type())
+local StoryControlValue = gt.union(StoryControlValueBase, gt.array(StoryControlValueBase))
+export.StoryControlValue = gt.build(StoryControlValue)
+export type StoryControlValue = typeof(StoryControlValue)
 
-local ControlOptions = gt.build(gt.array(gt.string))
-export.ControlOptions = ControlOptions
-export type ControlOptions = typeof(ControlOptions:type())
+local Mapping = gt.dictionary(gt.string(), StoryControlValue)
+export.Mapping = gt.build(Mapping)
+export type Mapping = typeof(Mapping)
+
+local ControlOptions = gt.array(gt.string())
+export.ControlOptions = gt.build(ControlOptions)
+export type ControlOptions = typeof(ControlOptions)
 
 local function BaseControl<T>(controlType: ControlType, valueType: T)
-	return gt.table({
-		type = gt.literal(controlType),
+	return gt.struct({
+		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(valueType),
 	})
 end
 
-local function BaseNumberControl(controlType)
-	return gt.table({
-		type = controlType,
+local function BaseNumberControl(controlType: ControlType)
+	return gt.struct({
+		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(gt.number()),
 		step = gt.optional(gt.number()),
 		range = gt.optional(gt.isTypeof("NumberRange")),
 	})
 end
 
-local function SelectOneControl(controlType)
-	return gt.table({
-		type = gt.literal(controlType),
+local function SelectOneControl(controlType: ControlType)
+	return gt.struct({
+		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
 		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
 		default = gt.optional(gt.string()),
 	})
 end
 
-local function SelectManyControl(controlType)
-	return gt.table({
-		type = gt.literal(controlType),
+local function SelectManyControl(controlType: ControlType)
+	return gt.struct({
+		type = gt.literal(controlType) :: ControlType,
 		options = ControlOptions,
 		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
 		default = gt.optional(ControlOptions),
 	})
 end
 
-local BooleanControl = gt.build(BaseControl("Boolean", gt.boolean()))
-export.BooleanControl = BooleanControl
-export type BooleanControl = typeof(BooleanControl:type())
+local BooleanControl = BaseControl(ControlType.Boolean, gt.boolean())
+export.BooleanControl = gt.build(BooleanControl)
+export type BooleanControl = typeof(BooleanControl)
 
-local StringControl = gt.build(BaseControl("String", gt.string()))
-export.StringControl = StringControl
-export type StringControl = typeof(StringControl:type())
+local StringControl = BaseControl(ControlType.String, gt.string())
+export.StringControl = gt.build(StringControl)
+export type StringControl = typeof(StringControl)
 
-local NumberControl = gt.build(BaseNumberControl("Number"))
-export.NumberControl = NumberControl
-export type NumberControl = typeof(NumberControl:type())
+local NumberControl = BaseNumberControl(ControlType.Number)
+export.NumberControl = gt.build(NumberControl)
+export type NumberControl = typeof(NumberControl)
 
-local SliderControl = gt.build(BaseNumberControl("Slider"))
-export.SliderControl = SliderControl
-export type SliderControl = typeof(SliderControl:type())
+local SliderControl = BaseNumberControl(ControlType.Slider)
+export.SliderControl = gt.build(SliderControl)
+export type SliderControl = typeof(SliderControl)
 
-local ColorControl = gt.build(BaseControl("Color", gt.Color3()))
-export.ColorControl = ColorControl
-export type ColorControl = typeof(ColorControl:type())
+local ColorControl = BaseControl(ControlType.Color, gt.Color3())
+export.ColorControl = gt.build(ColorControl)
+export type ColorControl = typeof(ColorControl)
 export type ColourControl = ColorControl
 
-local DateControl = gt.build(BaseControl("Date", gt.isTypeof("DateTime")))
-export.DateControl = DateControl
-export type DateControl = typeof(DateControl:type())
+local DateControl = BaseControl(ControlType.Date, gt.isTypeof("DateTime"))
+export.DateControl = gt.build(DateControl)
+export type DateControl = typeof(DateControl)
 
-local SelectControl = gt.build(SelectOneControl("Select"))
-export.SelectControl = SelectControl
-export type SelectControl = typeof(SelectControl:type())
+local SelectControl = SelectOneControl(ControlType.Select)
+export.SelectControl = gt.build(SelectControl)
+export type SelectControl = typeof(SelectControl)
 
-local RadioControl = gt.build(SelectOneControl("Radio"))
-export.RadioControl = RadioControl
-export type RadioControl = typeof(RadioControl:type())
+local RadioControl = SelectOneControl(ControlType.Radio)
+export.RadioControl = gt.build(RadioControl)
+export type RadioControl = typeof(RadioControl)
 
-local MultiSelectControl = gt.build(SelectManyControl("MultiSelect"))
-export.MultiSelectControl = MultiSelectControl
-export type MultiSelectControl = typeof(MultiSelectControl:type())
+local MultiSelectControl = SelectManyControl(ControlType.MultiSelect)
+export.MultiSelectControl = gt.build(MultiSelectControl)
+export type MultiSelectControl = typeof(MultiSelectControl)
 
-local CheckControl = gt.build(SelectManyControl("Check"))
-export.CheckControl = CheckControl
-export type CheckControl = typeof(CheckControl:type())
+local CheckControl = SelectManyControl(ControlType.Check)
+export.CheckControl = gt.build(CheckControl)
+export type CheckControl = typeof(CheckControl)
 
-local PrimitiveStoryControl = gt.build(gt.union(StringControl, BooleanControl, NumberControl))
-export.PrimitiveStoryControl = PrimitiveStoryControl
-export type PrimitiveStoryControl = typeof(PrimitiveStoryControl:type())
+local PrimitiveStoryControl = gt.union(StringControl, BooleanControl, NumberControl)
+export.PrimitiveStoryControl = gt.build(PrimitiveStoryControl)
+export type PrimitiveStoryControl = typeof(PrimitiveStoryControl)
 
-local AdvancedStoryControl =
-	gt.build(gt.union(SliderControl, SelectControl, MultiSelectControl, CheckControl, RadioControl))
-export.AdvancedStoryControl = AdvancedStoryControl
-export type AdvancedStoryControl = typeof(AdvancedStoryControl:type())
+local AdvancedStoryControl = gt.union(SliderControl, SelectControl, MultiSelectControl, CheckControl, RadioControl)
+export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
+export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
-local RobloxStoryControl = gt.build(gt.union(ColorControl, DateControl))
-export.RobloxStoryControl = RobloxStoryControl
-export type RobloxStoryControl = typeof(RobloxStoryControl:type())
+local RobloxStoryControl = gt.union(ColorControl, DateControl)
+export.RobloxStoryControl = gt.build(RobloxStoryControl)
+export type RobloxStoryControl = typeof(RobloxStoryControl)
 
-local StoryControl = gt.build(gt.union(PrimitiveStoryControl, AdvancedStoryControl, RobloxStoryControl))
-export.StoryControl = StoryControl
-export type StoryControl = typeof(StoryControl:type())
+local ListBasedStoryControl = gt.union(SelectControl, MultiSelectControl, CheckControl, RadioControl)
+export.ListBasedStoryControl = gt.build(ListBasedStoryControl)
+export type ListBasedStoryControl = typeof(ListBasedStoryControl)
 
-local StoryControlsSchema = gt.build(gt.dictionary(gt.string, gt.union(StoryControl, StoryControlValue)))
-export.StoryControlsSchema = StoryControlsSchema
-export type StoryControlsSchema = typeof(StoryControlsSchema:type())
+local NumberBasedStoryControl = gt.union(NumberControl, SliderControl)
+export.NumberBasedStoryControl = gt.build(NumberBasedStoryControl)
+export type NumberBasedStoryControl = typeof(NumberBasedStoryControl)
 
-local StoryControls = gt.build(gt.dictionary(gt.string(), StoryControl))
-export.StoryControls = StoryControls
-export type StoryControls = typeof(StoryControls:type())
+local StoryControl = gt.union(PrimitiveStoryControl, AdvancedStoryControl, RobloxStoryControl)
+export.StoryControl = gt.build(StoryControl)
+export type StoryControl = typeof(StoryControl)
+
+local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, StoryControlValue))
+export.StoryControlsSchema = gt.build(StoryControlsSchema)
+export type StoryControlsSchema = typeof(StoryControlsSchema)
+
+local StoryControls = gt.dictionary(gt.string(), StoryControlValue)
+export.StoryControls = gt.build(StoryControls)
+export type StoryControls = typeof(StoryControls)
 
 return export

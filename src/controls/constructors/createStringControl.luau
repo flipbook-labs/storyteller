@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type StringControl = ControlTypes.StringControl
 
 local function createStringControl(default: string?): StringControl
-	local control = {
+	local control: StringControl = {
 		type = ControlType.String,
 		default = default,
 	}

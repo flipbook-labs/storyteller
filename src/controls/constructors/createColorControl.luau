@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type ColorControl = ControlTypes.ColorControl
 
 local function createColorControl(default: Color3?): ColorControl
-	local control = {
+	local control: ColorControl = {
 		type = ControlType.Color,
 		default = default,
 	}

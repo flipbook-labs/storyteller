@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type SliderControl = ControlTypes.SliderControl
 
 local function createSliderControl(default: number?, range: NumberRange?, step: number?): SliderControl
-	local control = {
+	local control: SliderControl = {
 		type = ControlType.Slider,
 		default = default,
 		range = range,

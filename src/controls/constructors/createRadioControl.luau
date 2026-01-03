@@ -6,7 +6,7 @@ type RadioControl = ControlTypes.RadioControl
 type Mapping = ControlTypes.Mapping
 
 local function createRadioControl(options: { string }, default: string?, mapping: Mapping?): RadioControl
-	local control = {
+	local control: RadioControl = {
 		type = ControlType.Radio,
 		options = options,
 		default = default,

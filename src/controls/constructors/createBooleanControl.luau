@@ -5,7 +5,7 @@ local validateControlSchema = require("@root/controls/parsing/validateControlSch
 type BooleanControl = ControlTypes.BooleanControl
 
 local function createBooleanControl(default: boolean?): BooleanControl
-	local control = {
+	local control: BooleanControl = {
 		type = ControlType.Boolean,
 		default = default,
 	}
