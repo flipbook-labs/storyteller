@@ -30,6 +30,8 @@ local function hydrateControls(
 ): StoryControls
 	local migratedSchema = migrateControlsSchema(schema)
 
+	ControlTypes.StoryControlsSchema:assert(migratedSchema)
+
 	local hydrated: StoryControls = {}
 
 	for controlName, controlSchemaOrValue in migratedSchema do
@@ -51,9 +53,8 @@ local function hydrateControls(
 
 			local transformed = transformControlValue(controlSchema, controlValue)
 
-			ControlTypes.StoryControlValue:assert(transformed)
-
 			if transformed ~= nil then
+				ControlTypes.StoryControlValue:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else
