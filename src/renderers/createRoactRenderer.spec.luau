@@ -1,7 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local Roact = require("@pkg/Roact")
 
-local ControlTypes = require("@root/controls/ControlTypes")
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -10,7 +10,7 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-type StoryControls = ControlTypes.StoryControls
+type StoryControls = controls.StoryControls
 
 local function createRoactStory(element)
 	return createStory({

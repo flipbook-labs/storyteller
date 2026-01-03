@@ -1,6 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local ControlTypes = require("@root/controls/ControlTypes")
+local controls = require("@root/controls")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -8,7 +8,7 @@ local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-type StoryControls = ControlTypes.StoryControls
+type StoryControls = controls.StoryControls
 
 local function ButtonStory(props: {
 	controls: {
