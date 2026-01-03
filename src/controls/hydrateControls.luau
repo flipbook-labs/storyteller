@@ -34,11 +34,12 @@ local function hydrateControls(
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
+			ControlTypes.StoryControl:assert(controlSchema)
+
 			local controlValue: StoryControlValue? = controls[controlName]
-
-			ControlTypes.StoryControlsSchema:assert(controlSchema)
-
 			local transformed = transformControlValue(controlSchema, controlValue)
+
+			ControlTypes.StoryControlValue:assert(transformed)
 
 			if transformed ~= nil then
 				hydrated[controlName] = transformed
