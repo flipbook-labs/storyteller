@@ -60,10 +60,15 @@ export type ListBasedStoryControl = SelectControl | MultiSelectControl | CheckCo
 export type NumberBasedStoryControl = SliderControl | NumberControl
 
 export type StoryControl = PrimitiveStoryControl | ExtendedStoryControl | ListBasedStoryControl
+types.StoryControl = t.interface({
+	type = t.string,
+	default = t.optional(t.any),
+})
 
 export type StoryControlsSchema = {
 	[string]: StoryControl | StoryControlValue,
 }
+types.StoryControlsSchema = t.map(t.string, t.union(types.StoryControl, types.StoryControlValue))
 
 export type StoryControls = {
 	[string]: StoryControlValue,

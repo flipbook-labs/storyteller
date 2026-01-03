@@ -41,11 +41,6 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 				return mappedControlValue
 			end
 		end
-
-		if table.find(controlSchema.options, tostring(controlValueOrDefault)) then
-			-- This is pointless when we do the same thing below anyway
-			return controlValueOrDefault
-		end
 	end
 
 	return controlValueOrDefault
