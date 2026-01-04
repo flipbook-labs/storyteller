@@ -2,14 +2,14 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
 local StoryContainer = require("./StoryContainer")
 
-type StoryControls = controls.StoryControls
-type StoryControlsSchema = controls.StoryControlsSchema
+type StoryControls = ControlTypes.StoryControls
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type LoadedStory<T> = types.LoadedStory<T>
 
 local act = ReactRoblox.act

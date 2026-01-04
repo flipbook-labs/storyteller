@@ -2,9 +2,9 @@ local gt = require("@pkg/GreenTea")
 
 local ControlType = require("@root/controls/enums/ControlType")
 
-type ControlType = ControlType.ControlType
-
 local export = {}
+
+export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
 type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem

@@ -2,7 +2,7 @@ local Fusion2 = require("@pkg/Fusion")
 local Fusion3 = require("@pkg/Fusion3")
 local JestGlobals = require("@pkg/JestGlobals")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -11,7 +11,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local describe = JestGlobals.describe
 
-type StoryControls = controls.StoryControls
+type StoryControls = ControlTypes.StoryControls
 
 local container
 
