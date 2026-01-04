@@ -9,7 +9,6 @@ local hydrateControls = require("./hydrateControls")
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
-type Mapping = ControlTypes.Mapping
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect

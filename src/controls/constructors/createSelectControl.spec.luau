@@ -1,10 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local ControlTypes = require("@root/controls/ControlTypes")
-
 local createSelectControl = require("./createSelectControl")
-
-type Mapping = ControlTypes.Mapping
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
