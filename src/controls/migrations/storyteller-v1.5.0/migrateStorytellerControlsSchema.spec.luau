@@ -40,6 +40,11 @@ test("migrates a complex Storyteller controls schema", function()
 		font = {
 			type = ControlType.Select,
 			options = {
+				"Enum.Font.BuilderSans",
+				"Enum.Font.BuilderSansBold",
+				"Enum.Font.BuilderSansExtraBold",
+			},
+			mapping = {
 				["Enum.Font.BuilderSans"] = Enum.Font.BuilderSans,
 				["Enum.Font.BuilderSansBold"] = Enum.Font.BuilderSansBold,
 				["Enum.Font.BuilderSansExtraBold"] = Enum.Font.BuilderSansExtraBold,
