@@ -27,7 +27,7 @@ local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchem
 	for key, value in schema do
 		if typeof(value) == "table" then
 			--[[
-                Simplest approach is to just turn any Storyteller v1.4.0 options
+                Simplest approach is to just turn any Storyteller v1.5.0 options
                 into MappedControlOptions. This is a bit excessive for an
                 options array of only primitive data types since it would
                 convert something like
