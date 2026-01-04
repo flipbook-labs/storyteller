@@ -60,7 +60,7 @@ local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchem
 				end
 			end
 
-			local default = options[tostring(value[1])]
+			local default = tostring(value[1])
 
 			local migratedControl: ListBasedStoryControl = {
 				type = ControlType.Select,
