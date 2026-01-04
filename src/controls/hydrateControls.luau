@@ -5,12 +5,12 @@ local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
 local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
-local validateListControlValue = require("@root/controls/parsing/validateListControlValue")
+local validateListControlHasControlValue = require("@root/controls/parsing/validateListControlHasControlValue")
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
+type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
 
 --[[
@@ -30,15 +30,17 @@ local function hydrateControls(
 ): StoryControls
 	local migratedSchema = migrateControlsSchema(schema)
 
+	ControlTypes.StoryControlsSchema:assert(migratedSchema)
+
 	local hydrated: StoryControls = {}
 
 	for controlName, controlSchemaOrValue in migratedSchema do
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
-			local controlValue: StoryControlValue? = controls[controlName]
+			ControlTypes.StoryControl:assert(controlSchema)
 
-			validateControlSchema(controlName, controlSchema)
+			local controlValue: StoryControlValue? = controls[controlName]
 
 			if
 				controlSchema.type == ControlType.Check
@@ -46,12 +48,13 @@ local function hydrateControls(
 				or controlSchema.type == ControlType.Radio
 				or controlSchema.type == ControlType.Select
 			then
-				validateListControlValue(controlName, controlSchema, controlValue)
+				validateListControlHasControlValue(controlSchema :: ListBasedControlSchema, controlValue)
 			end
 
 			local transformed = transformControlValue(controlSchema, controlValue)
 
 			if transformed ~= nil then
+				ControlTypes.StoryControlValue:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else

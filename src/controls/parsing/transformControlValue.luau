@@ -3,13 +3,17 @@ local ControlTypes = require("@root/controls/ControlTypes")
 
 type StoryControl = ControlTypes.StoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
+type NumberBasedStoryControl = ControlTypes.NumberBasedStoryControl
+type ListBasedStoryControl = ControlTypes.ListBasedStoryControl
 
 local function transformControlValue(controlSchema: StoryControl, controlValue: StoryControlValue?): StoryControlValue?
 	local controlValueOrDefault: StoryControlValue? = if controlValue then controlValue else controlSchema.default
 
 	if controlSchema.type == ControlType.Number or controlSchema.type == ControlType.Slider then
+		local numberBasedControl = controlSchema :: NumberBasedStoryControl
+
 		if typeof(controlValueOrDefault) == "number" then
-			local range = controlSchema.range
+			local range = numberBasedControl.range
 
 			if range then
 				return math.clamp(controlValueOrDefault, range.Min, range.Max)
@@ -18,9 +22,11 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 	end
 
 	if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
+		local listBasedControl = controlSchema :: ListBasedStoryControl
+
 		if typeof(controlValueOrDefault) == "table" then
 			local result = {}
-			local mapping = controlSchema.mapping
+			local mapping = listBasedControl.mapping
 
 			for _, option in controlValueOrDefault do
 				if mapping then
@@ -34,7 +40,9 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 	end
 
 	if controlSchema.type == ControlType.Radio or controlSchema.type == ControlType.Select then
-		local mapping = controlSchema.mapping
+		local listBasedControl = controlSchema :: ListBasedStoryControl
+
+		local mapping = listBasedControl.mapping
 		if mapping then
 			local mappedControlValue = mapping[tostring(controlValueOrDefault)]
 			if mappedControlValue then
