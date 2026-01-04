@@ -2,7 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
 local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
@@ -16,7 +16,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local act = ReactRoblox.act
 
-type StoryControls = controls.StoryControls
+type StoryControls = ControlTypes.StoryControls
 
 local storybookModules = findStorybookModules(script.Parent.storybooks)
 
