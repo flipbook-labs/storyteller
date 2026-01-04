@@ -2,7 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -13,7 +13,7 @@ local test = JestGlobals.test
 
 local act = ReactRoblox.act
 
-type StoryControls = controls.StoryControls
+type StoryControls = ControlTypes.StoryControls
 
 local function createReactStory(element)
 	return createStory({
