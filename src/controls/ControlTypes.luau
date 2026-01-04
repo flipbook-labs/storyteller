@@ -28,7 +28,15 @@ local Mapping = gt.dictionary(gt.string(), StoryControlValue)
 export.Mapping = gt.build(Mapping)
 export type Mapping = typeof(Mapping)
 
-local ControlOptions = gt.array(gt.string())
+local MappedControlOptions = gt.dictionary(gt.string(), StoryControlValueBase)
+export.MappedControlOptions = gt.build(MappedControlOptions)
+export type MappedControlOptions = typeof(MappedControlOptions)
+
+local SimpleControlOptions = gt.array(gt.string())
+export.SimpleControlOptions = gt.build(SimpleControlOptions)
+export type SimpleControlOptions = typeof(SimpleControlOptions)
+
+local ControlOptions = gt.union(SimpleControlOptions, MappedControlOptions)
 export.ControlOptions = gt.build(ControlOptions)
 export type ControlOptions = typeof(ControlOptions)
 
