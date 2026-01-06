@@ -131,6 +131,10 @@ test("lifecycle", function()
 		story = ButtonStory,
 	})
 
+	story.controls = {
+		isDisabled = false,
+	} :: StoryControls
+
 	local lifecycle = render(container, story)
 
 	expect(#container:GetChildren()).toBe(1)
