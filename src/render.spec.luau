@@ -189,6 +189,9 @@ test("prevProps is nil on the first render", function()
 end)
 
 test("array controls are collapsed to the first story", function()
+	-- render -> hydrateControls -> migrateControlSchema -> default =
+	-- Enum.Font.BuilderSans --> should resolve as the initial control value??
+	-- why doesn't it?
 	local schema: StoryControlsSchema = {
 		font = {
 			Enum.Font.BuilderSans,
