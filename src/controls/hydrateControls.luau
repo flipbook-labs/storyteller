@@ -3,7 +3,7 @@ local ControlTypes = require("@root/controls/ControlTypes")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
-local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
+local toStoryControlValueCompat = require("@root/controls/parsing/toStoryControlValueCompat")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
 local validateListControlHasControlValue = require("@root/controls/parsing/validateListControlHasControlValue")
 
@@ -11,7 +11,7 @@ type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
 type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
-type StoryControlValue = ControlTypes.StoryControlValue
+type StoryControlValueCompat = ControlTypes.StoryControlValueCompat
 
 --[[
 	As a principle:
@@ -40,7 +40,7 @@ local function hydrateControls(
 		if controlSchema then
 			ControlTypes.StoryControl:assert(controlSchema)
 
-			local controlValue: StoryControlValue? = controls[controlName]
+			local controlValue: StoryControlValueCompat? = controls[controlName]
 
 			if
 				controlSchema.type == ControlType.Check
@@ -54,16 +54,16 @@ local function hydrateControls(
 			local transformed = transformControlValue(controlSchema, controlValue)
 
 			if transformed ~= nil then
-				ControlTypes.StoryControlValue:assert(transformed)
+				ControlTypes.StoryControlValueCompat:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else
-			local controlValue: StoryControlValue?
+			local controlValue: StoryControlValueCompat?
 
 			if controls[controlName] ~= nil then
 				controlValue = controls[controlName]
 			else
-				controlValue = toStoryControlValue(controlSchemaOrValue)
+				controlValue = toStoryControlValueCompat(controlSchemaOrValue)
 			end
 
 			if controlValue ~= nil then
