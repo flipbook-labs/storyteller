@@ -5,7 +5,7 @@ local createMultiSelectControl = require("./createMultiSelectControl")
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-test("throws when the default value does not map to one of the options", function()
+test("throws when a default value does not map to one of the options", function()
 	expect(function()
 		createMultiSelectControl({
 			"Option 1",

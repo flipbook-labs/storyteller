@@ -1,12 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local ControlTypes = require("@root/controls/ControlTypes")
-
 local createSliderControl = require("./createSliderControl")
-
-type StoryControlsSchema = ControlTypes.StoryControlsSchema
-type StoryControls = ControlTypes.StoryControls
-type StoryControl = ControlTypes.StoryControl
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
