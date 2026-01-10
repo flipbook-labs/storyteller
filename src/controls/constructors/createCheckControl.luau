@@ -2,14 +2,20 @@ local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
 type CheckControl = ControlTypes.CheckControl
-type ControlOptions = ControlTypes.ControlOptions
+type CheckOptions = ControlTypes.CheckOptions
+type StoryControlValue = ControlTypes.StoryControlValue
 
-local function createCheckControl(options: ControlOptions, default: { string }?): CheckControl
+local function createCheckControl(items: { StoryControlValue }, options: CheckOptions?): CheckControl
 	local control: CheckControl = {
 		type = ControlType.Check,
-		options = options,
-		default = default,
+		items = items,
 	}
+
+	if options then
+		for k, v in options do
+			control[k] = v
+		end
+	end
 
 	ControlTypes.CheckControl:assert(control)
 

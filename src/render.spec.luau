@@ -188,7 +188,7 @@ test("prevProps is nil on the first render", function()
 	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(props)
 end)
 
-test("array controls are collapsed to the first story", function()
+test("array controls are collapsed to the first item", function()
 	-- render -> hydrateControls -> migrateControlSchema -> default =
 	-- Enum.Font.BuilderSans --> should resolve as the initial control value??
 	-- why doesn't it?
@@ -197,7 +197,7 @@ test("array controls are collapsed to the first story", function()
 			Enum.Font.BuilderSans,
 			Enum.Font.RobotoMono,
 			Enum.Font.Merriweather,
-		} :: { EnumItem },
+		},
 	}
 	story.controls = schema
 

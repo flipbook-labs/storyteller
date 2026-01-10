@@ -38,7 +38,7 @@ test("migrates a complex UI Labs schema to Flipbook's schema", function()
 		},
 		choice = {
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",

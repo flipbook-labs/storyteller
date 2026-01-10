@@ -1,4 +1,3 @@
-local Sift = require("@pkg/Sift")
 local gt = require("@pkg/GreenTea")
 
 local ControlType = require("@root/controls/enums/ControlType")
@@ -8,35 +7,19 @@ local export = {}
 export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
-export type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem
-local StoryControlValueBase: StoryControlValueBase = gt.union(
+export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem
+local StoryControlValue: StoryControlValue = gt.union(
 	-- Primitives
-	gt.boolean() :: boolean | number | string | Color3 | DateTime | EnumItem,
+	gt.boolean() :: StoryControlValue,
 	gt.number(),
 	gt.string(),
 
 	-- Roblox datatypes
 	gt.Color3(),
-	gt.isTypeof("DateTime") :: DateTime,
-	gt.isTypeof("EnumItem") :: EnumItem
+	gt.isTypeof("DateTime"),
+	gt.isTypeof("EnumItem")
 )
-export.StoryControlValueBase = gt.build(StoryControlValueBase)
-
-local StoryControlValue = gt.union(StoryControlValueBase, gt.array(StoryControlValueBase))
 export.StoryControlValue = gt.build(StoryControlValue)
-export type StoryControlValue = typeof(StoryControlValue)
-
-local MappedControlOptions = gt.dictionary(gt.string(), StoryControlValueBase)
-export.MappedControlOptions = gt.build(MappedControlOptions)
-export type MappedControlOptions = typeof(MappedControlOptions)
-
-local SimpleControlOptions = gt.array(gt.string())
-export.SimpleControlOptions = gt.build(SimpleControlOptions)
-export type SimpleControlOptions = typeof(SimpleControlOptions)
-
-local ControlOptions = gt.union(SimpleControlOptions, MappedControlOptions)
-export.ControlOptions = gt.build(ControlOptions)
-export type ControlOptions = typeof(ControlOptions)
 
 local function BaseControl<T>(controlType: ControlType, valueType: T)
 	return gt.struct({
@@ -68,27 +51,26 @@ local function BaseNumberControl(controlType: ControlType)
 	)
 end
 
-local function getPossibleOptions(controlOptions: ControlOptions): { string }
-	if export.SimpleControlOptions:matches(controlOptions) then
-		return controlOptions :: SimpleControlOptions
-	elseif export.MappedControlOptions:matches(controlOptions) then
-		return Sift.Dictionary.keys(controlOptions)
-	end
+local TostringFn = gt.fn(gt.args(StoryControlValue), gt.returns(gt.string()))
+local SortFn = gt.fn(gt.args(gt.args(StoryControlValue), gt.args(StoryControlValue)), gt.returns(gt.boolean()))
 
-	return {}
-end
+local SelectOneOptions = gt.struct({
+	default = gt.optional(StoryControlValue),
+	tostring = gt.optional(TostringFn),
+	sort = gt.optional(SortFn),
+})
 
 local function SelectOneControl(controlType: ControlType)
-	local control = gt.struct({
-		type = gt.literal(controlType) :: ControlType,
-		options = ControlOptions,
-		default = gt.optional(gt.string()),
-	})
+	local control = gt.intersection(
+		gt.struct({
+			type = gt.literal(controlType) :: ControlType,
+			items = gt.array(StoryControlValue),
+		}),
+		SelectOneOptions
+	)
 
 	return gt.withCustom(control, function(input: typeof(control))
-		local options = getPossibleOptions(input.options)
-
-		if input.default and not table.find(options, input.default) then
+		if input.default and not table.find(input.items, input.default) then
 			return false, `value "{input.default}" not found in 'options'`
 		end
 
@@ -96,20 +78,26 @@ local function SelectOneControl(controlType: ControlType)
 	end)
 end
 
+local SelectManyOptions = gt.struct({
+	default = gt.optional(gt.array(StoryControlValue)),
+	tostring = gt.optional(TostringFn),
+	sort = gt.optional(SortFn),
+})
+
 local function SelectManyControl(controlType: ControlType)
-	local control = gt.struct({
-		type = gt.literal(controlType) :: ControlType,
-		options = ControlOptions,
-		default = gt.optional(gt.array(gt.string())),
-	})
+	local control = gt.intersection(
+		gt.struct({
+			type = gt.literal(controlType) :: ControlType,
+			items = gt.array(StoryControlValue),
+		}),
+		SelectManyOptions
+	)
 
 	return gt.withCustom(control, function(input: typeof(control))
 		if input.default then
-			local options = getPossibleOptions(input.options)
-
 			for _, defaultOption in input.default do
-				if not table.find(options, defaultOption) then
-					return false, `value "{defaultOption}" not found in 'options'`
+				if not table.find(input.items, defaultOption) then
+					return false, `value "{defaultOption}" not found in 'items'`
 				end
 			end
 		end
@@ -143,17 +131,33 @@ local DateControl = BaseControl(ControlType.Date, gt.isTypeof("DateTime"))
 export.DateControl = gt.build(DateControl)
 export type DateControl = typeof(DateControl)
 
+local SelectOptions = SelectOneOptions
+export.SelectOptions = gt.build(SelectOptions)
+export type SelectOptions = typeof(SelectOptions)
+
 local SelectControl = SelectOneControl(ControlType.Select)
 export.SelectControl = gt.build(SelectControl)
 export type SelectControl = typeof(SelectControl)
+
+local RadioOptions = SelectOneOptions
+export.RadioOptions = gt.build(RadioOptions)
+export type RadioOptions = typeof(RadioOptions)
 
 local RadioControl = SelectOneControl(ControlType.Radio)
 export.RadioControl = gt.build(RadioControl)
 export type RadioControl = typeof(RadioControl)
 
-local MultiSelectControl = SelectManyControl(ControlType.MultiSelect)
+local MultiSelectOptions = SelectManyOptions
+export.MultiSelectOptions = gt.build(MultiSelectOptions)
+export type MultiSelectOptions = typeof(MultiSelectOptions)
+
+local MultiSelectControl = gt.intersection(SelectManyControl(ControlType.MultiSelect), MultiSelectOptions)
 export.MultiSelectControl = gt.build(MultiSelectControl)
 export type MultiSelectControl = typeof(MultiSelectControl)
+
+local CheckOptions = SelectManyOptions
+export.CheckOptions = gt.build(CheckOptions)
+export type CheckOptions = typeof(CheckOptions)
 
 local CheckControl = SelectManyControl(ControlType.Check)
 export.CheckControl = gt.build(CheckControl)
@@ -163,17 +167,17 @@ local PrimitiveStoryControl = gt.union(StringControl, BooleanControl, NumberCont
 export.PrimitiveStoryControl = gt.build(PrimitiveStoryControl)
 export type PrimitiveStoryControl = typeof(PrimitiveStoryControl)
 
-local AdvancedStoryControl = gt.union(SliderControl, SelectControl, MultiSelectControl, CheckControl, RadioControl)
+local ListBasedStoryControl = gt.union(SelectControl, MultiSelectControl, CheckControl, RadioControl)
+export.ListBasedStoryControl = gt.build(ListBasedStoryControl)
+export type ListBasedStoryControl = typeof(ListBasedStoryControl)
+
+local AdvancedStoryControl = gt.union(SliderControl, ListBasedStoryControl)
 export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
 export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
 local RobloxStoryControl = gt.union(ColorControl, DateControl)
 export.RobloxStoryControl = gt.build(RobloxStoryControl)
 export type RobloxStoryControl = typeof(RobloxStoryControl)
-
-local ListBasedStoryControl = gt.union(SelectControl, MultiSelectControl, CheckControl, RadioControl)
-export.ListBasedStoryControl = gt.build(ListBasedStoryControl)
-export type ListBasedStoryControl = typeof(ListBasedStoryControl)
 
 local NumberBasedStoryControl = gt.union(NumberControl, SliderControl)
 export.NumberBasedStoryControl = gt.build(NumberBasedStoryControl)
@@ -187,7 +191,11 @@ local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, St
 export.StoryControlsSchema = gt.build(StoryControlsSchema)
 export type StoryControlsSchema = typeof(StoryControlsSchema)
 
-local StoryControls = gt.dictionary(gt.string(), StoryControlValue)
+local InputStoryControlValue = gt.union(StoryControlValue, gt.array(StoryControlValue))
+export.InputStoryControlValue = gt.build(InputStoryControlValue)
+export type InputStoryControlValue = typeof(InputStoryControlValue)
+
+local StoryControls = gt.dictionary(gt.string(), InputStoryControlValue)
 export.StoryControls = gt.build(StoryControls)
 export type StoryControls = typeof(StoryControls)
 

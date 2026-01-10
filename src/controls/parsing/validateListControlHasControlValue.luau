@@ -1,12 +1,11 @@
 local ControlTypes = require("@root/controls/ControlTypes")
-local getPossibleControlOptions = require("@root/controls/parsing/getPossibleControlOptions")
 
 type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
-type StoryControlValue = ControlTypes.StoryControlValue
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
 
 local function validateListControlHasControlValue(
 	controlSchema: ListBasedControlSchema,
-	controlValue: StoryControlValue?
+	controlValue: InputStoryControlValue?
 )
 	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default
 
@@ -20,10 +19,9 @@ local function validateListControlHasControlValue(
 		end
 	else
 		local key = tostring(controlValueOrDefault)
-		local options = getPossibleControlOptions(controlSchema.options)
 
-		if not table.find(options, key) then
-			error(`no option found for "{key}" in "{table.concat(options, ", ")}"`)
+		if not table.find(controlSchema.items, key) then
+			error(`no item found for {key} in control schema {controlSchema}`)
 		end
 	end
 end

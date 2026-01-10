@@ -1,15 +1,21 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 
-type ControlOptions = ControlTypes.ControlOptions
 type RadioControl = ControlTypes.RadioControl
+type RadioOptions = ControlTypes.RadioOptions
+type StoryControlValue = ControlTypes.StoryControlValue
 
-local function createRadioControl(options: ControlOptions, default: string?): RadioControl
+local function createRadioControl(items: { StoryControlValue }, options: RadioOptions?): RadioControl
 	local control: RadioControl = {
 		type = ControlType.Radio,
-		options = options,
-		default = default,
+		items = items,
 	}
+
+	if options then
+		for k, v in options do
+			control[k] = v
+		end
+	end
 
 	ControlTypes.RadioControl:assert(control)
 

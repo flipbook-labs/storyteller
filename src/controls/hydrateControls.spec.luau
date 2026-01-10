@@ -2,7 +2,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local createSelectControl = require("@root/controls/constructors/createSelectControl")
 
 local hydrateControls = require("./hydrateControls")
 
@@ -62,7 +61,7 @@ test("hydrates a schema using all control types", function()
 		-- List-based
 		dropdown = {
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -70,7 +69,7 @@ test("hydrates a schema using all control types", function()
 		},
 		multiSelect = {
 			type = ControlType.MultiSelect,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -78,7 +77,7 @@ test("hydrates a schema using all control types", function()
 		},
 		check = {
 			type = ControlType.Check,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -86,7 +85,7 @@ test("hydrates a schema using all control types", function()
 		},
 		radio = {
 			type = ControlType.Radio,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -115,7 +114,7 @@ test("hydrates list-based controls", function()
 	local schema: StoryControlsSchema = {
 		dropdown = {
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -123,7 +122,7 @@ test("hydrates list-based controls", function()
 		},
 		multiSelect = {
 			type = ControlType.MultiSelect,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -131,7 +130,7 @@ test("hydrates list-based controls", function()
 		},
 		check = {
 			type = ControlType.Check,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -139,7 +138,7 @@ test("hydrates list-based controls", function()
 		},
 		radio = {
 			type = ControlType.Radio,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -149,9 +148,9 @@ test("hydrates list-based controls", function()
 
 	local controls: StoryControls = {
 		dropdown = "Option 1",
-		radio = "Option 2",
-		check = { "Option 1", "Option 2" },
 		multiSelect = { "Option 3" },
+		check = { "Option 1", "Option 2" },
+		radio = "Option 2",
 	}
 
 	local expected = {
@@ -159,46 +158,6 @@ test("hydrates list-based controls", function()
 		multiSelect = { "Option 3" },
 		check = { "Option 1", "Option 2" },
 		radio = "Option 2",
-	}
-
-	expect(hydrateControls(schema, controls)).toMatchObject(expected)
-end)
-
-test("mapping list-based controls", function()
-	local schema: StoryControlsSchema = {
-		font = createSelectControl({
-			["Builder Sans"] = Enum.Font.BuilderSans,
-			["Builder Sans (Bold)"] = Enum.Font.BuilderSansBold,
-			["Builder Sans (Extra Bold)"] = Enum.Font.BuilderSansExtraBold,
-		}),
-	}
-
-	local controls: StoryControls = {
-		font = "Builder Sans (Bold)",
-	}
-
-	local expected = {
-		font = Enum.Font.BuilderSansBold,
-	}
-
-	expect(hydrateControls(schema, controls)).toMatchObject(expected)
-end)
-
-test("using non-strings for list-based control maps to strings behind the scenes", function()
-	local schema: StoryControlsSchema = {
-		font = createSelectControl({
-			Enum.Font.BuilderSans,
-			Enum.Font.BuilderSansBold,
-			Enum.Font.BuilderSansExtraBold,
-		}),
-	}
-
-	local controls: StoryControls = {
-		font = tostring(Enum.Font.BuilderSansBold),
-	}
-
-	local expected = {
-		font = Enum.Font.BuilderSansBold,
 	}
 
 	expect(hydrateControls(schema, controls)).toMatchObject(expected)
@@ -238,7 +197,7 @@ test("default value is used when one is not supplied", function()
 		-- List-based
 		dropdown = {
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -247,7 +206,7 @@ test("default value is used when one is not supplied", function()
 		},
 		multiSelect = {
 			type = ControlType.MultiSelect,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -259,7 +218,7 @@ test("default value is used when one is not supplied", function()
 		},
 		check = {
 			type = ControlType.Check,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -271,7 +230,7 @@ test("default value is used when one is not supplied", function()
 		},
 		radio = {
 			type = ControlType.Radio,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -440,9 +399,9 @@ end)
 describe("Check", function()
 	test("hydrates a schema with a Check control", function()
 		local schema: StoryControlsSchema = {
-			options = {
+			items = {
 				type = ControlType.Check,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -451,21 +410,21 @@ describe("Check", function()
 		}
 
 		local controls: StoryControls = {
-			options = { "Option 2" },
+			items = { "Option 2" },
 		}
 
 		local hydrated = hydrateControls(schema, controls)
 
 		expect(hydrated).toMatchObject({
-			options = { "Option 2" },
+			items = { "Option 2" },
 		})
 	end)
 
 	test("uses the default when no control value is set", function()
 		local schema: StoryControlsSchema = {
-			options = {
+			items = {
 				type = ControlType.Check,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -479,7 +438,7 @@ describe("Check", function()
 		local controls: StoryControls = {}
 
 		local expected = {
-			options = { "Option 2" },
+			items = { "Option 2" },
 		}
 
 		local hydrated = hydrateControls(schema, controls)
@@ -489,9 +448,9 @@ describe("Check", function()
 
 	test("throws when passing an invalid option", function()
 		local schema: StoryControlsSchema = {
-			options = {
+			items = {
 				type = ControlType.Check,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -500,7 +459,7 @@ describe("Check", function()
 		}
 
 		local controls: StoryControls = {
-			options = { "Not an option" },
+			items = { "Not an option" },
 		}
 
 		expect(function()
@@ -555,7 +514,7 @@ describe("MultiSelect", function()
 		local schema: StoryControlsSchema = {
 			choices = {
 				type = ControlType.MultiSelect,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -578,7 +537,7 @@ describe("MultiSelect", function()
 		local schema: StoryControlsSchema = {
 			choices = {
 				type = ControlType.MultiSelect,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -604,7 +563,7 @@ describe("MultiSelect", function()
 		local schema: StoryControlsSchema = {
 			choices = {
 				type = ControlType.MultiSelect,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -627,7 +586,7 @@ describe("Radio", function()
 		local schema: StoryControlsSchema = {
 			radio = {
 				type = ControlType.Radio,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -650,7 +609,7 @@ describe("Radio", function()
 		local schema: StoryControlsSchema = {
 			radio = {
 				type = ControlType.Radio,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -674,7 +633,7 @@ describe("Radio", function()
 		local schema: StoryControlsSchema = {
 			radio = {
 				type = ControlType.Radio,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -697,7 +656,7 @@ describe("Select", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
 				type = ControlType.Select,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -722,7 +681,7 @@ describe("Select", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
 				type = ControlType.Select,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",
@@ -746,7 +705,7 @@ describe("Select", function()
 		local schema: StoryControlsSchema = {
 			dropdown = {
 				type = ControlType.Select,
-				options = {
+				items = {
 					"Option 1",
 					"Option 2",
 					"Option 3",

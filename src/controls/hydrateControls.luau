@@ -13,6 +13,7 @@ type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
 type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
 
 --[[
 	As a principle:
@@ -41,7 +42,7 @@ local function hydrateControls(
 		if controlSchema then
 			ControlTypes.StoryControl:assert(controlSchema)
 
-			local controlValue: StoryControlValue? = controls[controlName]
+			local controlValue = controls[controlName]
 
 			if
 				controlSchema.type == ControlType.Check
@@ -55,11 +56,11 @@ local function hydrateControls(
 			local transformed = transformControlValue(controlSchema, controlValue)
 
 			if transformed ~= nil then
-				ControlTypes.StoryControlValue:assert(transformed)
+				ControlTypes.InputStoryControlValue:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else
-			local controlValue: StoryControlValue?
+			local controlValue: InputStoryControlValue?
 
 			if controls[controlName] ~= nil then
 				controlValue = controls[controlName]
