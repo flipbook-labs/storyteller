@@ -189,13 +189,13 @@ test("prevProps is nil on the first render", function()
 end)
 
 test("array controls are collapsed to the first story", function()
-	local schema: StoryControlsSchema = {
+	local schema = {
 		font = {
 			Enum.Font.BuilderSans,
 			Enum.Font.RobotoMono,
 			Enum.Font.Merriweather,
-		} :: { EnumItem },
-	}
+		},
+	} :: any
 	story.controls = schema
 
 	local font: Enum.Font?

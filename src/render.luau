@@ -17,7 +17,7 @@ local function collapseControls(controls: StoryControlsSchema): StoryControls
 		-- Array values are collapsed to their first element to be passed off to
 		-- the story as props
 		if Sift.List.is(control) then
-			return (control :: { any })[1]
+			return (control :: any)[1]
 		else
 			return control
 		end
