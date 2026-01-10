@@ -4,21 +4,6 @@ local ControlType = require("@root/controls/enums/ControlType")
 
 local export = {}
 
--- This is getting really hard to maintain. I would much rather be writing Luau
--- types without the runtime validation. Trying to work with generics in
--- particular is getting really hairy.
---
--- It might be a better use of time and effort to make the Flipbook companion
--- package really good. Then we can sell it for its typechecking and constraint
--- checks
---
--- But....ugh.....we're pulling in arbitrary modules. We need to make sure that
--- input is sanitized and validated for the best UX.
-
--- I'm losing my marbles trying to get GreenTea to work so why don't I just save
--- all this for later, use Luau types, and then revisit GreenTea when I know for
--- sure if generics are going to make or break this
-
 export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
