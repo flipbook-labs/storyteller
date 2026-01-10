@@ -11,6 +11,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local describe = JestGlobals.describe
 
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
 local container
@@ -80,7 +81,7 @@ describe("Fusion 0.3.0", function()
 
 		story.controls = {
 			isDisabled = true,
-		} :: StoryControls
+		} :: StoryControlsSchema
 
 		render(container, story)
 
@@ -96,7 +97,7 @@ describe("Fusion 0.3.0", function()
 
 		story.controls = {
 			isDisabled = true,
-		} :: StoryControls
+		} :: StoryControlsSchema
 
 		local lifecycle = render(container, story)
 
@@ -181,7 +182,7 @@ describe("Fusion 0.2.0", function()
 
 		story.controls = {
 			isDisabled = true,
-		} :: StoryControls
+		} :: StoryControlsSchema
 
 		render(container, story)
 
@@ -197,7 +198,7 @@ describe("Fusion 0.2.0", function()
 
 		story.controls = {
 			isDisabled = true,
-		} :: StoryControls
+		} :: StoryControlsSchema
 
 		local lifecycle = render(container, story)
 

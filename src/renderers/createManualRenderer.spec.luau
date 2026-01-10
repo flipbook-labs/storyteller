@@ -8,6 +8,7 @@ local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
 local function ButtonStory(props: {
@@ -90,7 +91,7 @@ test("render a GuiObject with args", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	render(container, story)
 
@@ -106,7 +107,7 @@ test("update the GuiObject on arg changes", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 

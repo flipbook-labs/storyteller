@@ -4,7 +4,7 @@ local StorytellerV140Migration = require("@root/controls/migrations/storyteller-
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
-local toStoryControlValueCompat = require("@root/controls/parsing/toStoryControlValueCompat")
+local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
 local validateListControlHasControlValue = require("@root/controls/parsing/validateListControlHasControlValue")
 
@@ -12,7 +12,8 @@ type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
 type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
-type StoryControlValueCompat = ControlTypes.StoryControlValueCompat
+type StoryControlValue = ControlTypes.StoryControlValue
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
 
 --[[
 	As a principle:
@@ -41,7 +42,7 @@ local function hydrateControls(
 		if controlSchema then
 			ControlTypes.StoryControl:assert(controlSchema)
 
-			local controlValue: StoryControlValueCompat? = controls[controlName]
+			local controlValue = controls[controlName]
 
 			if
 				controlSchema.type == ControlType.Check
@@ -55,16 +56,16 @@ local function hydrateControls(
 			local transformed = transformControlValue(controlSchema, controlValue)
 
 			if transformed ~= nil then
-				ControlTypes.StoryControlValueCompat:assert(transformed)
+				ControlTypes.InputStoryControlValue:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else
-			local controlValue: StoryControlValueCompat?
+			local controlValue: InputStoryControlValue?
 
 			if controls[controlName] ~= nil then
 				controlValue = controls[controlName]
 			else
-				controlValue = toStoryControlValueCompat(controlSchemaOrValue)
+				controlValue = toStoryControlValue(controlSchemaOrValue)
 			end
 
 			if controlValue ~= nil then

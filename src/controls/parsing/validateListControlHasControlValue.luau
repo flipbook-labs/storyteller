@@ -1,11 +1,11 @@
 local ControlTypes = require("@root/controls/ControlTypes")
 
 type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
-type StoryControlValueCompat = ControlTypes.StoryControlValueCompat
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
 
 local function validateListControlHasControlValue(
 	controlSchema: ListBasedControlSchema,
-	controlValue: StoryControlValueCompat?
+	controlValue: InputStoryControlValue?
 )
 	local controlValueOrDefault = if controlValue then controlValue else controlSchema.default
 
