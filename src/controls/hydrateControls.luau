@@ -32,8 +32,6 @@ local function hydrateControls(
 ): StoryControls
 	local migratedSchema = migrateControlsSchema(schema)
 
-	ControlTypes.StoryControlsSchema:assert(migratedSchema)
-
 	local hydrated: StoryControls = {}
 
 	for controlName, controlSchemaOrValue in migratedSchema do
