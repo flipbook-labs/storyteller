@@ -38,14 +38,14 @@ local function migrateUILabsControl(control: UILabsControl): StoryControl?
 	elseif control.Type == "Choose" then
 		local migrated: SelectControl = {
 			type = ControlType.Select,
-			options = Sift.List.map(control.List, tostring),
+			items = Sift.List.map(control.List, tostring),
 			default = tostring(control.List[control.DefIndex]),
 		}
 		return migrated
 	elseif control.Type == "EnumList" then
 		local migrated: SelectControl = {
 			type = ControlType.Select,
-			options = Sift.List.sort(Sift.Dictionary.values(control.List)),
+			items = Sift.List.sort(Sift.Dictionary.values(control.List)),
 			default = control.List[control.DefIndex],
 		}
 		return migrated

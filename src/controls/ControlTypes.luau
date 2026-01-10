@@ -4,29 +4,36 @@ local ControlType = require("@root/controls/enums/ControlType")
 
 local export = {}
 
+-- This is getting really hard to maintain. I would much rather be writing Luau
+-- types without the runtime validation. Trying to work with generics in
+-- particular is getting really hairy.
+--
+-- It might be a better use of time and effort to make the Flipbook companion
+-- package really good. Then we can sell it for its typechecking and constraint
+-- checks
+--
+-- But....ugh.....we're pulling in arbitrary modules. We need to make sure that
+-- input is sanitized and validated for the best UX.
+
+-- I'm losing my marbles trying to get GreenTea to work so why don't I just save
+-- all this for later, use Luau types, and then revisit GreenTea when I know for
+-- sure if generics are going to make or break this
+
 export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
-type StoryControlValueBase = boolean | number | string | Color3 | DateTime | EnumItem
-local StoryControlValueBase: StoryControlValueBase = gt.union(
+export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem
+local StoryControlValue: StoryControlValue = gt.union(
 	-- Primitives
-	gt.boolean() :: boolean | number | string | Color3 | DateTime | EnumItem,
+	gt.boolean() :: StoryControlValue,
 	gt.number(),
 	gt.string(),
 
 	-- Roblox datatypes
 	gt.Color3(),
-	gt.isTypeof("DateTime") :: DateTime,
-	gt.isTypeof("EnumItem") :: EnumItem
+	gt.isTypeof("DateTime"),
+	gt.isTypeof("EnumItem")
 )
-
-local StoryControlValue = gt.union(StoryControlValueBase, gt.array(StoryControlValueBase))
-export.StoryControlValue = gt.build(StoryControlValue)
-export type StoryControlValue = typeof(StoryControlValue)
-
-local Mapping = gt.dictionary(gt.string(), StoryControlValue)
-export.Mapping = gt.build(Mapping)
-export type Mapping = typeof(Mapping)
 
 local ControlOptions = gt.array(gt.string())
 export.ControlOptions = gt.build(ControlOptions)
@@ -62,16 +69,26 @@ local function BaseNumberControl(controlType: ControlType)
 	)
 end
 
+local TostringFn = gt.fn(gt.args(StoryControlValue), gt.returns(gt.string()))
+local SortFn = gt.fn(gt.args(gt.args(StoryControlValue), gt.args(StoryControlValue)), gt.returns(gt.boolean()))
+
+local SelectOneOptions = gt.struct({
+	default = gt.optional(StoryControlValue),
+	tostring = gt.optional(TostringFn),
+	sort = gt.optional(SortFn),
+})
+
 local function SelectOneControl(controlType: ControlType)
-	local control = gt.struct({
-		type = gt.literal(controlType) :: ControlType,
-		options = ControlOptions,
-		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
-		default = gt.optional(gt.string()),
-	})
+	local control = gt.intersection(
+		gt.struct({
+			type = gt.literal(controlType) :: ControlType,
+			items = gt.array(StoryControlValue),
+		}),
+		SelectOneOptions
+	)
 
 	return gt.withCustom(control, function(input: typeof(control))
-		if input.default and not table.find(input.options, input.default) then
+		if input.default and not table.find(input.items, input.default) then
 			return false, `value "{input.default}" not found in 'options'`
 		end
 
@@ -79,27 +96,26 @@ local function SelectOneControl(controlType: ControlType)
 	end)
 end
 
+local SelectManyOptions = gt.struct({
+	default = gt.optional(gt.array(StoryControlValue)),
+	tostring = gt.optional(TostringFn),
+	sort = gt.optional(SortFn),
+})
+
 local function SelectManyControl(controlType: ControlType)
-	local control = gt.struct({
-		type = gt.literal(controlType) :: ControlType,
-		options = ControlOptions,
-		mapping = gt.optional(gt.dictionary(gt.string(), gt.any())),
-		default = gt.optional(ControlOptions),
-	})
+	local control = gt.intersection(
+		gt.struct({
+			type = gt.literal(controlType) :: ControlType,
+			items = gt.array(StoryControlValue),
+		}),
+		SelectManyOptions
+	)
 
 	return gt.withCustom(control, function(input: typeof(control))
 		if input.default then
 			for _, defaultOption in input.default do
-				if not table.find(input.options, defaultOption) then
-					return false, `value "{defaultOption}" not found in 'options'`
-				end
-			end
-		end
-
-		for _, option in input.options do
-			if input.mapping then
-				if input.mapping[option] == nil then
-					return false, `could not map "{option}" to one of the values in 'mapping'`
+				if not table.find(input.items, defaultOption) then
+					return false, `value "{defaultOption}" not found in 'items'`
 				end
 			end
 		end
@@ -133,17 +149,33 @@ local DateControl = BaseControl(ControlType.Date, gt.isTypeof("DateTime"))
 export.DateControl = gt.build(DateControl)
 export type DateControl = typeof(DateControl)
 
+local SelectOptions = SelectOneOptions
+export.SelectOptions = gt.build(SelectOptions)
+export type SelectOptions = typeof(SelectOptions)
+
 local SelectControl = SelectOneControl(ControlType.Select)
 export.SelectControl = gt.build(SelectControl)
 export type SelectControl = typeof(SelectControl)
+
+local RadioOptions = SelectOneOptions
+export.RadioOptions = gt.build(RadioOptions)
+export type RadioOptions = typeof(RadioOptions)
 
 local RadioControl = SelectOneControl(ControlType.Radio)
 export.RadioControl = gt.build(RadioControl)
 export type RadioControl = typeof(RadioControl)
 
-local MultiSelectControl = SelectManyControl(ControlType.MultiSelect)
+local MultiSelectOptions = SelectManyOptions
+export.MultiSelectOptions = gt.build(MultiSelectOptions)
+export type MultiSelectOptions = typeof(MultiSelectOptions)
+
+local MultiSelectControl = gt.intersection(SelectManyControl(ControlType.MultiSelect), MultiSelectOptions)
 export.MultiSelectControl = gt.build(MultiSelectControl)
 export type MultiSelectControl = typeof(MultiSelectControl)
+
+local CheckOptions = SelectManyOptions
+export.CheckOptions = gt.build(CheckOptions)
+export type CheckOptions = typeof(CheckOptions)
 
 local CheckControl = SelectManyControl(ControlType.Check)
 export.CheckControl = gt.build(CheckControl)
@@ -153,17 +185,17 @@ local PrimitiveStoryControl = gt.union(StringControl, BooleanControl, NumberCont
 export.PrimitiveStoryControl = gt.build(PrimitiveStoryControl)
 export type PrimitiveStoryControl = typeof(PrimitiveStoryControl)
 
-local AdvancedStoryControl = gt.union(SliderControl, SelectControl, MultiSelectControl, CheckControl, RadioControl)
+local ListBasedStoryControl = gt.union(SelectControl, MultiSelectControl, CheckControl, RadioControl)
+export.ListBasedStoryControl = gt.build(ListBasedStoryControl)
+export type ListBasedStoryControl = typeof(ListBasedStoryControl)
+
+local AdvancedStoryControl = gt.union(SliderControl, ListBasedStoryControl)
 export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
 export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
 local RobloxStoryControl = gt.union(ColorControl, DateControl)
 export.RobloxStoryControl = gt.build(RobloxStoryControl)
 export type RobloxStoryControl = typeof(RobloxStoryControl)
-
-local ListBasedStoryControl = gt.union(SelectControl, MultiSelectControl, CheckControl, RadioControl)
-export.ListBasedStoryControl = gt.build(ListBasedStoryControl)
-export type ListBasedStoryControl = typeof(ListBasedStoryControl)
 
 local NumberBasedStoryControl = gt.union(NumberControl, SliderControl)
 export.NumberBasedStoryControl = gt.build(NumberBasedStoryControl)
@@ -173,11 +205,17 @@ local StoryControl = gt.union(PrimitiveStoryControl, AdvancedStoryControl, Roblo
 export.StoryControl = gt.build(StoryControl)
 export type StoryControl = typeof(StoryControl)
 
-local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, StoryControlValue))
+-- The Storyteller v1.5.0 migration should make it possible to remove this
+-- compat type. PR here: https://github.com/flipbook-labs/storyteller/pull/84
+local StoryControlValueCompat = gt.union(StoryControlValue, gt.array(StoryControlValue))
+export.StoryControlValueCompat = gt.build(StoryControlValueCompat)
+export type StoryControlValueCompat = typeof(StoryControlValueCompat)
+
+local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, StoryControlValueCompat))
 export.StoryControlsSchema = gt.build(StoryControlsSchema)
 export type StoryControlsSchema = typeof(StoryControlsSchema)
 
-local StoryControls = gt.dictionary(gt.string(), StoryControlValue)
+local StoryControls = gt.dictionary(gt.string(), StoryControlValueCompat)
 export.StoryControls = gt.build(StoryControls)
 export type StoryControls = typeof(StoryControls)
 

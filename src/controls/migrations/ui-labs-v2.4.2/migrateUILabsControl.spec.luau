@@ -70,7 +70,7 @@ describe("UILabs.Choose", function()
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -87,7 +87,7 @@ describe("UILabs.Choose", function()
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",
@@ -109,7 +109,7 @@ describe("UILabs.EnumList", function()
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
-			options = {
+			items = {
 				"Option 1",
 				"Option 2",
 				"Option 3",

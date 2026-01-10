@@ -7,7 +7,6 @@ local createNumberControl = require("./createNumberControl")
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
-type Mapping = ControlTypes.Mapping
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
