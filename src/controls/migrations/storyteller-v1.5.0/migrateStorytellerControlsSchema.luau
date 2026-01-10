@@ -1,5 +1,6 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
+local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local types = require("./types")
 
 type StoryControl = ControlTypes.StoryControl
@@ -7,7 +8,6 @@ type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type ListBasedStoryControl = ControlTypes.ListBasedStoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
-type ControlOptions = ControlTypes.ControlOptions
 
 type ControlType = ControlType.ControlType
 
@@ -25,24 +25,19 @@ local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchem
 
 	for key, value in schema do
 		if typeof(value) == "table" then
-			local mapping: { [string]: StoryControlValue } = {}
-			local options: ControlOptions = {}
+			local items: { StoryControlValue } = {}
 
-			for _, option in value do
-				if typeof(option) ~= "table" then
-					mapping[tostring(option)] = option
+			for _, item in value do
+				local casted = toStoryControlValue(item)
+				if casted then
+					table.insert(items, casted)
 				end
-
-				table.insert(options, tostring(option))
 			end
-
-			local default = tostring(value[1])
 
 			local migratedControl: ListBasedStoryControl = {
 				type = ControlType.Select,
-				options = options,
-				mapping = mapping,
-				default = default,
+				items = items,
+				default = items[1],
 			}
 
 			migratedSchema[key] = migratedControl
