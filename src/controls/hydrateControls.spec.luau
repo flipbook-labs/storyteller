@@ -148,9 +148,9 @@ test("hydrates list-based controls", function()
 
 	local controls: StoryControls = {
 		dropdown = "Option 1",
-		radio = "Option 2",
-		check = { "Option 1", "Option 2" },
 		multiSelect = { "Option 3" },
+		check = { "Option 1", "Option 2" },
+		radio = "Option 2",
 	}
 
 	local expected = {

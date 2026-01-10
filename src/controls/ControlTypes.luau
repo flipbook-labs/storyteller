@@ -19,10 +19,7 @@ local StoryControlValue: StoryControlValue = gt.union(
 	gt.isTypeof("DateTime"),
 	gt.isTypeof("EnumItem")
 )
-
-local ControlOptions = gt.array(gt.string())
-export.ControlOptions = gt.build(ControlOptions)
-export type ControlOptions = typeof(ControlOptions)
+export.StoryControlValue = gt.build(StoryControlValue)
 
 local function BaseControl<T>(controlType: ControlType, valueType: T)
 	return gt.struct({
@@ -190,17 +187,15 @@ local StoryControl = gt.union(PrimitiveStoryControl, AdvancedStoryControl, Roblo
 export.StoryControl = gt.build(StoryControl)
 export type StoryControl = typeof(StoryControl)
 
--- The Storyteller v1.5.0 migration should make it possible to remove this
--- compat type. PR here: https://github.com/flipbook-labs/storyteller/pull/84
-local StoryControlValueCompat = gt.union(StoryControlValue, gt.array(StoryControlValue))
-export.StoryControlValueCompat = gt.build(StoryControlValueCompat)
-export type StoryControlValueCompat = typeof(StoryControlValueCompat)
-
-local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, StoryControlValueCompat))
+local StoryControlsSchema = gt.dictionary(gt.string(), gt.union(StoryControl, StoryControlValue))
 export.StoryControlsSchema = gt.build(StoryControlsSchema)
 export type StoryControlsSchema = typeof(StoryControlsSchema)
 
-local StoryControls = gt.dictionary(gt.string(), StoryControlValueCompat)
+local InputStoryControlValue = gt.union(StoryControlValue, gt.array(StoryControlValue))
+export.InputStoryControlValue = gt.build(InputStoryControlValue)
+export type InputStoryControlValue = typeof(InputStoryControlValue)
+
+local StoryControls = gt.dictionary(gt.string(), InputStoryControlValue)
 export.StoryControls = gt.build(StoryControls)
 export type StoryControls = typeof(StoryControls)
 

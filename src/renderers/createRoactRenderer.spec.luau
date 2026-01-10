@@ -10,6 +10,7 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
 local function createRoactStory(element)
@@ -74,7 +75,7 @@ test("pass controls as props", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	render(container, story)
 
@@ -89,7 +90,7 @@ test("update the component on arg changes", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
@@ -139,7 +140,7 @@ test("lifecycle", function()
 
 	story.controls = {
 		isDisabled = false,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
