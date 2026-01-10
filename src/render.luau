@@ -73,12 +73,12 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 	local function createStoryProps(controls: StoryControls?, extraProps: ExtraStoryProps?): StoryProps
 		local hydratedControls = if story.controls
 			then hydrateControls(story.controls, if controls then controls else {})
-			else nil
+			else {}
 
 		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
 			story = story,
-			controls = if hydratedControls then hydratedControls else {},
+			controls = hydratedControls,
 		}
 
 		local props: StoryProps = Sift.Dictionary.join({
