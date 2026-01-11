@@ -1,6 +1,10 @@
-local t = require("@pkg/t")
+local gt = require("@pkg/GreenTea")
 
-local Primitive = t.union(t.number, t.string, t.boolean, t.EnumItem)
-local isStorytellerControlsSchema = t.map(t.string, t.union(Primitive, t.array(Primitive)))
+local Primitive = gt.union(gt.number(), gt.string(), gt.boolean(), gt.EnumItem())
+local StorytellerControlsSchema = gt.dictionary(gt.string(), gt.union(Primitive, gt.array(Primitive)))
+
+local function isStorytellerControlsSchema(...)
+	return gt.build(StorytellerControlsSchema):matches(...)
+end
 
 return isStorytellerControlsSchema

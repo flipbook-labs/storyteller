@@ -1,3 +1,5 @@
+local gt = require("@pkg/GreenTea")
+
 local ControlTypes = require("@root/controls/ControlTypes")
 local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.5.0")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
@@ -9,7 +11,7 @@ type AnySchema = {
 }
 
 type Migration = {
-	matcher: (schema: AnySchema) -> (boolean, string?),
+	matcher: (schema: AnySchema) -> (boolean, gt.Cause?),
 	migrator: (schema: AnySchema) -> StoryControlsSchema,
 }
 
