@@ -134,7 +134,7 @@ test("lifecycle", function()
 
 	story.controls = {
 		isDisabled = false,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
