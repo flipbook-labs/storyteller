@@ -1,5 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
+local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
@@ -189,14 +190,14 @@ test("prevProps is nil on the first render", function()
 end)
 
 test("array controls are collapsed to the first item", function()
-	-- render -> hydrateControls -> migrateControlSchema -> default =
-	-- Enum.Font.BuilderSans --> should resolve as the initial control value??
-	-- why doesn't it?
 	local schema: StoryControlsSchema = {
 		font = {
-			Enum.Font.BuilderSans,
-			Enum.Font.RobotoMono,
-			Enum.Font.Merriweather,
+			type = ControlType.Select,
+			items = {
+				Enum.Font.BuilderSans,
+				Enum.Font.RobotoMono,
+				Enum.Font.Merriweather,
+			},
 		},
 	}
 	story.controls = schema

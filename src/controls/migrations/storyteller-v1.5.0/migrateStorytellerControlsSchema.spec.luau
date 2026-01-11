@@ -10,7 +10,7 @@ type StoryControlsSchema = types.StoryControlsSchema
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-test("migrates a complex Storyteller controls schema", function()
+test("migrates a Storyteller v1.5.0 controls schema", function()
 	local schema: StoryControlsSchema = {
 		toggle = true,
 		text = "Hello, World!",
@@ -25,18 +25,9 @@ test("migrates a complex Storyteller controls schema", function()
 	local migrated = migrateStorytellerControlsSchema(schema)
 
 	expect(migrated).toMatchObject({
-		toggle = {
-			type = ControlType.Boolean,
-			default = true,
-		},
-		text = {
-			type = ControlType.String,
-			default = "Hello, World!",
-		},
-		number = {
-			type = ControlType.Number,
-			default = 100,
-		},
+		toggle = true,
+		text = "Hello, World!",
+		number = 100,
 		font = {
 			type = ControlType.Select,
 			items = {

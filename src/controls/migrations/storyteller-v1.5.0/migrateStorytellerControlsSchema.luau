@@ -14,16 +14,11 @@ type ControlType = ControlType.ControlType
 type LegacyStoryControl = types.StoryControl
 type LegacyStoryControlsSchema = types.StoryControlsSchema
 
-local dataTypeToControlType: { [string]: ControlType } = {
-	["string"] = ControlType.String,
-	["boolean"] = ControlType.Boolean,
-	["number"] = ControlType.Number,
-}
-
 local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchema): StoryControlsSchema
 	local migratedSchema: StoryControlsSchema = {}
 
 	for key, value in schema do
+		-- The only thing we actually have to migrate is how arrays are handled
 		if typeof(value) == "table" then
 			local items: { StoryControlValue } = {}
 
@@ -42,14 +37,7 @@ local function migrateStorytellerControlsSchema(schema: LegacyStoryControlsSchem
 
 			migratedSchema[key] = migratedControl
 		else
-			local controlType: ControlType = dataTypeToControlType[typeof(value)]
-
-			local migratedControl: StoryControl = {
-				type = controlType,
-				default = value,
-			}
-
-			migratedSchema[key] = migratedControl
+			migratedSchema[key] = value
 		end
 	end
 
