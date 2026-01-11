@@ -18,10 +18,8 @@ local function validateListControlHasControlValue(
 			validateListControlHasControlValue(controlSchema, nestedControlValue)
 		end
 	else
-		local key = tostring(controlValueOrDefault)
-
-		if not table.find(controlSchema.items, key) then
-			error(`no item found for {key} in control schema {controlSchema}`)
+		if not table.find(controlSchema.items, controlValueOrDefault) then
+			error(`no item found for {controlValueOrDefault} in control schema {controlSchema}`)
 		end
 	end
 end
