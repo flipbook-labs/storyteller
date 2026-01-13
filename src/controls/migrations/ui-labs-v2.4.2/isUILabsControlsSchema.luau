@@ -1,10 +1,14 @@
-local t = require("@pkg/t")
+local gt = require("@pkg/GreenTea")
 
-local isUILabsControlsSchema = t.map(
-	t.string,
-	t.interface({
-		ControlValue = t.any,
+local UILabsControlsSchema = gt.dictionary(
+	gt.string(),
+	gt.struct({
+		ControlValue = gt.any(),
 	})
 )
+
+local function isUILabsControlsSchema(...)
+	return gt.build(UILabsControlsSchema):matches(...)
+end
 
 return isUILabsControlsSchema

@@ -1,6 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local controls = require("@root/controls")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -8,7 +8,8 @@ local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-type StoryControls = controls.StoryControls
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControls = ControlTypes.StoryControls
 
 local function ButtonStory(props: {
 	controls: {
@@ -90,7 +91,7 @@ test("render a GuiObject with args", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	render(container, story)
 
@@ -106,7 +107,7 @@ test("update the GuiObject on arg changes", function()
 
 	story.controls = {
 		isDisabled = true,
-	} :: StoryControls
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
@@ -130,6 +131,10 @@ test("lifecycle", function()
 	local story = createStory({
 		story = ButtonStory,
 	})
+
+	story.controls = {
+		isDisabled = false,
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 

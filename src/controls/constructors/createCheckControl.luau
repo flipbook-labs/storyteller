@@ -1,19 +1,23 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
 
 type CheckControl = ControlTypes.CheckControl
-type Mapping = ControlTypes.Mapping
+type CheckOptions = ControlTypes.CheckOptions
+type StoryControlValue = ControlTypes.StoryControlValue
 
-local function createCheckControl(options: { string }, default: { string }?, mapping: Mapping?): CheckControl
-	local control = {
+local function createCheckControl(items: { StoryControlValue }, options: CheckOptions?): CheckControl
+	local control: CheckControl = {
 		type = ControlType.Check,
-		options = options,
-		default = default,
-		mapping = mapping,
+		items = items,
 	}
 
-	validateControlSchema(ControlType.Check, control)
+	if options then
+		for k, v in options do
+			control[k] = v
+		end
+	end
+
+	ControlTypes.CheckControl:assert(control)
 
 	return control
 end

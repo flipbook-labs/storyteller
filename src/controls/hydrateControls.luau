@@ -1,17 +1,19 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
+local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.5.0")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
 local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
-local validateControlSchema = require("@root/controls/parsing/validateControlSchema")
-local validateListControlValue = require("@root/controls/parsing/validateListControlValue")
+local validateListControlHasControlValue = require("@root/controls/parsing/validateListControlHasControlValue")
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 type StoryControl = ControlTypes.StoryControl
+type ListBasedControlSchema = ControlTypes.ListBasedStoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
 
 --[[
 	As a principle:
@@ -25,7 +27,7 @@ type StoryControlValue = ControlTypes.StoryControlValue
 ]]
 
 local function hydrateControls(
-	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema,
+	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema,
 	controls: StoryControls
 ): StoryControls
 	local migratedSchema = migrateControlsSchema(schema)
@@ -36,9 +38,9 @@ local function hydrateControls(
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
-			local controlValue: StoryControlValue? = controls[controlName]
+			ControlTypes.StoryControl:assert(controlSchema)
 
-			validateControlSchema(controlName, controlSchema)
+			local controlValue = controls[controlName]
 
 			if
 				controlSchema.type == ControlType.Check
@@ -46,16 +48,17 @@ local function hydrateControls(
 				or controlSchema.type == ControlType.Radio
 				or controlSchema.type == ControlType.Select
 			then
-				validateListControlValue(controlName, controlSchema, controlValue)
+				validateListControlHasControlValue(controlSchema :: ListBasedControlSchema, controlValue)
 			end
 
 			local transformed = transformControlValue(controlSchema, controlValue)
 
 			if transformed ~= nil then
+				ControlTypes.InputStoryControlValue:assert(transformed)
 				hydrated[controlName] = transformed
 			end
 		else
-			local controlValue: StoryControlValue?
+			local controlValue: InputStoryControlValue?
 
 			if controls[controlName] ~= nil then
 				controlValue = controls[controlName]

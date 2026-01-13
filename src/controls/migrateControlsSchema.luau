@@ -1,4 +1,7 @@
+local gt = require("@pkg/GreenTea")
+
 local ControlTypes = require("@root/controls/ControlTypes")
+local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.5.0")
 local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 
 type StoryControls = ControlTypes.StoryControls
@@ -8,7 +11,7 @@ type AnySchema = {
 }
 
 type Migration = {
-	matcher: (schema: AnySchema) -> (boolean, string?),
+	matcher: (schema: AnySchema) -> (boolean, gt.Cause?),
 	migrator: (schema: AnySchema) -> StoryControlsSchema,
 }
 
@@ -18,6 +21,10 @@ local migrations: { Migration } = {
 	{
 		matcher = UILabsV242Migration.isUILabsControlsSchema,
 		migrator = UILabsV242Migration.migrateUILabsControlsSchema,
+	},
+	{
+		matcher = StorytellerV140Migration.isStorytellerControlsSchema,
+		migrator = StorytellerV140Migration.migrateStorytellerControlsSchema,
 	},
 }
 
@@ -31,7 +38,7 @@ local function applyMigration(schema: { [any]: any }): StoryControlsSchema?
 end
 
 local function migrateControlsSchema(
-	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema
+	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema
 ): StoryControlsSchema
 	if ControlTypes.StoryControlsSchema(schema) then
 		return schema :: StoryControlsSchema

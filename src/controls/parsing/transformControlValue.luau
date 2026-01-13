@@ -3,13 +3,21 @@ local ControlTypes = require("@root/controls/ControlTypes")
 
 type StoryControl = ControlTypes.StoryControl
 type StoryControlValue = ControlTypes.StoryControlValue
+type InputStoryControlValue = ControlTypes.InputStoryControlValue
+type NumberBasedStoryControl = ControlTypes.NumberBasedStoryControl
+type ListBasedStoryControl = ControlTypes.ListBasedStoryControl
 
-local function transformControlValue(controlSchema: StoryControl, controlValue: StoryControlValue?): StoryControlValue?
-	local controlValueOrDefault: StoryControlValue? = if controlValue then controlValue else controlSchema.default
+local function transformControlValue(
+	controlSchema: StoryControl,
+	controlValue: InputStoryControlValue?
+): InputStoryControlValue?
+	local controlValueOrDefault: InputStoryControlValue? = if controlValue then controlValue else controlSchema.default
 
 	if controlSchema.type == ControlType.Number or controlSchema.type == ControlType.Slider then
+		local numberBasedControl = controlSchema :: NumberBasedStoryControl
+
 		if typeof(controlValueOrDefault) == "number" then
-			local range = controlSchema.range
+			local range = numberBasedControl.range
 
 			if range then
 				return math.clamp(controlValueOrDefault, range.Min, range.Max)
@@ -17,29 +25,12 @@ local function transformControlValue(controlSchema: StoryControl, controlValue: 
 		end
 	end
 
-	if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
-		if typeof(controlValueOrDefault) == "table" then
-			local result = {}
-			local mapping = controlSchema.mapping
-
-			for _, option in controlValueOrDefault do
-				if mapping then
-					table.insert(result, mapping[tostring(option)])
-				else
-					table.insert(result, option)
-				end
-			end
-			return result
-		end
-	end
-
-	if controlSchema.type == ControlType.Radio or controlSchema.type == ControlType.Select then
-		local mapping = controlSchema.mapping
-		if mapping then
-			local mappedControlValue = mapping[tostring(controlValueOrDefault)]
-			if mappedControlValue then
-				return mappedControlValue
-			end
+	-- When the user does not specify a default value for a list-based control
+	-- we implicitly use the first item instead
+	if not controlValueOrDefault then
+		local items = rawget(controlSchema, "items")
+		if items then
+			return items[1]
 		end
 	end
 

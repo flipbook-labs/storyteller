@@ -1,6 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local controls = require("@root/controls")
+local ControlType = require("@root/controls/enums/ControlType")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
@@ -11,7 +12,7 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 
 type StoryRenderer<T> = types.StoryRenderer<T>
-type StoryControlsSchema = controls.StoryControlsSchema
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
 local container: Instance
 local story: types.LoadedStory<TextLabel>
@@ -188,13 +189,16 @@ test("prevProps is nil on the first render", function()
 	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(props)
 end)
 
-test("array controls are collapsed to the first story", function()
+test("array controls are collapsed to the first item", function()
 	local schema: StoryControlsSchema = {
 		font = {
-			Enum.Font.BuilderSans,
-			Enum.Font.RobotoMono,
-			Enum.Font.Merriweather,
-		} :: { EnumItem },
+			type = ControlType.Select,
+			items = {
+				Enum.Font.BuilderSans,
+				Enum.Font.RobotoMono,
+				Enum.Font.Merriweather,
+			},
+		},
 	}
 	story.controls = schema
 
@@ -228,6 +232,26 @@ test("extra props can be supplied for things like the UI theme", function()
 		expect.objectContaining({
 			container = container,
 			theme = "Light",
+		})
+	)
+end)
+
+test("always passes reserved props", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story)
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			story = story,
+			controls = expect.any("table"),
 		})
 	)
 end)
