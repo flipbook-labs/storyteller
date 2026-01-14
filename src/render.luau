@@ -1,27 +1,17 @@
 local Sift = require("@pkg/Sift")
 
 local createRendererForStory = require("@root/createRendererForStory")
+local hydrateControls = require("@root/controls/hydrateControls")
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
+type StoryControlsSchema = types.StoryControlsSchema
 type StoryProps = types.StoryProps
 type ReservedStoryProps = types.ReservedStoryProps
 type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
-
-local function collapseControls(controls: StoryControls): StoryControls
-	return Sift.Dictionary.map(controls, function(control)
-		-- Array values are collapsed to their first element to be passed off to
-		-- the story as props
-		if Sift.List.is(control) then
-			return control[1]
-		else
-			return control
-		end
-	end)
-end
 
 --[=[
 	Render a Story to an [Instance] in the [DataModel].
@@ -80,16 +70,15 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 
 	local prevProps: StoryProps?
 
-	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
-		local joinedControls = Sift.Dictionary.join(
-			if story.controls then collapseControls(story.controls) else nil,
-			if controls then controls else nil
-		)
+	local function createStoryProps(controls: StoryControls?, extraProps: ExtraStoryProps?): StoryProps
+		local hydratedControls = if story.controls
+			then hydrateControls(story.controls, if controls then controls else {})
+			else {}
 
 		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
 			story = story,
-			controls = joinedControls,
+			controls = hydratedControls,
 		}
 
 		local props: StoryProps = Sift.Dictionary.join({
@@ -103,6 +92,12 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 			props = renderer.transformProps(props, prevProps)
 		end
 
+		return props
+	end
+
+	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
+		local props = createStoryProps(controls, extraProps)
+
 		if not renderer.shouldUpdate or renderer.shouldUpdate(props, prevProps) then
 			renderer.mount(container, story, props)
 		end
@@ -112,16 +107,9 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 
 	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
-			local joinedControls = Sift.Dictionary.join(
-				if story.controls then collapseControls(story.controls) else nil,
-				if controls then controls else nil
-			)
-
-			local props = Sift.Dictionary.join(prevProps, extraProps, {
-				controls = joinedControls,
-			})
-
+			local props = createStoryProps(controls, extraProps)
 			renderer.update(props, prevProps)
+			prevProps = props
 		else
 			renderOnce(controls, extraProps)
 		end

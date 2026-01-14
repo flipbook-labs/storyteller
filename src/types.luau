@@ -3,7 +3,9 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
-type StoryControls = ControlTypes.StoryControls
+
+export type StoryControlsSchema = ControlTypes.StoryControlsSchema
+export type StoryControls = ControlTypes.StoryControls
 
 local types = {}
 
@@ -77,11 +79,10 @@ export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
 	-- breaking change: controls are now required
-	controls: StoryControls,
+	controls: StoryControlsSchema,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	-- TODO: Double check if Developer Storybook lets you do this
 	props: { [string]: any }?,
 }
 types.IStory = t.interface({
@@ -100,7 +101,7 @@ export type LoadedStory<T> = {
 	packages: StoryPackages?,
 
 	summary: string?,
-	controls: StoryControls?,
+	controls: StoryControlsSchema?,
 	props: { [string]: any }?,
 }
 

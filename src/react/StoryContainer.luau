@@ -103,7 +103,7 @@ local function StoryContainer(props: {
 	end, { update, props.story, prevStory, props.extraProps, prevExtraProps, props.onError } :: { unknown })
 
 	return React.createElement("Frame", {
-		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		ref = ref,
 	})
