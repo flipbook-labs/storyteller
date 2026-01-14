@@ -1,3 +1,4 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 
 local loadStoryModule = require("@root/loadStoryModule")
@@ -58,26 +59,28 @@ local function useStory(module: ModuleScript, storybook: types.LoadedStorybook):
 	local err, setErr = React.useState(nil :: string?)
 
 	React.useEffect(function()
+		local connections: { RBXScriptConnection } = {}
+
 		local function loadStory()
+			local loader = ModuleLoader.new()
+
 			local newStory
 			local success, result = pcall(function()
-				newStory = loadStoryModule(module, storybook)
+				newStory = loadStoryModule(module, storybook, loader)
 			end)
 
 			setStory(if success then newStory else nil)
 			setErr(if success then nil else result)
+
+			table.insert(
+				connections,
+				loader.loadedModuleChanged:Connect(function(other)
+					if other == module then
+						loadStory()
+					end
+				end)
+			)
 		end
-
-		local connections: { RBXScriptConnection } = {}
-
-		table.insert(
-			connections,
-			storybook.loader.loadedModuleChanged:Connect(function(other)
-				if other == module then
-					loadStory()
-				end
-			end)
-		)
 
 		table.insert(connections, module:GetPropertyChangedSignal("Source"):Connect(loadStory))
 

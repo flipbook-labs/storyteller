@@ -1,3 +1,4 @@
+local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
@@ -11,8 +12,8 @@ type LoadedStory<T> = types.LoadedStory<T>
 --[=[
 	Loads the source of a Story module.
 
-	A [ModuleLoader](https://github.com/flipbook-labs/module-loader) instance
-	is required for handling the requiring of the module.
+	A [ModuleLoader](https://github.com/flipbook-labs/module-loader) instance is
+	used under the hood for handling the requiring of the Story module.
 
 	This function will throw if the return value of `storyModule` does not
 	conform to the [Story format](/docs/story-format#story), or if the source
@@ -27,21 +28,32 @@ type LoadedStory<T> = types.LoadedStory<T>
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedStorybook): LoadedStory<T>
-	local success, result = pcall(function()
-		return storybook.loader:require(storyModule)
+local function loadStoryModule<T>(
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+	loader: ModuleLoader.ModuleLoader?
+): LoadedStory<T>
+	local loaderOrDefault = if loader then loader else ModuleLoader.new()
+
+	pcall(function()
+		loaderOrDefault:require(storybook.source)
+	end)
+
+	local requiredStory
+	local success, err = pcall(function()
+		requiredStory = loaderOrDefault:require(storyModule)
 	end)
 
 	if not success then
-		error(`Failed to load story {storyModule:GetFullName()}. Error: {result})`)
+		error(`Failed to load story {storyModule:GetFullName()}. Error: {err})`)
 	end
 
-	local isLegacyStory = typeof(result) == "function"
+	local isLegacyStory = typeof(requiredStory) == "function"
 
 	-- Support for Hoarcekat stories
 	if isLegacyStory then
-		local callback = result
-		result = {
+		local callback = requiredStory
+		requiredStory = {
 			story = function(props)
 				return callback(props.container, props)
 			end,
@@ -54,21 +66,21 @@ local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedSt
 		-- compatible with Developer Storybook, so we're just selecting a
 		-- randomly accessed one but ideally we should be able to render them
 		-- all out
-		if result.stories and not result.story then
+		if requiredStory.stories and not requiredStory.story then
 			local randomSubstory
-			for _, substory in result.stories do
+			for _, substory in requiredStory.stories do
 				randomSubstory = substory
 				break
 			end
 			if typeof(randomSubstory) == "table" then
-				result.story = randomSubstory.story
+				requiredStory.story = randomSubstory.story
 			else
-				result.story = randomSubstory
+				requiredStory.story = randomSubstory
 			end
 		end
 	end
 
-	local isValid, message = types.IStory(result)
+	local isValid, message = types.IStory(requiredStory)
 
 	if not isValid then
 		error(
@@ -77,7 +89,7 @@ local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedSt
 		)
 	end
 
-	local story: types.Story<T> = result
+	local story: types.Story<T> = requiredStory
 
 	local packages = migrateLegacyPackages(story)
 	if not packages then
