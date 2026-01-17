@@ -4,6 +4,9 @@ local React = require("@pkg/React")
 local loadStoryModule = require("@root/loadStoryModule")
 local types = require("@root/types")
 
+local useEffect = React.useEffect
+local useState = React.useState
+
 --[=[
 	This hook triggers a rerender when the Story module or any of its required
 	modules change. For example, updating the `story` property or updating a
@@ -55,10 +58,10 @@ local types = require("@root/types")
 	@within Storyteller
 ]=]
 local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	local story, setStory = React.useState(nil :: types.LoadedStory<unknown>?)
-	local err, setErr = React.useState(nil :: string?)
+	local story, setStory = useState(nil :: types.LoadedStory<unknown>?)
+	local err, setErr = useState(nil :: string?)
 
-	React.useEffect(function()
+	useEffect(function()
 		local connections: { RBXScriptConnection } = {}
 
 		local function loadStory()
@@ -72,17 +75,13 @@ local function useStory(module: ModuleScript, storybook: types.LoadedStorybook):
 			setStory(if success then newStory else nil)
 			setErr(if success then nil else result)
 
-			table.insert(
-				connections,
-				loader.loadedModuleChanged:Connect(function(other)
-					if other == module then
-						loadStory()
-					end
-				end)
-			)
+			local conn
+			conn = loader.loadedModuleChanged:Connect(function()
+				loadStory()
+				conn:Disconnect()
+			end)
+			table.insert(connections, conn)
 		end
-
-		table.insert(connections, module:GetPropertyChangedSignal("Source"):Connect(loadStory))
 
 		loadStory()
 
