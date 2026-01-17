@@ -35,12 +35,16 @@ local function loadStoryModule<T>(
 ): LoadedStory<T>
 	local loaderOrDefault = if loader then loader else ModuleLoader.new()
 
-	pcall(function()
+	local success, err = pcall(function()
 		loaderOrDefault:require(storybook.source)
 	end)
 
+	if not success then
+		error(`Failed to load story {storyModule:GetFullName()}. Error: {err})`)
+	end
+
 	local requiredStory
-	local success, err = pcall(function()
+	success, err = pcall(function()
 		requiredStory = loaderOrDefault:require(storyModule)
 	end)
 
