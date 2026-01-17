@@ -24,6 +24,17 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
 	local loader = if providedLoader then providedLoader else ModuleLoader.new()
 
+	--[[
+		This is part of the issue. Instead of keeping a loader around in the
+		storybook, we can do two things:
+
+		1. Create a ModuleLoader when we need to load the Storybook initially,
+		   and that loader solely exists for the Storybook and will re-require
+		   when changed
+		2. Create a ModuleLoader specifically for sandboxing stories. I think
+		   stories still need the Storybook so we can also just require the
+		   Storybook in the story's ModuleLoader
+	]]
 	local wasRequired, result = pcall(function()
 		return loader:require(module)
 	end)
