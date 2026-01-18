@@ -25,12 +25,16 @@ local function transformControlValue(
 		end
 	end
 
-	-- When the user does not specify a default value for a list-based control
-	-- we implicitly use the first item instead
 	if not controlValueOrDefault then
-		local items = rawget(controlSchema, "items")
-		if items then
-			return items[1]
+		if controlSchema.type == ControlType.Check or controlSchema.type == ControlType.MultiSelect then
+			return {}
+		end
+
+		if controlSchema.type == ControlType.Select then
+			local items = rawget(controlSchema, "items")
+			if items then
+				return items[1]
+			end
 		end
 	end
 
