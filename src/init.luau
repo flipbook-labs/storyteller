@@ -80,4 +80,5 @@ return {
 	createSelectControl = require("@self/controls/constructors/createSelectControl"),
 	createSliderControl = require("@self/controls/constructors/createSliderControl"),
 	createStringControl = require("@self/controls/constructors/createStringControl"),
+	hydrateControls = require("@self/controls/hydrateControls"),
 }
