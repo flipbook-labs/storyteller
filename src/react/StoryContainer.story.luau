@@ -12,8 +12,6 @@ local story = createStory({
 		static = "Static prop",
 	},
 	story = function(props)
-		print("story props", props)
-
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromOffset(100, 100)
 		label.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
@@ -28,7 +26,6 @@ return {
 		text = "Hello, World!",
 	},
 	story = function(props)
-		print("StoryContainer.story", props)
 		return React.createElement(StoryContainer, {
 			story = story,
 			controls = props.controls,
