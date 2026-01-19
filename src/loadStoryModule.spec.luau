@@ -1,7 +1,10 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local loadStoryModule = require("./loadStoryModule")
+local e2e = require("@root/e2e")
+local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
+
+local loadStoryModule = require("./loadStoryModule")
 
 local describe = JestGlobals.describe
 local jest = JestGlobals.jest
@@ -11,42 +14,13 @@ local beforeEach = JestGlobals.beforeEach
 local afterEach = JestGlobals.afterEach
 
 local mockPlainStorybook: types.LoadedStorybook
-local mockRoactStorybook: types.LoadedStorybook
+local mockFusionStorybook: types.LoadedStorybook
 local mockReactStorybook: types.LoadedStorybook
 
 beforeEach(function()
-	mockPlainStorybook = {
-		name = "Plain Storybook",
-		storyRoots = {},
-		source = Instance.new("ModuleScript"),
-	}
-
-	mockRoactStorybook = {
-		name = "Roact Storybook",
-		storyRoots = {},
-		source = Instance.new("ModuleScript"),
-		packages = {
-			Roact = {
-				createElement = jest.fn(),
-				mount = jest.fn(),
-				unmount = jest.fn(),
-			},
-		},
-	}
-
-	mockReactStorybook = {
-		name = "React Storybook",
-		storyRoots = {},
-		source = Instance.new("ModuleScript"),
-		packages = {
-			React = {
-				createElement = jest.fn(),
-			},
-			ReactRoblox = {
-				createRoot = jest.fn(),
-			},
-		},
-	}
+	mockPlainStorybook = loadStorybookModule(e2e.manual["Manual.storybook"])
+	mockReactStorybook = loadStorybookModule(e2e.react["React.storybook"])
+	mockFusionStorybook = loadStorybookModule(e2e.fusion["Fusion.storybook"])
 end)
 
 afterEach(function()
@@ -121,7 +95,7 @@ test("pass the storybook's renderer to the story", function()
 
 	expect(story).toBeDefined()
 
-	story = loadStoryModule(storyModule, mockRoactStorybook)
+	story = loadStoryModule(storyModule, mockFusionStorybook)
 
 	expect(story).toBeDefined()
 end)
