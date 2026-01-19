@@ -17,10 +17,10 @@ local act = ReactRoblox.act
 
 type StoryControls = ControlTypes.StoryControls
 
-local storybookModules = findStorybookModules(script.Parent)
+local storybookModules = findStorybookModules(script.Parent.storybooks)
 
 local EXCLUDED_FROM_CONFORMANCE = {
-	script.Parent.hoarcekat["Hoarcekat.storybook"],
+	script.Parent.storybooks["Hoarcekat.storybook"],
 }
 
 test("pin number of storybooks", function()
@@ -37,11 +37,11 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 	end)
 
 	local function afterRender()
-		if storybookModule == script.Parent.react["React.storybook"] then
+		if storybookModule == script.Parent.storybooks["React.storybook"] then
 			act(function()
 				task.wait()
 			end)
-		elseif storybookModule == script.Parent.fusion["Fusion.storybook"] then
+		elseif storybookModule == script.Parent.storybooks["Fusion.storybook"] then
 			task.wait()
 		end
 	end
