@@ -1,8 +1,5 @@
 local ControlType = require("@root/controls/enums/ControlType")
 local ControlTypes = require("@root/controls/ControlTypes")
-local StorytellerV140Migration = require("@root/controls/migrations/storyteller-v1.5.0")
-local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
-local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local toStoryControl = require("@root/controls/parsing/toStoryControl")
 local toStoryControlValue = require("@root/controls/parsing/toStoryControlValue")
 local transformControlValue = require("@root/controls/parsing/transformControlValue")
@@ -26,15 +23,10 @@ type InputStoryControlValue = ControlTypes.InputStoryControlValue
 	sure its within the range.
 ]]
 
-local function hydrateControls(
-	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema,
-	controls: StoryControls
-): StoryControls
-	local migratedSchema = migrateControlsSchema(schema)
-
+local function hydrateControls(schema: StoryControlsSchema, controls: StoryControls): StoryControls
 	local hydrated: StoryControls = {}
 
-	for controlName, controlSchemaOrValue in migratedSchema do
+	for controlName, controlSchemaOrValue in schema do
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
