@@ -2,6 +2,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
@@ -82,6 +83,10 @@ local function loadStoryModule<T>(
 				requiredStory.story = randomSubstory
 			end
 		end
+	end
+
+	if requiredStory.controls then
+		requiredStory.controls = migrateControlsSchema(requiredStory.controls)
 	end
 
 	local isValid, message = types.IStory(requiredStory)
