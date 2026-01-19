@@ -81,5 +81,4 @@ return {
 	createSliderControl = require("@self/controls/constructors/createSliderControl"),
 	createStringControl = require("@self/controls/constructors/createStringControl"),
 	hydrateControls = require("@self/controls/hydrateControls"),
-	migrateControlsSchema = require("@self/controls/migrateControlsSchema"),
 }
