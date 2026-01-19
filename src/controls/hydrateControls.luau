@@ -26,15 +26,10 @@ type InputStoryControlValue = ControlTypes.InputStoryControlValue
 	sure its within the range.
 ]]
 
-local function hydrateControls(
-	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema,
-	controls: StoryControls
-): StoryControls
-	local migratedSchema = migrateControlsSchema(schema)
-
+local function hydrateControls(schema: StoryControlsSchema, controls: StoryControls): StoryControls
 	local hydrated: StoryControls = {}
 
-	for controlName, controlSchemaOrValue in migratedSchema do
+	for controlName, controlSchemaOrValue in schema do
 		local controlSchema = toStoryControl(controlSchemaOrValue)
 
 		if controlSchema then
