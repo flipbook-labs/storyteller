@@ -2,6 +2,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
@@ -44,8 +45,9 @@ local function loadStoryModule<T>(
 	-- fail. For now we make it optional for the storybook's source to be
 	-- loaded. In the future we may want to turn this into a required step that
 	-- will cause a story to fail loading if it's storybook has a problem.
+	local freshStorybook: LoadedStorybook?
 	pcall(function()
-		loaderOrDefault:require(storybook.source)
+		freshStorybook = loadStorybookModule(storybook.source, loaderOrDefault)
 	end)
 
 	local requiredStory
@@ -106,7 +108,7 @@ local function loadStoryModule<T>(
 
 	local packages = migrateLegacyPackages(story)
 	if not packages then
-		packages = storybook.packages
+		packages = if freshStorybook then freshStorybook.packages else storybook.packages
 	end
 
 	local loadedStory: types.LoadedStory<T> = {
