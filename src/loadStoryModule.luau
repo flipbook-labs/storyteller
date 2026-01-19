@@ -36,16 +36,20 @@ local function loadStoryModule<T>(
 ): LoadedStory<T>
 	local loaderOrDefault = if loader then loader else ModuleLoader.new()
 
-	local success, err = pcall(function()
+	-- Cram the storybook's source into the loader so that any packages the
+	-- stories are supposed to use get pre-cached.
+	--
+	-- In our tests there are many cases where we set `source` to a fresh
+	-- ModuleScript, but since it doesn't have a Source set this require will
+	-- fail. For now we make it optional for the storybook's source to be
+	-- loaded. In the future we may want to turn this into a required step that
+	-- will cause a story to fail loading if it's storybook has a problem.
+	pcall(function()
 		loaderOrDefault:require(storybook.source)
 	end)
 
-	if not success then
-		error(`Failed to load story {storyModule:GetFullName()}. Error: {err})`)
-	end
-
 	local requiredStory
-	success, err = pcall(function()
+	local success, err = pcall(function()
 		requiredStory = loaderOrDefault:require(storyModule)
 	end)
 
