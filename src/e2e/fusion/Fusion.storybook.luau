@@ -1,10 +1,8 @@
 local Fusion = require("@pkg/Fusion")
 
-local Root = script:FindFirstAncestor("e2e")
-
 return {
 	storyRoots = {
-		Root.stories.fusion,
+		script.Parent,
 	},
 	packages = {
 		Fusion = Fusion,
