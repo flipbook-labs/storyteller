@@ -115,7 +115,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					problem = result,
 					storybook = {
 						name = storybookModule.Name,
-						loader = loader,
 						source = storybookModule,
 						storyRoots = {},
 					},

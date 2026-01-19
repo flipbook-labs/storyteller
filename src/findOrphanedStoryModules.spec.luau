@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 
 local findOrphanedStoryModules = require("./findOrphanedStoryModules")
 local types = require("@root/types")
@@ -39,7 +38,6 @@ test("finds all Story modules that aren't managed by a Storybook", function()
 
 	local storybook: types.LoadedStorybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			folderA,
@@ -74,7 +72,6 @@ test("returns empty list when all Story modules are managed by Storybooks", func
 
 	local storybookA: types.LoadedStorybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			folderA,
@@ -83,7 +80,6 @@ test("returns empty list when all Story modules are managed by Storybooks", func
 
 	local storybookB: types.LoadedStorybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			folderB,
@@ -151,7 +147,6 @@ test("handles deeply nested stories", function()
 
 	local storybookA: types.LoadedStorybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			container,
@@ -160,7 +155,6 @@ test("handles deeply nested stories", function()
 
 	local storybookB: types.LoadedStorybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = {
 			folderB,

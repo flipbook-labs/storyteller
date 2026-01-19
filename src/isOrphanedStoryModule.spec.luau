@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 
 local new = require("@root/test-utils/new")
 local types = require("@root/types")
@@ -24,7 +23,6 @@ test("return `true` for a Story module that is not a descendant of any storyRoot
 		storyRoots = {
 			container,
 		},
-		loader = ModuleLoader.new(),
 	}
 
 	storyModuleB.Parent = nil
@@ -48,7 +46,6 @@ test("return `false` if the given instance is not a ModuleScript", function()
 		storyRoots = {
 			container,
 		},
-		loader = ModuleLoader.new(),
 	}
 
 	expect(isOrphanedStoryModule(candidate, { storybook })).toBe(false)
@@ -67,7 +64,6 @@ test("return `false` if a ModuleScript does not have .story in the name", functi
 		storyRoots = {
 			container,
 		},
-		loader = ModuleLoader.new(),
 	}
 
 	expect(isOrphanedStoryModule(candidate, { storybook })).toBe(false)
