@@ -69,8 +69,6 @@ local function build()
 	end
 	mkdir(project.BUILD_PATH)
 
-	copyInto(project.ROBLOX_PACKAGES_PATH, `{project.BUILD_PATH}/{project.ROBLOX_PACKAGES_PATH}`)
-
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,
