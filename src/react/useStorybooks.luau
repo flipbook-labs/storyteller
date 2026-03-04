@@ -1,13 +1,13 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 local Sift = require("@pkg/Sift")
-local SignalsReact = require("@rbxpkg/SignalsReact")
+local ReactCharm = require("@pkg/ReactCharm")
 
 local getStorytellerStore = require("@root/stores/getStorytellerStore")
 local types = require("@root/types")
 
 local useMemo = React.useMemo
-local useSignalState = SignalsReact.useSignalState
+local useSignalState = ReactCharm.useSignalState
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 type LoadedStorybook = types.LoadedStorybook

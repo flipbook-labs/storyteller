@@ -1,11 +1,11 @@
 local React = require("@pkg/React")
 local Sift = require("@pkg/Sift")
-local SignalsReact = require("@rbxpkg/SignalsReact")
+local ReactCharm = require("@pkg/ReactCharm")
 
 local getStorytellerStore = require("@root/stores/getStorytellerStore")
 
 local useMemo = React.useMemo
-local useSignalState = SignalsReact.useSignalState
+local useSignalState = ReactCharm.useSignalState
 
 --[=[
 	This hook is used for the discovery of Story modules that are not associated
