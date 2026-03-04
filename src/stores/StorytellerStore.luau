@@ -1,6 +1,6 @@
+local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
-local Signals = require("@rbxpkg/Signals")
 
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
@@ -14,12 +14,12 @@ type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
 export type StorytellerStore = {
-	getLoadedStorybooks: Signals.getter<{ LoadedStorybook }>,
-	getUnavailableStorybooks: Signals.getter<{ UnavailableStorybook }>,
+	getLoadedStorybooks: Charm.getter<{ LoadedStorybook }>,
+	getUnavailableStorybooks: Charm.getter<{ UnavailableStorybook }>,
 
-	getStorybookModules: Signals.getter<{ ModuleScript }>,
-	getStoryModules: Signals.getter<{ ModuleScript }>,
-	getOrphanedStoryModules: Signals.getter<{ ModuleScript }>,
+	getStorybookModules: Charm.getter<{ ModuleScript }>,
+	getStoryModules: Charm.getter<{ ModuleScript }>,
+	getOrphanedStoryModules: Charm.getter<{ ModuleScript }>,
 
 	destroy: () -> (),
 }
@@ -30,23 +30,23 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local effects: { Signals.dispose } = {}
+	local effects: { Charm.dispose } = {}
 
 	local isDestroyed = false
 
-	local getStoryModules, setStoryModules = Signals.createSignal({} :: { ModuleScript })
+	local getStoryModules, setStoryModules = Charm.createSignal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules, setStorybookModules = Signals.createSignal({} :: { ModuleScript })
+	local getStorybookModules, setStorybookModules = Charm.createSignal({} :: { ModuleScript })
 	self.getStorybookModules = getStorybookModules
 
-	local getLoadedStorybooks, setLoadedStorybooks = Signals.createSignal({} :: { LoadedStorybook })
+	local getLoadedStorybooks, setLoadedStorybooks = Charm.createSignal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local getUnavailableStorybooks, setUnavailableStorybooks = Signals.createSignal({} :: { UnavailableStorybook })
+	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.createSignal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local getOrphanedStoryModules = Signals.createComputed(function(scope): { ModuleScript }
+	local getOrphanedStoryModules = Charm.createComputed(function(scope): { ModuleScript }
 		local orphans = {}
 		for _, storyModule in getStoryModules(scope) do
 			if isOrphanedStoryModule(storyModule, getLoadedStorybooks(scope)) then

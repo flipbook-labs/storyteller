@@ -1,8 +1,8 @@
-local Signals = require("@rbxpkg/Signals")
+local Charm = require("@pkg/Charm")
 
 local StorytellerStore = require("@root/stores/StorytellerStore")
 
-local getStorytellerStore = Signals.createComputed(function()
+local getStorytellerStore = Charm.createComputed(function()
 	return StorytellerStore.new(game)
 end)
 
