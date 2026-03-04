@@ -1,6 +1,6 @@
 local React = require("@pkg/React")
-local Sift = require("@pkg/Sift")
 local ReactCharm = require("@pkg/ReactCharm")
+local Sift = require("@pkg/Sift")
 
 local getStorytellerStore = require("@root/stores/getStorytellerStore")
 
