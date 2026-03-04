@@ -1,9 +1,31 @@
-local fs = require("@lute/fs")
-local process = require("@lute/process")
+local fs = require("@std/fs")
+local json = require("@std/json")
+local path = require("@std/path")
+local process = require("@std/process")
 
 local project = require("@repo/project")
 
 local LUAU_PACKAGES_PATH = "LuauPackages"
+
+local function getDescendants(dirPath: string): { string }
+	if fs.type(dirPath) ~= "dir" then
+		return {}
+	end
+
+	local function reduce(rootPath: string, accumulator: { string }): { string }
+		for _, child in fs.listdirectory(rootPath) do
+			local childPath = `{rootPath}/{child.name}`
+			table.insert(accumulator, childPath)
+
+			if child.type == "dir" then
+				reduce(childPath, accumulator)
+			end
+		end
+		return accumulator
+	end
+
+	return reduce(dirPath, {})
+end
 
 -- Install flipbook-batteries first because it has a lot of the useful functions
 -- we need when installing the rest of our packages
@@ -117,7 +139,58 @@ do
 		end
 	end
 
+	-- Some of our Wally packages are written with string requires which are not
+	-- yet supported by ModuleLoader or Jest. To allow us to still use these
+	-- packages, this function patches them using darklua to resolve the string
+	-- requires to Roblox ones
+	local function patchStringRequires()
+		local packages = {
+			"^charm$",
+			"^react%-charm$",
+		}
+
+		for _, package in packages do
+			local packageRoot = find(`{project.PACKAGES_PATH}/_Index`, package)[1]
+
+			assert(packageRoot, `no package found matching "{package}"`)
+
+			print(`patching {packageRoot}`)
+
+			local darkluaConfig = {
+				process = {
+					{
+						rule = "convert_require",
+						current = {
+							name = "luau",
+						},
+						target = {
+							name = "roblox",
+							indexing_style = "property",
+						},
+					},
+				},
+			}
+
+			fs.writestringtofile(path.join(packageRoot, ".darklua.json"), json.serialize(darkluaConfig, true))
+
+			run("darklua", { "process", "src", "src" }, {
+				cwd = packageRoot,
+			})
+
+			-- Darklua doesn't seem to handle `./Foo` paths without a sourcemap,
+			-- and getting the sourcemap working is proving difficult. So the
+			-- following just does a quick pass to convert `"./Foo"` into
+			-- `script.Parent.Foo`
+			for _, descendant in getDescendants(packageRoot) do
+				if descendant:match("%.luau$") then
+					findAndReplace(descendant, `require%("%./(%w+)"%)`, "require(script.Parent.%1)")
+				end
+			end
+		end
+	end
+
 	installRobloxPackages()
 	installWallyPackages()
 	installLuteBatteries()
+	patchStringRequires()
 end
