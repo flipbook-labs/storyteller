@@ -5,7 +5,6 @@ local process = require("@lute/process")
 
 local project = require("@repo/project")
 
-local copyInto = FlipbookBatteries.copyInto
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
 local mkdir = FlipbookBatteries.mkdir

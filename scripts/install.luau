@@ -1,7 +1,6 @@
-local fs = require("@std/fs")
+local fs = require("@lute/fs")
 local json = require("@std/json")
-local path = require("@std/path")
-local process = require("@std/process")
+local process = require("@lute/process")
 
 local project = require("@repo/project")
 
@@ -13,7 +12,7 @@ local function getDescendants(dirPath: string): { string }
 	end
 
 	local function reduce(rootPath: string, accumulator: { string }): { string }
-		for _, child in fs.listdirectory(rootPath) do
+		for _, child in fs.listdir(rootPath) do
 			local childPath = `{rootPath}/{child.name}`
 			table.insert(accumulator, childPath)
 
@@ -126,7 +125,9 @@ do
 				},
 			}
 
-			fs.writestringtofile(path.join(packageRoot, ".darklua.json"), json.serialize(darkluaConfig, true))
+			local handle = fs.open(`{packageRoot}/.darklua.json`, "w+")
+			fs.write(handle, json.serialize(darkluaConfig, true))
+			fs.close(handle)
 
 			run("darklua", { "process", "src", "src" }, {
 				cwd = packageRoot,
