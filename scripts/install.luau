@@ -1,9 +1,30 @@
 local fs = require("@lute/fs")
+local json = require("@std/json")
 local process = require("@lute/process")
 
 local project = require("@repo/project")
 
 local LUAU_PACKAGES_PATH = "LuauPackages"
+
+local function getDescendants(dirPath: string): { string }
+	if fs.type(dirPath) ~= "dir" then
+		return {}
+	end
+
+	local function reduce(rootPath: string, accumulator: { string }): { string }
+		for _, child in fs.listdir(rootPath) do
+			local childPath = `{rootPath}/{child.name}`
+			table.insert(accumulator, childPath)
+
+			if child.type == "dir" then
+				reduce(childPath, accumulator)
+			end
+		end
+		return accumulator
+	end
+
+	return reduce(dirPath, {})
+end
 
 -- Install flipbook-batteries first because it has a lot of the useful functions
 -- we need when installing the rest of our packages
@@ -56,51 +77,6 @@ do
 		run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
 	end
 
-	local function installRobloxPackages()
-		run("roblox-packages", {
-			"install",
-			"RobloxPackagesTmp",
-			"--version",
-			"0.700.0.7000935",
-
-			"-d",
-			"Signals",
-			"-d",
-			"SignalsReact",
-		})
-
-		local dest = project.ROBLOX_PACKAGES_PATH
-		if fs.exists(dest) and fs.type(dest) == "dir" then
-			run("rm", { "-rf", dest })
-		end
-		run("mv", { "RobloxPackagesTmp/Packages", dest })
-		run("rm", { "-rf", "RobloxPackagesTmp" })
-
-		-- Patch React and RoactCompat dependencies to use ours
-		for _, name in { "React", "RoactCompat", "Roact" } do
-			local linkers = find(dest, `^{name}%..*`)
-
-			for _, linker in linkers do
-				-- All Roact linkers in RobloxPackages point to Roblox's
-				-- RoactCompat, so we need to update them to point to ours instead.
-				if name == "Roact" then
-					name = "RoactCompat"
-				end
-
-				findAndReplace(
-					linker,
-					"local PackageIndex = .*_Index",
-					'local Root = script:FindFirstAncestor("RobloxPackages")'
-				)
-				findAndReplace(
-					linker,
-					"local Package = require%(.*%)",
-					`local Package = require(Root.Parent.Parent.{name})`
-				)
-			end
-		end
-	end
-
 	local function installLuteBatteries()
 		local commit = "7b4e269"
 		local batteries = {
@@ -117,7 +93,59 @@ do
 		end
 	end
 
-	installRobloxPackages()
+	-- Some of our Wally packages are written with string requires which are not
+	-- yet supported by ModuleLoader or Jest. To allow us to still use these
+	-- packages, this function patches them using darklua to resolve the string
+	-- requires to Roblox ones
+	local function patchStringRequires()
+		local packages = {
+			"^charm$",
+			"^react%-charm$",
+		}
+
+		for _, package in packages do
+			local packageRoot = find(`{project.PACKAGES_PATH}/_Index`, package)[1]
+
+			assert(packageRoot, `no package found matching "{package}"`)
+
+			print(`patching {packageRoot}`)
+
+			local darkluaConfig = {
+				process = {
+					{
+						rule = "convert_require",
+						current = {
+							name = "luau",
+						},
+						target = {
+							name = "roblox",
+							indexing_style = "property",
+						},
+					},
+				},
+			}
+
+			local handle = fs.open(`{packageRoot}/.darklua.json`, "w+")
+			fs.write(handle, json.serialize(darkluaConfig, true))
+			fs.close(handle)
+
+			run("darklua", { "process", "src", "src" }, {
+				cwd = packageRoot,
+			})
+
+			-- Darklua doesn't seem to handle `./Foo` paths without a sourcemap,
+			-- and getting the sourcemap working is proving difficult. So the
+			-- following just does a quick pass to convert `"./Foo"` into
+			-- `script.Parent.Foo`
+			for _, descendant in getDescendants(packageRoot) do
+				if descendant:match("%.luau$") then
+					findAndReplace(descendant, `require%("%./(%w+)"%)`, "require(script.Parent.%1)")
+				end
+			end
+		end
+	end
+
 	installWallyPackages()
 	installLuteBatteries()
+	patchStringRequires()
 end
