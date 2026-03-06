@@ -37,6 +37,7 @@ fs.removedirectory(dest, {
 	recursive = true,
 })
 
+run("lute", { "scripts/build.luau" })
 run("cp", { "-R", src, dest })
 
 print(`successfully installed to {dest}`)
