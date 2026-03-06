@@ -57,6 +57,7 @@ test("collects all relevant ModuleScripts under the root", function()
 	})
 
 	store = StorytellerStore.new(root)
+	store.init()
 
 	expect(store.getStoryModules()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
 	expect(store.getStorybookModules()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
@@ -87,6 +88,7 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 	})
 
 	store = StorytellerStore.new(root)
+	store.init()
 
 	expect(#store.getLoadedStorybooks()).toBe(1)
 	expect(#store.getUnavailableStorybooks()).toBe(2)
@@ -97,6 +99,7 @@ describe("recomputing Story and Storybook modules", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getStoryModules()).toBe(0)
 		expect(#store.getStorybookModules()).toBe(0)
@@ -134,6 +137,7 @@ describe("recomputing Story and Storybook modules", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getStoryModules()).toBe(0)
 
@@ -174,6 +178,7 @@ describe("recomputing Story and Storybook modules", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getStorybookModules()).toBe(0)
 
@@ -219,6 +224,7 @@ describe("user journeys", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getLoadedStorybooks()).toEqual(0)
 		expect(#store.getUnavailableStorybooks()).toEqual(0)
@@ -280,6 +286,7 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(store.getOrphanedStoryModules()).toEqual({ storyB })
@@ -314,6 +321,7 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getLoadedStorybooks()).toBe(2)
 		expect(store.getOrphanedStoryModules()).toEqual({})
@@ -329,6 +337,7 @@ describe("orphaned stories", function()
 		end
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getOrphanedStoryModules()).toBe(5)
 	end)
@@ -359,6 +368,7 @@ describe("orphaned stories", function()
 		end
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(store.getOrphanedStoryModules()).toEqual({ storybookModule, storyModuleB })
 	end)
@@ -384,6 +394,7 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(store.getOrphanedStoryModules()).toEqual({})
@@ -415,6 +426,7 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(store.getOrphanedStoryModules()).toEqual({})

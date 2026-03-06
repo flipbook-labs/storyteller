@@ -14,14 +14,15 @@ type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
 export type StorytellerStore = {
+	init: () -> (),
+	destroy: () -> (),
+
 	getLoadedStorybooks: () -> { LoadedStorybook },
 	getUnavailableStorybooks: () -> { UnavailableStorybook },
 
 	getStorybookModules: () -> { ModuleScript },
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
-
-	destroy: () -> (),
 }
 
 local StorytellerStore = {}
@@ -33,6 +34,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local effects: { () -> () } = {}
 
 	local isDestroyed = false
+	local isInitialized = false
 
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
@@ -166,61 +168,73 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 	self.destroy = destroy
 
-	connections = Sift.List.join(connections, {
-		storyModulesQuery.added:Connect(function()
-			setStoryModules(storyModulesQueryGet())
-		end),
+	local function init()
+		if isInitialized then
+			return
+		end
 
-		storyModulesQuery.changed:Connect(function()
-			setStoryModules(storyModulesQueryGet())
-		end),
+		connections = Sift.List.join(connections, {
+			storyModulesQuery.added:Connect(function()
+				setStoryModules(storyModulesQueryGet())
+			end),
 
-		storyModulesQuery.removed:Connect(function()
-			setStoryModules(storyModulesQueryGet())
-		end),
+			storyModulesQuery.changed:Connect(function()
+				setStoryModules(storyModulesQueryGet())
+			end),
 
-		storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
-			for _, storybookModule in storybookModules do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-				loadStorybook(storybookModule)
-			end
+			storyModulesQuery.removed:Connect(function()
+				setStoryModules(storyModulesQueryGet())
+			end),
 
-			setStorybookModules(storybookModulesQueryGet())
-		end),
+			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
+				for _, storybookModule in storybookModules do
+					assert(storybookModule:IsA("ModuleScript"), "Luau")
+					loadStorybook(storybookModule)
+				end
 
-		storybookModulesQuery.changed:Connect(function(storybookModules)
-			setStorybookModules(storybookModulesQueryGet())
+				setStorybookModules(storybookModulesQueryGet())
+			end),
 
-			for _, storybookModule in storybookModules do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-				reloadStorybook(storybookModule)
-			end
-		end),
+			storybookModulesQuery.changed:Connect(function(storybookModules)
+				setStorybookModules(storybookModulesQueryGet())
 
-		storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
-			for _, storybookModule in storybookModules do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-				unloadStorybook(storybookModule)
-			end
+				for _, storybookModule in storybookModules do
+					assert(storybookModule:IsA("ModuleScript"), "Luau")
+					reloadStorybook(storybookModule)
+				end
+			end),
 
-			setStorybookModules(storybookModulesQueryGet())
-		end),
+			storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
+				for _, storybookModule in storybookModules do
+					assert(storybookModule:IsA("ModuleScript"), "Luau")
+					unloadStorybook(storybookModule)
+				end
 
-		root.Destroying:Connect(destroy),
+				setStorybookModules(storybookModulesQueryGet())
+			end),
 
-		script.Destroying:Connect(destroy),
-	})
+			root.Destroying:Connect(destroy),
 
-	local storybookModules = storybookModulesQueryGet()
+			script.Destroying:Connect(destroy),
+		})
 
-	setStoryModules(storyModulesQueryGet())
-	setStorybookModules(storybookModules)
+		local storybookModules = storybookModulesQueryGet()
 
-	for _, storybookModule in storybookModules do
-		loadStorybook(storybookModule)
+		setStoryModules(storyModulesQueryGet())
+		setStorybookModules(storybookModules)
+
+		for _, storybookModule in storybookModules do
+			loadStorybook(storybookModule)
+		end
+
+		isInitialized = true
 	end
+	self.init = init
 
 	return self
 end
 
-return StorytellerStore
+return {
+	new = StorytellerStore.new,
+	instance = StorytellerStore.new(game),
+}
