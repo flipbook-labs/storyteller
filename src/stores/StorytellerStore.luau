@@ -9,6 +9,9 @@ local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
+local signal = Charm.signal
+local computed = Charm.computed
+
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
@@ -34,21 +37,22 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local effects: { () -> () } = {}
 
 	local isDestroyed = false
+	local isInitializing = false
 	local isInitialized = false
 
-	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
+	local getStoryModules, setStoryModules = signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
+	local getStorybookModules, setStorybookModules = signal({} :: { ModuleScript })
 	self.getStorybookModules = getStorybookModules
 
-	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
+	local getLoadedStorybooks, setLoadedStorybooks = signal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
+	local getUnavailableStorybooks, setUnavailableStorybooks = signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
+	local getOrphanedStoryModules = computed(function(): { ModuleScript }
 		local orphans = {}
 		for _, storyModule in getStoryModules() do
 			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
@@ -169,9 +173,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.destroy = destroy
 
 	local function init()
-		if isInitialized then
+		if isInitializing or isInitialized then
 			return
 		end
+		isInitializing = true
 
 		connections = Sift.List.join(connections, {
 			storyModulesQuery.added:Connect(function()
@@ -220,14 +225,17 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		local storybookModules = storybookModulesQueryGet()
 
-		setStoryModules(storyModulesQueryGet())
-		setStorybookModules(storybookModules)
+		Charm.batch(function()
+			setStoryModules(storyModulesQueryGet())
+			setStorybookModules(storybookModules)
 
-		for _, storybookModule in storybookModules do
-			loadStorybook(storybookModule)
-		end
+			for _, storybookModule in storybookModules do
+				loadStorybook(storybookModule)
+			end
+		end)
 
 		isInitialized = true
+		isInitializing = false
 	end
 	self.init = init
 

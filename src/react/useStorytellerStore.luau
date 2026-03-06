@@ -6,7 +6,9 @@ local useEffect = React.useEffect
 
 local function useStorytellerStore()
 	useEffect(function()
-		StorytellerStore.init()
+		task.spawn(function()
+			StorytellerStore.init()
+		end)
 	end, {})
 
 	return StorytellerStore
