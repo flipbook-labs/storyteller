@@ -9,9 +9,6 @@ local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
-local signal = Charm.signal
-local computed = Charm.computed
-
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
@@ -40,19 +37,19 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isInitializing = false
 	local isInitialized = false
 
-	local getStoryModules, setStoryModules = signal({} :: { ModuleScript })
+	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules, setStorybookModules = signal({} :: { ModuleScript })
+	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
 	self.getStorybookModules = getStorybookModules
 
-	local getLoadedStorybooks, setLoadedStorybooks = signal({} :: { LoadedStorybook })
+	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local getUnavailableStorybooks, setUnavailableStorybooks = signal({} :: { UnavailableStorybook })
+	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local getOrphanedStoryModules = computed(function(): { ModuleScript }
+	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
 		local orphans = {}
 		for _, storyModule in getStoryModules() do
 			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
