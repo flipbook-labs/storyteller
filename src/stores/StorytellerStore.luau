@@ -131,22 +131,26 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function unloadStorybook(storybookModule: ModuleScript)
-		setLoadedStorybooks(function(prev)
-			return Sift.List.filter(prev, function(storybook)
-				return storybook.source ~= storybookModule
+		Charm.batch(function()
+			setLoadedStorybooks(function(prev)
+				return Sift.List.filter(prev, function(storybook)
+					return storybook.source ~= storybookModule
+				end)
 			end)
-		end)
 
-		setUnavailableStorybooks(function(prev)
-			return Sift.List.filter(prev, function(unavailableStorybook)
-				return unavailableStorybook.storybook.source ~= storybookModule
+			setUnavailableStorybooks(function(prev)
+				return Sift.List.filter(prev, function(unavailableStorybook)
+					return unavailableStorybook.storybook.source ~= storybookModule
+				end)
 			end)
 		end)
 	end
 
 	local function reloadStorybook(storybookModule: ModuleScript)
-		unloadStorybook(storybookModule)
-		loadStorybook(storybookModule)
+		Charm.batch(function()
+			unloadStorybook(storybookModule)
+			loadStorybook(storybookModule)
+		end)
 	end
 
 	local function destroy()
@@ -189,30 +193,36 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end),
 
 			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
-				for _, storybookModule in storybookModules do
-					assert(storybookModule:IsA("ModuleScript"), "Luau")
-					loadStorybook(storybookModule)
-				end
+				Charm.batch(function()
+					for _, storybookModule in storybookModules do
+						assert(storybookModule:IsA("ModuleScript"), "Luau")
+						loadStorybook(storybookModule)
+					end
 
-				setStorybookModules(storybookModulesQueryGet())
+					setStorybookModules(storybookModulesQueryGet())
+				end)
 			end),
 
 			storybookModulesQuery.changed:Connect(function(storybookModules)
-				setStorybookModules(storybookModulesQueryGet())
+				Charm.batch(function()
+					setStorybookModules(storybookModulesQueryGet())
 
-				for _, storybookModule in storybookModules do
-					assert(storybookModule:IsA("ModuleScript"), "Luau")
-					reloadStorybook(storybookModule)
-				end
+					for _, storybookModule in storybookModules do
+						assert(storybookModule:IsA("ModuleScript"), "Luau")
+						reloadStorybook(storybookModule)
+					end
+				end)
 			end),
 
 			storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
-				for _, storybookModule in storybookModules do
-					assert(storybookModule:IsA("ModuleScript"), "Luau")
-					unloadStorybook(storybookModule)
-				end
+				Charm.batch(function()
+					for _, storybookModule in storybookModules do
+						assert(storybookModule:IsA("ModuleScript"), "Luau")
+						unloadStorybook(storybookModule)
+					end
 
-				setStorybookModules(storybookModulesQueryGet())
+					setStorybookModules(storybookModulesQueryGet())
+				end)
 			end),
 
 			root.Destroying:Connect(destroy),
