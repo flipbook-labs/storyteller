@@ -50,6 +50,8 @@ local function loadStoryModule<T>(
 		freshStorybook = loadStorybookModule(storybook.source, loaderOrDefault)
 	end)
 
+	print("freshStorybook", freshStorybook)
+
 	local requiredStory
 	local success, err = pcall(function()
 		requiredStory = loaderOrDefault:require(storyModule)

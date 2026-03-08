@@ -68,6 +68,13 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 	end)
 
 	describeEach(storyModules)("%s", function(storyModule)
+		beforeEach(function()
+			print()
+			print()
+			print(storyModule)
+			print()
+		end)
+
 		test("basic mount/unmount lifecycle", function()
 			local story = loadStoryModule(storyModule, storybook)
 			local lifecycle = render(container, story)
