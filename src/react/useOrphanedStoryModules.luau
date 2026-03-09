@@ -2,7 +2,7 @@ local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 local Sift = require("@pkg/Sift")
 
-local getStorytellerStore = require("@root/stores/getStorytellerStore")
+local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useMemo = React.useMemo
 local useSignalState = ReactCharm.useSignalState
@@ -60,7 +60,7 @@ local useSignalState = ReactCharm.useSignalState
 	@within Storyteller
 ]=]
 local function useOrphanedStoryModules(parent: Instance?): { ModuleScript }
-	local storytellerStore = useSignalState(getStorytellerStore)
+	local storytellerStore = useStorytellerStore()
 	local orphanedStoryModules = useSignalState(storytellerStore.getOrphanedStoryModules)
 
 	return useMemo(function()

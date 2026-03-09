@@ -16,14 +16,14 @@ local function move(src: path.pathlike, dest: path.pathlike)
 end
 
 -- Install Loom dependencies first since the rest of the script depends on them
-local function getDescendants(dirPath: string): { string }
+local function getDescendants(dirPath: path.pathlike): { path.path }
 	if fs.type(dirPath) ~= "dir" then
 		return {}
 	end
 
-	local function reduce(rootPath: string, accumulator: { string }): { string }
+	local function reduce(rootPath: path.path, accumulator: { path.path }): { path.path }
 		for _, child in fs.listdirectory(rootPath) do
-			local childPath = `{rootPath}/{child.name}`
+			local childPath = path.join(rootPath, child.name)
 			table.insert(accumulator, childPath)
 
 			if child.type == "dir" then
@@ -33,7 +33,7 @@ local function getDescendants(dirPath: string): { string }
 		return accumulator
 	end
 
-	return reduce(dirPath, {})
+	return reduce(path.resolve(dirPath), {})
 end
 
 -- Install flipbook-batteries first because it has a lot of the useful functions
@@ -130,7 +130,7 @@ do
 			-- following just does a quick pass to convert `"./Foo"` into
 			-- `script.Parent.Foo`
 			for _, descendant in getDescendants(packageRoot) do
-				if descendant:match("%.luau$") then
+				if path.extname(descendant) == ".luau" then
 					findAndReplace(descendant, `require%("%./(%w+)"%)`, "require(script.Parent.%1)")
 				end
 			end
