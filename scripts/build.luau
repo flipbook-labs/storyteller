@@ -1,11 +1,10 @@
 local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
-local fs = require("@lute/fs")
-local process = require("@lute/process")
+local fs = require("@std/fs")
+local process = require("@std/process")
 
 local project = require("@repo/project")
 
-local copyInto = FlipbookBatteries.copyInto
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
 local mkdir = FlipbookBatteries.mkdir
@@ -68,8 +67,6 @@ local function build()
 		rmdir(project.BUILD_PATH)
 	end
 	mkdir(project.BUILD_PATH)
-
-	copyInto(project.ROBLOX_PACKAGES_PATH, `{project.BUILD_PATH}/{project.ROBLOX_PACKAGES_PATH}`)
 
 	run("rojo", {
 		"sourcemap",

@@ -57,9 +57,10 @@ test("collects all relevant ModuleScripts under the root", function()
 	})
 
 	store = StorytellerStore.new(root)
+	store.init()
 
-	expect(store.getStoryModules(false)).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
-	expect(store.getStorybookModules(false)).toEqual(expect.arrayContaining({ storybookA, storybookB }))
+	expect(store.getStoryModules()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+	expect(store.getStorybookModules()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -87,9 +88,10 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 	})
 
 	store = StorytellerStore.new(root)
+	store.init()
 
-	expect(#store.getLoadedStorybooks(false)).toBe(1)
-	expect(#store.getUnavailableStorybooks(false)).toBe(2)
+	expect(#store.getLoadedStorybooks()).toBe(1)
+	expect(#store.getUnavailableStorybooks()).toBe(2)
 end)
 
 describe("recomputing Story and Storybook modules", function()
@@ -97,15 +99,16 @@ describe("recomputing Story and Storybook modules", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getStoryModules(false)).toBe(0)
-		expect(#store.getStorybookModules(false)).toBe(0)
+		expect(#store.getStoryModules()).toBe(0)
+		expect(#store.getStorybookModules()).toBe(0)
 
 		-- Any time a ModuleScript gets added or removed from the DM, or its Name or
 		-- Source changes, we need to recompute the Story and Storybook modules
 
-		local prevStoryModules = store.getStoryModules(false)
-		local prevStorybookModules = store.getStorybookModules(false)
+		local prevStoryModules = store.getStoryModules()
+		local prevStorybookModules = store.getStorybookModules()
 
 		local moduleScript = new("ModuleScript")
 
@@ -114,30 +117,31 @@ describe("recomputing Story and Storybook modules", function()
 
 		-- The new ModuleScript doesn't match either query yet, so we expect no
 		-- changes
-		expect(store.getStoryModules(false)).toBe(prevStoryModules)
-		expect(#store.getStoryModules(false)).toBe(0)
-		expect(store.getStorybookModules(false)).toBe(prevStorybookModules)
-		expect(#store.getStorybookModules(false)).toBe(0)
+		expect(store.getStoryModules()).toBe(prevStoryModules)
+		expect(#store.getStoryModules()).toBe(0)
+		expect(store.getStorybookModules()).toBe(prevStorybookModules)
+		expect(#store.getStorybookModules()).toBe(0)
 
 		moduleScript.Parent = nil
 		task.wait()
 
 		-- Same as before. Non-matching ModuleScript was removed, so no changes
 		-- necessary
-		expect(store.getStoryModules(false)).toBe(prevStoryModules)
-		expect(#store.getStoryModules(false)).toBe(0)
-		expect(store.getStorybookModules(false)).toBe(prevStorybookModules)
-		expect(#store.getStorybookModules(false)).toBe(0)
+		expect(store.getStoryModules()).toBe(prevStoryModules)
+		expect(#store.getStoryModules()).toBe(0)
+		expect(store.getStorybookModules()).toBe(prevStorybookModules)
+		expect(#store.getStorybookModules()).toBe(0)
 	end)
 
 	test("recomputes when a Story module is added or removed", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getStoryModules(false)).toBe(0)
+		expect(#store.getStoryModules()).toBe(0)
 
-		local prevStoryModules = store.getStoryModules(false)
+		local prevStoryModules = store.getStoryModules()
 
 		local moduleScript = Instance.new("ModuleScript")
 
@@ -147,7 +151,7 @@ describe("recomputing Story and Storybook modules", function()
 		-- A new ModuleScript was added which means we need to recalculate the
 		-- Story modules, but since the ModuleScript has no Story
 		-- characteristics we still get back 0 modules and the same table
-		local storyModules = store.getStoryModules(false)
+		local storyModules = store.getStoryModules()
 		expect(#storyModules).toBe(0)
 		expect(storyModules).toBe(prevStoryModules)
 		prevStoryModules = storyModules
@@ -157,7 +161,7 @@ describe("recomputing Story and Storybook modules", function()
 
 		-- The ModuleScript was renamed to become a Story. That's all that's
 		-- needed to get picked up
-		storyModules = store.getStoryModules(false)
+		storyModules = store.getStoryModules()
 		expect(#storyModules).toBe(1)
 		expect(storyModules).never.toBe(prevStoryModules)
 		prevStoryModules = storyModules
@@ -165,7 +169,7 @@ describe("recomputing Story and Storybook modules", function()
 		moduleScript.Parent = nil
 		task.wait()
 
-		storyModules = store.getStoryModules(false)
+		storyModules = store.getStoryModules()
 		expect(#storyModules).toBe(0)
 		expect(storyModules).never.toBe(prevStoryModules)
 	end)
@@ -174,10 +178,11 @@ describe("recomputing Story and Storybook modules", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getStorybookModules(false)).toBe(0)
+		expect(#store.getStorybookModules()).toBe(0)
 
-		local prevStorybookModules = store.getStorybookModules(false)
+		local prevStorybookModules = store.getStorybookModules()
 
 		local moduleScript = Instance.new("ModuleScript")
 
@@ -187,7 +192,7 @@ describe("recomputing Story and Storybook modules", function()
 		-- A new ModuleScript was added which means we need to recalculate the
 		-- Storybook modules, but since the ModuleScript has no Storybook
 		-- characteristics we still get back 0 modules
-		local storybookModules = store.getStorybookModules(false)
+		local storybookModules = store.getStorybookModules()
 		expect(#storybookModules).toBe(0)
 		expect(storybookModules).toBe(prevStorybookModules)
 		prevStorybookModules = storybookModules
@@ -197,7 +202,7 @@ describe("recomputing Story and Storybook modules", function()
 
 		-- The ModuleScript was renamed to become a Storybook. That's all that's
 		-- needed to get picked up
-		storybookModules = store.getStorybookModules(false)
+		storybookModules = store.getStorybookModules()
 		expect(#storybookModules).toBe(1)
 		expect(storybookModules).never.toBe(prevStorybookModules)
 		prevStorybookModules = storybookModules
@@ -205,7 +210,7 @@ describe("recomputing Story and Storybook modules", function()
 		moduleScript.Parent = nil
 		task.wait()
 
-		storybookModules = store.getStorybookModules(false)
+		storybookModules = store.getStorybookModules()
 		expect(#storybookModules).toBe(0)
 		expect(storybookModules).never.toBe(prevStorybookModules)
 	end)
@@ -219,23 +224,24 @@ describe("user journeys", function()
 		local root = new("Folder")
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getLoadedStorybooks(false)).toEqual(0)
-		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
+		expect(#store.getLoadedStorybooks()).toEqual(0)
+		expect(#store.getUnavailableStorybooks()).toEqual(0)
 
 		local storybookModule = Instance.new("ModuleScript")
 
 		storybookModule.Parent = root
 		task.wait()
 
-		expect(#store.getLoadedStorybooks(false)).toEqual(0)
-		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
+		expect(#store.getLoadedStorybooks()).toEqual(0)
+		expect(#store.getUnavailableStorybooks()).toEqual(0)
 
 		storybookModule.Name = "Foo.storybook"
 		task.wait()
 
-		expect(#store.getLoadedStorybooks(false)).toEqual(0)
-		expect(#store.getUnavailableStorybooks(false)).toEqual(1)
+		expect(#store.getLoadedStorybooks()).toEqual(0)
+		expect(#store.getUnavailableStorybooks()).toEqual(1)
 
 		storybookModule.Source = [[
 			return {
@@ -246,14 +252,14 @@ describe("user journeys", function()
 		]]
 		task.wait()
 
-		expect(#store.getLoadedStorybooks(false)).toEqual(1)
-		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
+		expect(#store.getLoadedStorybooks()).toEqual(1)
+		expect(#store.getUnavailableStorybooks()).toEqual(0)
 
 		storybookModule.Parent = nil
 		task.wait()
 
-		expect(#store.getLoadedStorybooks(false)).toEqual(0)
-		expect(#store.getUnavailableStorybooks(false)).toEqual(0)
+		expect(#store.getLoadedStorybooks()).toEqual(0)
+		expect(#store.getUnavailableStorybooks()).toEqual(0)
 	end)
 end)
 
@@ -280,9 +286,10 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getLoadedStorybooks(false)).toBe(1)
-		expect(store.getOrphanedStoryModules(false)).toEqual({ storyB })
+		expect(#store.getLoadedStorybooks()).toBe(1)
+		expect(store.getOrphanedStoryModules()).toEqual({ storyB })
 	end)
 
 	test("returns empty list when all Story modules are managed by Storybooks", function()
@@ -314,9 +321,10 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getLoadedStorybooks(false)).toBe(2)
-		expect(store.getOrphanedStoryModules(false)).toEqual({})
+		expect(#store.getLoadedStorybooks()).toBe(2)
+		expect(store.getOrphanedStoryModules()).toEqual({})
 	end)
 
 	test("returns all story modules when no storybooks are present", function()
@@ -329,8 +337,9 @@ describe("orphaned stories", function()
 		end
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getOrphanedStoryModules(false)).toBe(5)
+		expect(#store.getOrphanedStoryModules()).toBe(5)
 	end)
 
 	test("keeps going after hitting a story along the way", function()
@@ -359,8 +368,9 @@ describe("orphaned stories", function()
 		end
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(store.getOrphanedStoryModules(false)).toEqual({ storybookModule, storyModuleB })
+		expect(store.getOrphanedStoryModules()).toEqual({ storybookModule, storyModuleB })
 	end)
 
 	test("updates when a story moves around the DataModel", function()
@@ -384,14 +394,15 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getLoadedStorybooks(false)).toBe(1)
-		expect(store.getOrphanedStoryModules(false)).toEqual({})
+		expect(#store.getLoadedStorybooks()).toBe(1)
+		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storyA.Parent = root
 		task.wait()
 
-		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA })
+		expect(store.getOrphanedStoryModules()).toEqual({ storyA })
 	end)
 
 	test("updates when a storybook is removed", function()
@@ -415,14 +426,15 @@ describe("orphaned stories", function()
 		})
 
 		store = StorytellerStore.new(root)
+		store.init()
 
-		expect(#store.getLoadedStorybooks(false)).toBe(1)
-		expect(store.getOrphanedStoryModules(false)).toEqual({})
+		expect(#store.getLoadedStorybooks()).toBe(1)
+		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storybookModule.Parent = nil
 		task.wait()
 
-		expect(#store.getLoadedStorybooks(false)).toBe(0)
-		expect(store.getOrphanedStoryModules(false)).toEqual({ storyA, storyB })
+		expect(#store.getLoadedStorybooks()).toBe(0)
+		expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
 	end)
 end)

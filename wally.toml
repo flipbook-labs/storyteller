@@ -1,6 +1,6 @@
 [package]
 name = "flipbook-labs/storyteller"
-version = "1.5.0"
+version = "1.8.1"
 license = "MIT"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
@@ -15,9 +15,11 @@ include = [
 exclude = ["*"]
 
 [dependencies]
+Charm = "littensy/charm@0.11.0-rc.4"
 GreenTea = "corecii/greentea@0.4.11"
 ModuleLoader = "flipbook-labs/module-loader@0.7.0"
 React = "jsdotlua/react@17.0.2"
+ReactCharm = "littensy/react-charm@0.4.0-rc.3"
 Sift = "csqrl/sift@0.0.8"
 t = "osyrisrblx/t@3.0.0"
 UILabs = "pepeeltoro41/ui-labs@2.4.2"
