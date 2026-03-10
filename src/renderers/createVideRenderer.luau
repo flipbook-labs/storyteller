@@ -23,7 +23,7 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 			local prevControl = if prevProps ~= nil and prevProps.controls ~= nil then prevProps.controls[key] else nil
 
 			if prevControl ~= nil then
-				transformed.controls[key] = prev
+				transformed.controls[key] = prevControl
 			else
 				transformed.controls[key] = Vide.source(control)
 			end
