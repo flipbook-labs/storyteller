@@ -1,13 +1,13 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local ReactCharm = require("@pkg/ReactCharm")
 local Sift = require("@pkg/Sift")
-local SignalsReact = require("@rbxpkg/SignalsReact")
 
-local getStorytellerStore = require("@root/stores/getStorytellerStore")
 local types = require("@root/types")
+local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useMemo = React.useMemo
-local useSignalState = SignalsReact.useSignalState
+local useSignalState = ReactCharm.useSignalState
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 type LoadedStorybook = types.LoadedStorybook
@@ -71,7 +71,7 @@ local function useStorybooks(parent: Instance?): {
 	available: { LoadedStorybook },
 	unavailable: { UnavailableStorybook },
 }
-	local storytellerStore = useSignalState(getStorytellerStore)
+	local storytellerStore = useStorytellerStore()
 	local available = useSignalState(storytellerStore.getLoadedStorybooks)
 	local unavailable = useSignalState(storytellerStore.getUnavailableStorybooks)
 
