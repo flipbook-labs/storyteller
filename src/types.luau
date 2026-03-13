@@ -1,7 +1,6 @@
+local ControlTypes = require("@root/controls/ControlTypes")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local t = require("@pkg/t")
-
-local ControlTypes = require("@root/controls/ControlTypes")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
 
@@ -79,7 +78,8 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
-	controls: StoryControlsSchema?,
+	-- breaking change: controls are now required
+	controls: StoryControlsSchema,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
