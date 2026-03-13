@@ -63,7 +63,6 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 	end
 
 	result.source = module
-	result.loader = loader
 
 	return result
 end
