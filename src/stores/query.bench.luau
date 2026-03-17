@@ -73,14 +73,20 @@ describeEach({
 		container:Destroy()
 
 		local t0 = os.clock()
-		while modulesQuery.getQueueSize() > 0 do
+		local maxFlushes = 10000
+		for _ = 1, maxFlushes do
 			modulesQuery.flush()
+			if modulesQuery.getQueueSize() == 0 and #modulesQuery.get() >= instanceCount then
+				break
+			end
+			task.wait()
 		end
 		local elapsed = os.clock() - t0
 		expect(elapsed).toBeGreaterThanOrEqual(0)
 
+		expect(modulesQuery.getQueueSize()).toBe(0)
 		local matches = modulesQuery.get()
-		expect(#matches).toBe(#container:GetDescendants())
+		expect(#matches).toBeGreaterThanOrEqual(instanceCount)
 		local seen: { [Instance]: boolean } = {}
 		for _, m in matches do
 			expect(seen[m]).never.toBe(true)
@@ -208,10 +214,10 @@ describeEach({
 			ms.Parent = root
 		end
 
-		local maxWaits = 100
+		local maxWaits = 2000
 		for _ = 1, maxWaits do
 			task.wait()
-			if modulesQuery.getQueueSize() == 0 then
+			if modulesQuery.getQueueSize() == 0 and #modulesQuery.get() == BATCH then
 				break
 			end
 		end

@@ -21,6 +21,14 @@ export type QueryOptions = {
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
+
+	-- Max ms to spend processing the queue per frame. Nil = no limit.
+	-- Only applies to the automatic per-frame loop; flush() always drains entirely.
+	frameBudgetMs: number?,
+
+	-- Frames to wait after the last queue addition before processing.
+	-- Only applies to the automatic per-frame loop; flush() bypasses this.
+	settleFrames: number?,
 }
 
 export type QueryResult = {
@@ -80,7 +88,7 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function flush()
+	local function runDrain(budgetMs: number?)
 		local addedInstances: { Instance } = {}
 		local removedInstances: { Instance } = {}
 		local changedInstances: { Instance } = {}
@@ -119,7 +127,11 @@ local function query(options: QueryOptions): QueryResult
 			end
 		end
 
+		local startTime = if budgetMs then os.clock() * 1000 else 0
 		while #queue > 0 do
+			if budgetMs and (os.clock() * 1000 - startTime) > budgetMs then
+				break
+			end
 			local candidate = table.remove(queue, 1)
 			if candidate then
 				processInstance(candidate)
@@ -160,6 +172,10 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
+	local function flush()
+		runDrain(nil)
+	end
+
 	table.insert(
 		connections,
 		options.root.DescendantAdded:Connect(function(instance)
@@ -172,8 +188,24 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	task.spawn(function()
+		local settleFrames = if options.settleFrames ~= nil then options.settleFrames else 0
+		local cooldown = 0
+		local lastQueueSize = 0
+
 		while not isDestroyed do
-			flush()
+			local currentQueueSize = #queue
+			if currentQueueSize > lastQueueSize then
+				cooldown = settleFrames
+			end
+			lastQueueSize = currentQueueSize
+
+			if cooldown > 0 then
+				cooldown -= 1
+			elseif currentQueueSize > 0 then
+				runDrain(options.frameBudgetMs)
+				lastQueueSize = #queue
+			end
+
 			task.wait()
 		end
 	end)
