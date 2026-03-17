@@ -19,6 +19,8 @@ local status, result = Jest.runCLI(root, {
 	ci = false,
 	-- selene: allow(global_usage)
 	testPathPattern = _G.__JEST_TEST_PATH_PATTERN__,
+	-- selene: allow(global_usage)
+	testMatch = if _G.RUN_BENCHMARKS then { "**/*.bench" } else nil,
 }, { root }):awaitStatus()
 
 if status == "Rejected" then

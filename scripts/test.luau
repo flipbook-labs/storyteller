@@ -1,12 +1,14 @@
 local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
-local process = require("@lute/process")
+local fs = require("@std/fs")
+local process = require("@std/process")
 
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
 local findAndReplace = FlipbookBatteries.findAndReplace
 local run = FlipbookBatteries.run
+local copyInto = FlipbookBatteries.copyInto
 
 dotenv()
 
@@ -19,6 +21,9 @@ args:add("apiKey", "option", {
 
 args:add("filter", "option", {
 	help = "Specify a filepath pattern to match for when running tests",
+})
+args:add("benchmarks", "flag", {
+	help = "Run longrunning benchmark tests",
 })
 
 args:parse({ ... })
@@ -39,10 +44,16 @@ run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
 local function createTestRunnerScript()
 	local testRunnerPath = ".build/tasks/run-tests.luau"
 
-	run("mkdir", { "-p", ".build/tasks" })
-	run("cp", { "-R", "scripts/tasks/run-tests.luau", testRunnerPath })
+	fs.createdirectory(".build/tasks", {
+		makeparents = true,
+	})
+	copyInto("scripts/tasks/run-tests.luau", testRunnerPath)
+
 	if filter then
 		findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
+	end
+	if args:has("benchmarks") then
+		findAndReplace(testRunnerPath, "_G.RUN_BENCHMARKS", "true")
 	end
 
 	return testRunnerPath
