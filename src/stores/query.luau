@@ -1,9 +1,3 @@
-local function insertUnique<T>(arr: { T }, item: T)
-	if not table.find(arr, item) then
-		table.insert(arr, item)
-	end
-end
-
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -58,12 +52,18 @@ export type QueryResult = {
 
 local function query(options: QueryOptions): QueryResult
 	local matches: { Instance } = {}
+	local matchSet: { [Instance]: true } = {}
+
+	-- Queue implemented with head index + membership set to avoid O(n) pops/lookups.
 	local queue: { Instance } = {}
+	local queueHead = 1
+	local queued: { [Instance]: true } = {}
+	setmetatable(queued, { __mode = "k" })
 
 	local connections: { RBXScriptConnection } = {}
 
 	-- Weak table so we don't leak memory from using Instances as keys
-	local seen: { [Instance]: boolean } = {}
+	local seen: { [Instance]: true } = {}
 	setmetatable(seen, { __mode = "k" })
 
 	local isDestroyed = false
@@ -77,7 +77,15 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function getQueueSize()
-		return #queue
+		return #queue - queueHead + 1
+	end
+
+	local function enqueue(instance: Instance)
+		if queued[instance] then
+			return
+		end
+		queued[instance] = true
+		table.insert(queue, instance)
 	end
 
 	local function destroy()
@@ -104,7 +112,7 @@ local function query(options: QueryOptions): QueryResult
 						table.insert(changedInstances, instance)
 					end
 				else
-					if table.find(matches, instance) then
+					if matchSet[instance] then
 						table.insert(removedInstances, instance)
 					end
 				end
@@ -117,7 +125,7 @@ local function query(options: QueryOptions): QueryResult
 				table.insert(
 					connections,
 					instance.Changed:Connect(function()
-						insertUnique(queue, instance)
+						enqueue(instance)
 					end)
 				)
 
@@ -128,32 +136,50 @@ local function query(options: QueryOptions): QueryResult
 		end
 
 		local startTime = if budgetMs then os.clock() * 1000 else 0
-		while #queue > 0 do
+		while queueHead <= #queue do
 			if budgetMs and (os.clock() * 1000 - startTime) > budgetMs then
 				break
 			end
-			local candidate = table.remove(queue, 1)
+			local candidate = queue[queueHead]
+			queue[queueHead] = nil
+			queueHead += 1
 			if candidate then
+				queued[candidate] = nil
 				processInstance(candidate)
 			end
 		end
+		if queueHead > #queue then
+			queue = {}
+			queueHead = 1
+		end
 
 		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
-			local newMatches = table.clone(matches)
-
+			local removedSet: { [Instance]: boolean } = {}
 			for _, removedInstance in removedInstances do
-				local index = table.find(matches, removedInstance)
-				if index then
-					table.remove(newMatches, index)
+				removedSet[removedInstance] = true
+			end
+
+			local newMatches: { Instance } = {}
+			for _, existing in matches do
+				if removedSet[existing] then
+					matchSet[existing] = nil
+				else
+					table.insert(newMatches, existing)
 				end
 			end
 
 			for _, addedInstance in addedInstances do
-				table.insert(newMatches, addedInstance)
+				if not matchSet[addedInstance] then
+					matchSet[addedInstance] = true
+					table.insert(newMatches, addedInstance)
+				end
 			end
 
 			for _, changedInstance in changedInstances do
-				insertUnique(newMatches, changedInstance)
+				if not matchSet[changedInstance] then
+					matchSet[changedInstance] = true
+					table.insert(newMatches, changedInstance)
+				end
 			end
 
 			matches = newMatches
@@ -179,12 +205,12 @@ local function query(options: QueryOptions): QueryResult
 	table.insert(
 		connections,
 		options.root.DescendantAdded:Connect(function(instance)
-			insertUnique(queue, instance)
+			enqueue(instance)
 		end)
 	)
 
 	for _, match in options.root:QueryDescendants(options.selector) do
-		insertUnique(queue, match)
+		enqueue(match)
 	end
 
 	task.spawn(function()
@@ -193,7 +219,7 @@ local function query(options: QueryOptions): QueryResult
 		local lastQueueSize = 0
 
 		while not isDestroyed do
-			local currentQueueSize = #queue
+			local currentQueueSize = getQueueSize()
 			if currentQueueSize > lastQueueSize then
 				cooldown = settleFrames
 			end
@@ -203,7 +229,7 @@ local function query(options: QueryOptions): QueryResult
 				cooldown -= 1
 			elseif currentQueueSize > 0 then
 				runDrain(options.frameBudgetMs)
-				lastQueueSize = #queue
+				lastQueueSize = getQueueSize()
 			end
 
 			task.wait()
