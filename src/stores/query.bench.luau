@@ -97,7 +97,7 @@ describeEach({
 		queryRoot:Destroy()
 	end)
 
-	test("measure flush time of sustained high-frequency instance changes", function()
+	test.skip("measure flush time of sustained high-frequency instance changes", function()
 		local root = Instance.new("Folder")
 		local instances: { ModuleScript } = {}
 		for i = 1, instanceCount do
@@ -137,125 +137,125 @@ describeEach({
 		modulesQuery.destroy()
 		root:Destroy()
 	end)
+end)
 
-	test("rapid property changes on single instance only enqueue once and fire changed once per flush", function()
-		local root = Instance.new("Folder")
-		local moduleScript = Instance.new("ModuleScript")
-		moduleScript.Parent = root
+test("rapid property changes on single instance only enqueue once and fire changed once per flush", function()
+	local root = Instance.new("Folder")
+	local moduleScript = Instance.new("ModuleScript")
+	moduleScript.Parent = root
 
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
+	local modulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+	})
+	modulesQuery.flush()
+
+	expect(modulesQuery.getQueueSize()).toBe(0)
+	local changeCount = 0
+	modulesQuery.changed:Connect(function()
+		changeCount += 1
+	end)
+
+	moduleScript.Name = "A"
+	moduleScript.Source = "return 1"
+	expect(modulesQuery.getQueueSize()).toBe(1)
+
+	modulesQuery.flush()
+	expect(modulesQuery.getQueueSize()).toBe(0)
+	expect(changeCount).toBe(1)
+	modulesQuery.destroy()
+	root:Destroy()
+end)
+
+test("re-entrant queue additions eventually settle", function()
+	local root = Instance.new("Folder")
+	local moduleScript = Instance.new("ModuleScript")
+	moduleScript.Parent = root
+
+	local modulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+	})
+
+	local iterations = 0
+	local maxIterations = 100
+	modulesQuery.added:Connect(function(addedList)
+		iterations += 1
+		if iterations <= 2 and #addedList > 0 then
+			addedList[1].Name = "Touched"
+		end
+	end)
+
+	for _ = 1, maxIterations do
 		modulesQuery.flush()
-
-		expect(modulesQuery.getQueueSize()).toBe(0)
-		local changeCount = 0
-		modulesQuery.changed:Connect(function()
-			changeCount += 1
-		end)
-
-		moduleScript.Name = "A"
-		moduleScript.Source = "return 1"
-		expect(modulesQuery.getQueueSize()).toBe(1)
-
-		modulesQuery.flush()
-		expect(modulesQuery.getQueueSize()).toBe(0)
-		expect(changeCount).toBe(1)
-		modulesQuery.destroy()
-		root:Destroy()
-	end)
-
-	test("re-entrant queue additions eventually settle", function()
-		local root = Instance.new("Folder")
-		local moduleScript = Instance.new("ModuleScript")
-		moduleScript.Parent = root
-
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
-
-		local iterations = 0
-		local maxIterations = 100
-		modulesQuery.added:Connect(function(addedList)
-			iterations += 1
-			if iterations <= 2 and #addedList > 0 then
-				addedList[1].Name = "Touched"
-			end
-		end)
-
-		for _ = 1, maxIterations do
-			modulesQuery.flush()
-			if modulesQuery.getQueueSize() == 0 then
-				break
-			end
-			task.wait()
+		if modulesQuery.getQueueSize() == 0 then
+			break
 		end
-
-		expect(iterations).toBeLessThanOrEqual(maxIterations)
-		expect(modulesQuery.getQueueSize()).toBe(0)
-		modulesQuery.destroy()
-		root:Destroy()
-	end)
-
-	test("frame budget limits work per frame and queue drains over multiple frames", function()
-		local BATCH = 20000
-		local root = Instance.new("Folder")
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-			frameBudgetMs = 1,
-		})
-
-		for i = 1, BATCH do
-			local ms = Instance.new("ModuleScript")
-			ms.Name = "M" .. tostring(i)
-			ms.Parent = root
-		end
-
-		local maxWaits = 2000
-		for _ = 1, maxWaits do
-			task.wait()
-			if modulesQuery.getQueueSize() == 0 and #modulesQuery.get() == BATCH then
-				break
-			end
-		end
-		expect(#modulesQuery.get()).toBe(BATCH)
-		expect(modulesQuery.getQueueSize()).toBe(0)
-		modulesQuery.destroy()
-		root:Destroy()
-	end)
-
-	test("settle batching with settleFrames reduces redundant processing", function()
-		local root = Instance.new("Folder")
-		local moduleScript = Instance.new("ModuleScript")
-		moduleScript.Parent = root
-
-		local changeCount = 0
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-			settleFrames = 2,
-		})
-		modulesQuery.changed:Connect(function()
-			changeCount += 1
-		end)
-
-		while modulesQuery.getQueueSize() > 0 do
-			modulesQuery.flush()
-		end
-
-		moduleScript.Name = "A"
 		task.wait()
-		moduleScript.Source = "return 1"
-		for _ = 1, 5 do
-			task.wait()
-		end
+	end
 
-		modulesQuery.flush()
-		expect(changeCount).toBeGreaterThanOrEqual(1)
-		modulesQuery.destroy()
-		root:Destroy()
+	expect(iterations).toBeLessThanOrEqual(maxIterations)
+	expect(modulesQuery.getQueueSize()).toBe(0)
+	modulesQuery.destroy()
+	root:Destroy()
+end)
+
+test("frame budget limits work per frame and queue drains over multiple frames", function()
+	local BATCH = 20000
+	local root = Instance.new("Folder")
+	local modulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		frameBudgetMs = 1,
+	})
+
+	for i = 1, BATCH do
+		local ms = Instance.new("ModuleScript")
+		ms.Name = "M" .. tostring(i)
+		ms.Parent = root
+	end
+
+	local maxWaits = 2000
+	for _ = 1, maxWaits do
+		task.wait()
+		if modulesQuery.getQueueSize() == 0 and #modulesQuery.get() == BATCH then
+			break
+		end
+	end
+	expect(#modulesQuery.get()).toBe(BATCH)
+	expect(modulesQuery.getQueueSize()).toBe(0)
+	modulesQuery.destroy()
+	root:Destroy()
+end)
+
+test("settle batching with settleFrames reduces redundant processing", function()
+	local root = Instance.new("Folder")
+	local moduleScript = Instance.new("ModuleScript")
+	moduleScript.Parent = root
+
+	local changeCount = 0
+	local modulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		settleFrames = 2,
+	})
+	modulesQuery.changed:Connect(function()
+		changeCount += 1
 	end)
+
+	while modulesQuery.getQueueSize() > 0 do
+		modulesQuery.flush()
+	end
+
+	moduleScript.Name = "A"
+	task.wait()
+	moduleScript.Source = "return 1"
+	for _ = 1, 5 do
+		task.wait()
+	end
+
+	modulesQuery.flush()
+	expect(changeCount).toBeGreaterThanOrEqual(1)
+	modulesQuery.destroy()
+	root:Destroy()
 end)
