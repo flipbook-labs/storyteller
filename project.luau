@@ -4,7 +4,7 @@ return {
 	SOURCE_PATH = "src",
 	BUILD_PATH = "dist",
 	PACKAGES_PATH = "Packages",
-	SCRIPTS_PATH = "scripts",
+	SCRIPTS_PATH = ".lute",
 
 	MODEL_FILENAME = "Storyteller.rbxm",
 
@@ -16,7 +16,7 @@ return {
 
 	FOLDERS_TO_LINT = {
 		"src",
-		"scripts",
+		".lute",
 	},
 
 	ROBLOX_UNIT_TESTING_PLACE_ID = "123506190725771",
