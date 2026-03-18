@@ -1,3 +1,11 @@
+local DEFAULT_FRAME_BUDGET_MS = (1 / 60) * 1000
+
+local function insertUnique<T>(arr: { T }, item: T)
+	if not table.find(arr, item) then
+		table.insert(arr, item)
+	end
+end
+
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -16,13 +24,11 @@ export type QueryOptions = {
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
 
-	-- Max ms to spend processing the queue per frame. Nil = no limit.
-	-- Only applies to the automatic per-frame loop; flush() always drains entirely.
+	-- Max time (in ms) to spend processing the queue. This should be adjusted
+	-- if hitting performance bottlenecks in larger experiences. Smaller budget
+	-- means less time discovering instances, but can improve FPS. Defaults to
+	-- ~16ms.
 	frameBudgetMs: number?,
-
-	-- Frames to wait after the last queue addition before processing.
-	-- Only applies to the automatic per-frame loop; flush() bypasses this.
-	settleFrames: number?,
 }
 
 export type QueryResult = {
@@ -51,20 +57,19 @@ export type QueryResult = {
 }
 
 local function query(options: QueryOptions): QueryResult
-	local matches: { Instance } = {}
-	local matchSet: { [Instance]: true } = {}
-
-	-- Queue implemented with head index + membership set to avoid O(n) pops/lookups.
+	-- We keep track of an ordered queue and a dict of each queued Instance for
+	-- fast lookups.
+	--
+	--  Also note that we use weak tables when keying by Instance to ensure we
+	-- don't hold a lock on those instances (and leak memory) if we forget to
+	-- remove them from the dict
 	local queue: { Instance } = {}
-	local queueHead = 1
-	local queued: { [Instance]: true } = {}
-	setmetatable(queued, { __mode = "k" })
+	local queued = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
 
+	local seen = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
+
+	local matches: { Instance } = {}
 	local connections: { RBXScriptConnection } = {}
-
-	-- Weak table so we don't leak memory from using Instances as keys
-	local seen: { [Instance]: true } = {}
-	setmetatable(seen, { __mode = "k" })
 
 	local isDestroyed = false
 
@@ -77,7 +82,7 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function getQueueSize()
-		return #queue - queueHead + 1
+		return #queue
 	end
 
 	local function enqueue(instance: Instance)
@@ -112,7 +117,7 @@ local function query(options: QueryOptions): QueryResult
 						table.insert(changedInstances, instance)
 					end
 				else
-					if matchSet[instance] then
+					if table.find(matches, instance) then
 						table.insert(removedInstances, instance)
 					end
 				end
@@ -136,50 +141,41 @@ local function query(options: QueryOptions): QueryResult
 		end
 
 		local startTime = if budgetMs then os.clock() * 1000 else 0
-		while queueHead <= #queue do
+		while #queue > 0 do
 			if budgetMs and (os.clock() * 1000 - startTime) > budgetMs then
 				break
 			end
-			local candidate = queue[queueHead]
-			queue[queueHead] = nil
-			queueHead += 1
+			local candidate = table.remove(queue, 1)
 			if candidate then
 				queued[candidate] = nil
 				processInstance(candidate)
 			end
 		end
-		if queueHead > #queue then
-			queue = {}
-			queueHead = 1
-		end
 
 		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
-			local removedSet: { [Instance]: boolean } = {}
-			for _, removedInstance in removedInstances do
-				removedSet[removedInstance] = true
-			end
+			local newMatches = table.clone(matches)
 
-			local newMatches: { Instance } = {}
-			for _, existing in matches do
-				if removedSet[existing] then
-					matchSet[existing] = nil
-				else
-					table.insert(newMatches, existing)
+			for _, removedInstance in removedInstances do
+				local index = table.find(matches, removedInstance)
+				if index then
+					table.remove(newMatches, index)
 				end
 			end
 
 			for _, addedInstance in addedInstances do
-				if not matchSet[addedInstance] then
-					matchSet[addedInstance] = true
-					table.insert(newMatches, addedInstance)
+				if table.find(removedInstances, addedInstance) ~= nil then
+					continue
 				end
+
+				insertUnique(newMatches, addedInstance)
 			end
 
 			for _, changedInstance in changedInstances do
-				if not matchSet[changedInstance] then
-					matchSet[changedInstance] = true
-					table.insert(newMatches, changedInstance)
+				if table.find(removedInstances, changedInstance) ~= nil then
+					continue
 				end
+
+				insertUnique(newMatches, changedInstance)
 			end
 
 			matches = newMatches
@@ -214,24 +210,10 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	task.spawn(function()
-		local settleFrames = if options.settleFrames ~= nil then options.settleFrames else 0
-		local cooldown = 0
-		local lastQueueSize = 0
-
 		while not isDestroyed do
-			local currentQueueSize = getQueueSize()
-			if currentQueueSize > lastQueueSize then
-				cooldown = settleFrames
+			if #queue > 0 then
+				runDrain(options.frameBudgetMs or DEFAULT_FRAME_BUDGET_MS)
 			end
-			lastQueueSize = currentQueueSize
-
-			if cooldown > 0 then
-				cooldown -= 1
-			elseif currentQueueSize > 0 then
-				runDrain(options.frameBudgetMs)
-				lastQueueSize = getQueueSize()
-			end
-
 			task.wait()
 		end
 	end)
