@@ -15,7 +15,7 @@ With the above requirements satisfied, run the following commands from your clon
 $ rokit install
 
 # Install packages
-$ lute scripts/install.luau
+$ lute run install
 ```
 
 ## Testing
@@ -23,7 +23,7 @@ $ lute scripts/install.luau
 Run the following to run all unit tests for the project:
 
 ```sh
-$ lute scripts/test.luau
+$ lute run test
 ```
 
 We use jsdotlua's [Jest](https://github.com/jsdotlua/jest-lua) fork for authoring and executing unit tests. [Read the docs](https://jsdotlua.github.io/jest-lua/) and look to our existing `.spec.luau` modules for how to write tests.
@@ -39,11 +39,11 @@ Part of our build process uses [darklua](https://github.com/seaofvoices/darklua)
 Run the following to build the project:
 
 ```sh
-$ lute scripts/build.luau
+$ lute run build
 ```
 
 By default, the project is built for a production environment, so all development files like our unit tests are pruned from the resulting build. To keep development files, pass the `--channel` flag to set the environment to build for:
 
 ```sh
-$ lute scripts/build.luau --channel dev
+$ lute run build --channel dev
 ```

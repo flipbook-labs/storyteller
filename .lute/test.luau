@@ -1,7 +1,9 @@
 local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
 local fs = require("@std/fs")
+local path = require("@std/path")
 local process = require("@std/process")
+local system = require("@std/system")
 
 local project = require("@repo/project")
 
@@ -38,8 +40,10 @@ end
 
 local filter = args:get("filter")
 
-run("lute", { "scripts/build.luau", "--channel", "dev" })
-run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
+local testPlacePath = path.join(system.tmpdir(), "tests.rbxl")
+
+run("lute", { "run", "build", "--channel", "dev" })
+run("rojo", { "build", "tests.project.json", "-o", testPlacePath })
 
 local function createTestRunnerScript()
 	local testRunnerPath = ".build/tasks/run-tests.luau"
@@ -47,7 +51,8 @@ local function createTestRunnerScript()
 	fs.createdirectory(".build/tasks", {
 		makeparents = true,
 	})
-	copyInto("scripts/tasks/run-tests.luau", testRunnerPath)
+
+	copyInto(".lute/tasks/run-tests.luau", testRunnerPath)
 
 	if filter then
 		findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
@@ -63,8 +68,8 @@ local success, err = pcall(function()
 	local testRunnerPath = createTestRunnerScript()
 
 	return run("python3", {
-		"scripts/open-cloud/upload_and_run_task.py",
-		"tests.rbxl",
+		".lute/open-cloud/upload_and_run_task.py",
+		testPlacePath,
 		testRunnerPath,
 	}, {
 		env = {
@@ -75,7 +80,7 @@ local success, err = pcall(function()
 	})
 end)
 
-run("rm", { "tests.rbxl" })
+fs.remove(testPlacePath)
 
 if not success then
 	print(err)
