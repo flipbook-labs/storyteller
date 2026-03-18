@@ -24,6 +24,12 @@ export type QueryOptions = {
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
 
+	-- This is called right before an Instance is processed and allows you to
+	-- either proceed with processing or defer for later.
+	--
+	-- Return `true` to process now and `false` to defer.
+	shouldProcess: ((instance: Instance) -> boolean)?,
+
 	-- Max time (in ms) to spend processing the queue. This should be adjusted
 	-- if hitting performance bottlenecks in larger experiences. Smaller budget
 	-- means less time discovering instances, but can improve FPS. Defaults to
@@ -145,10 +151,19 @@ local function query(options: QueryOptions): QueryResult
 			if budgetMs and (os.clock() * 1000 - startTime) > budgetMs then
 				break
 			end
+
 			local candidate = table.remove(queue, 1)
+
 			if candidate then
-				queued[candidate] = nil
-				processInstance(candidate)
+				local shouldProcess = if options.shouldProcess then options.shouldProcess(candidate) else true
+
+				if shouldProcess then
+					queued[candidate] = nil
+					processInstance(candidate)
+				else
+					-- Place it back at the end of the queue to be processed again later
+					table.insert(queue, candidate)
+				end
 			end
 		end
 
