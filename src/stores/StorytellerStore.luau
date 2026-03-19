@@ -14,11 +14,11 @@ type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
 local function shouldProcessModule(instance: Instance)
-	-- ModuleLoader holds a lock on the module it's requiring because it
-	-- does some weird indirection with cloning, which naturally results
-	-- in DataModel events. We do not want a module being required to
-	-- trigger events, so Storyteller needs to pause processing until
-	-- the lock is removed
+	-- ModuleLoader holds a lock on the module it's requiring because it has to
+	-- do some weird indirection with cloning, which naturally results in
+	-- DataModel events. We do not want a module being required to trigger query
+	-- recomputations, so Storyteller needs to pause processing until the lock
+	-- is removed
 	return not ModuleLoader.isLocked(instance)
 end
 
