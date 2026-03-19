@@ -1,6 +1,6 @@
 -- The amount of time (in milliseconds) that this function can spend processing
 -- the queue before deferring to a later frame.
-local FRAME_BUDGET_MS = 16
+local FRAME_BUDGET_MS = 2
 
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
@@ -142,12 +142,8 @@ local function query(options: QueryOptions): QueryResult
 			end
 		end
 
-		local startTime = os.clock() * 1000
+		local startTime = os.clock()
 		while #queue > 0 do
-			if os.clock() * 1000 - startTime > FRAME_BUDGET_MS then
-				break
-			end
-
 			local candidate = table.remove(queue, 1)
 
 			if candidate then
@@ -161,6 +157,12 @@ local function query(options: QueryOptions): QueryResult
 					-- processed again later
 					table.insert(queue, candidate)
 				end
+			end
+
+			local elapsed = os.clock() - startTime
+
+			if elapsed * 1000 > FRAME_BUDGET_MS then
+				break
 			end
 		end
 
