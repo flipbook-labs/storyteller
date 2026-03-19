@@ -206,7 +206,6 @@ test("frame budget limits work per frame and queue drains over multiple frames",
 	local modulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
-		frameBudgetMs = 1,
 	})
 
 	for i = 1, BATCH do

@@ -1,4 +1,6 @@
-local DEFAULT_FRAME_BUDGET_MS = (1 / 60) * 1000
+-- The amount of time (in milliseconds) that this function can spend processing
+-- the queue before deferring to a later frame.
+local FRAME_BUDGET_MS = 16
 
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
@@ -29,18 +31,6 @@ export type QueryOptions = {
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
-
-	-- This is called right before an Instance is processed and allows you to
-	-- either proceed with processing or defer for later.
-	--
-	-- Return `true` to process now and `false` to defer.
-	shouldProcess: ((instance: Instance) -> boolean)?,
-
-	-- Max time (in ms) to spend processing the queue. This should be adjusted
-	-- if hitting performance bottlenecks in larger experiences. Smaller budget
-	-- means less time discovering instances, but can improve FPS. Defaults to
-	-- ~16ms.
-	frameBudgetMs: number?,
 }
 
 export type QueryResult = {
@@ -113,7 +103,7 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function runDrain(budgetMs: number?)
+	local function flush()
 		local addedInstances: { Instance } = {}
 		local removedInstances: { Instance } = {}
 		local changedInstances: { Instance } = {}
@@ -152,9 +142,9 @@ local function query(options: QueryOptions): QueryResult
 			end
 		end
 
-		local startTime = if budgetMs then os.clock() * 1000 else 0
+		local startTime = os.clock() * 1000
 		while #queue > 0 do
-			if budgetMs and (os.clock() * 1000 - startTime) > budgetMs then
+			if os.clock() * 1000 - startTime > FRAME_BUDGET_MS then
 				break
 			end
 
@@ -216,10 +206,6 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function flush()
-		runDrain(nil)
-	end
-
 	table.insert(
 		connections,
 		options.root.DescendantAdded:Connect(function(instance)
@@ -234,7 +220,7 @@ local function query(options: QueryOptions): QueryResult
 	task.spawn(function()
 		while not isDestroyed do
 			if #queue > 0 then
-				runDrain(options.frameBudgetMs or DEFAULT_FRAME_BUDGET_MS)
+				flush()
 			end
 			task.wait()
 		end
