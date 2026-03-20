@@ -1,10 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local isStoryModule = require("@root/isStoryModule")
-local isStorybookModule = require("@root/isStorybookModule")
-local new = require("@root/test-utils/new")
-local types = require("@root/types")
-
 local debounce = require("./debounce")
 
 local jest = JestGlobals.jest
@@ -42,7 +37,7 @@ test("the last debounced callback is run immediately once the cooldown ends", fu
 	debouncedCallback()
 	expect(callback).toHaveBeenCalledTimes(1)
 
-	jest.advanceTimersByTime(500)
+	jest.advanceTimersByTime(100)
 
 	for _ = 1, 1000 do
 		debouncedCallback()
@@ -50,7 +45,30 @@ test("the last debounced callback is run immediately once the cooldown ends", fu
 
 	expect(callback).toHaveBeenCalledTimes(1)
 
-	jest.advanceTimersByTime(500)
+	jest.advanceTimersToNextTimer()
 
+	expect(callback).toHaveBeenCalledTimes(2)
+end)
+
+test("debounce delay is configurable", function()
+	local debounceMs = 1000
+
+	local callback = jest.fn()
+	local debouncedCallback = debounce(callback, debounceMs)
+
+	debouncedCallback()
+	jest.advanceTimersByTime(debounceMs / 4)
+	expect(callback).toHaveBeenCalledTimes(1)
+
+	debouncedCallback()
+	jest.advanceTimersByTime(debounceMs / 4)
+	expect(callback).toHaveBeenCalledTimes(1)
+
+	debouncedCallback()
+	jest.advanceTimersByTime(debounceMs / 4)
+	expect(callback).toHaveBeenCalledTimes(1)
+
+	debouncedCallback()
+	jest.advanceTimersByTime(debounceMs / 4)
 	expect(callback).toHaveBeenCalledTimes(2)
 end)

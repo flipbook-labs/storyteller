@@ -11,8 +11,8 @@
 	   skipping all the others that came before
 	4. Go to 2
 ]]
-local function debounce<T>(callback: (...T) -> (), debounceMs: number?)
-	local waitTimeSec = if debounceMs then debounceMs / 1000 else 1
+local function debounce(callback: (...any) -> (), debounceMs: number?)
+	local waitTimeMs = if debounceMs then debounceMs else 500
 	local isReady = true
 	local hasPendingCall = false
 	local thread: thread?
@@ -31,7 +31,7 @@ local function debounce<T>(callback: (...T) -> (), debounceMs: number?)
 
 		if not thread then
 			thread = task.spawn(function()
-				task.wait(waitTimeSec)
+				task.wait(waitTimeMs / 1000)
 				isReady = true
 				thread = nil
 
