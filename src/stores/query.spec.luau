@@ -1,3 +1,5 @@
+local RunService = game:GetService("RunService")
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
@@ -10,8 +12,15 @@ local query = require("./query")
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local jest = JestGlobals.jest
 
 type LoadedStorybook = types.LoadedStorybook
+
+local function waitForEngineEvents()
+	RunService.Heartbeat:Wait()
+end
+
+jest.useFakeTimers()
 
 describe("DataModel behavior", function()
 	test("updates when adding a matching Instance", function()
@@ -26,7 +35,9 @@ describe("DataModel behavior", function()
 		expect(modulesQuery.get()).toEqual({})
 
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
 
 		expect(modulesQuery.get()).toEqual({ moduleScript })
 	end)
@@ -36,17 +47,21 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
+		jest.runOnlyPendingTimers()
+
 		expect(modulesQuery.get()).toEqual({ moduleScript })
 
 		moduleScript.Parent = nil
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
 
 		expect(modulesQuery.get()).toEqual({})
 	end)
@@ -56,17 +71,20 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
+		-- jest.runOnlyPendingTimers()
+
 		expect(modulesQuery.get()).toEqual({ moduleScript })
 
 		moduleScript:Destroy()
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		expect(modulesQuery.get()).toEqual({})
 	end)
@@ -80,7 +98,7 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
@@ -92,7 +110,8 @@ describe("DataModel behavior", function()
 		expect(snapshot).toEqual({ moduleScript })
 
 		moduleScript.Parent = child
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		-- The array of matches still has the same contents, but the table
 		-- identity should change
@@ -105,7 +124,7 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -121,7 +140,8 @@ describe("DataModel behavior", function()
 				storyRoot }
 			}
 		]]
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
 	end)
@@ -137,7 +157,7 @@ describe("DataModel behavior", function()
 			}
 		]]
 		moduleScript.Parent = root
-		task.wait()
+		waitForEngineEvents()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -145,10 +165,13 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
+		-- jest.runOnlyPendingTimers()
+
 		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
 
 		moduleScript.Name = "Foo"
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		expect(storybookModulesQuery.get()).toEqual({})
 	end)
@@ -177,12 +200,14 @@ describe("events", function()
 		expect(snapshot).toEqual({ moduleScript })
 
 		moduleScript.Name = "NewName"
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		moduleScript.Source = [[
 			return "Hello, World!"
 		]]
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
 
 		expect(changeCount).toBe(2)
 		expect(modulesQuery.get()).never.toBe(snapshot)
@@ -208,15 +233,21 @@ describe("events", function()
 		end)
 
 		moduleScriptA.Parent = root
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
+
 		expect(addCount).toBe(1)
 
 		moduleScriptB.Parent = root
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
+
 		expect(addCount).toBe(2)
 
 		moduleScriptC.Parent = root
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
+
 		expect(addCount).toBe(3)
 
 		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB, moduleScriptC })
@@ -243,11 +274,15 @@ describe("events", function()
 		end)
 
 		moduleScriptA.Parent = nil
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
+
 		expect(removeCount).toBe(1)
 
 		moduleScriptB.Parent = nil
-		task.wait()
+		waitForEngineEvents()
+		jest.runOnlyPendingTimers()
+
 		expect(removeCount).toBe(2)
 
 		expect(modulesQuery.get()).toEqual({})
@@ -274,11 +309,17 @@ describe("events", function()
 		end)
 
 		moduleScriptA:Destroy()
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
+
 		expect(removeCount).toBe(1)
 
 		moduleScriptB:Destroy()
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
+
 		expect(removeCount).toBe(2)
 
 		expect(modulesQuery.get()).toEqual({})
@@ -303,12 +344,16 @@ describe("user journeys", function()
 		local storybookModule = Instance.new("ModuleScript")
 
 		storybookModule.Parent = root
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
 
 		expect(#storybookModulesQuery.get()).toEqual(0)
 
 		storybookModule.Name = "Foo.storybook"
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
 
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
@@ -319,12 +364,14 @@ describe("user journeys", function()
 				}
 			}
 		]]
-		task.wait()
+		waitForEngineEvents()
 
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
 		storybookModule.Parent = nil
-		task.wait()
+		waitForEngineEvents()
+
+		jest.runOnlyPendingTimers()
 
 		expect(#storybookModulesQuery.get()).toEqual(0)
 	end)
