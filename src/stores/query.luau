@@ -1,3 +1,5 @@
+local debounce = require("@root/stores/debounce")
+
 -- The amount of time (in milliseconds) that this function can spend processing
 -- the queue before deferring to a later frame.
 local FRAME_BUDGET_MS = 2
@@ -131,9 +133,9 @@ local function query(options: QueryOptions): QueryResult
 				-- QueryOptions so only specefied options will trigger changes
 				table.insert(
 					connections,
-					instance.Changed:Connect(function()
+					instance.Changed:Connect(debounce(function()
 						enqueue(instance)
-					end)
+					end))
 				)
 
 				if isMatch then
