@@ -1,4 +1,4 @@
-local debounce = require("@root/stores/debounce")
+local debounce = require("@root/debounce")
 
 -- The amount of time (in milliseconds) that this function can spend processing
 -- the queue before deferring to a later frame.
