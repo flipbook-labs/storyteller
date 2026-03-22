@@ -43,7 +43,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local connections: { RBXScriptConnection } = {}
 	local effects: { () -> () } = {}
 
-	local status: RunningStatus.StartedStatus = RunningStatus.None
+	local status: RunningStatus.RunningStatus = RunningStatus.None
 
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
