@@ -15,11 +15,15 @@ export type StorytellerProviderProps = {
 	children: React.ReactNode,
 }
 
-local StorytellerContext = React.createContext(nil :: StorytellerContext?)
+local defaultValue: StorytellerContext = {
+	store = StorytellerStore.instance,
+}
+
+local StorytellerContext = React.createContext(defaultValue)
 StorytellerContext.displayName = "StorytellerContext"
 
 local defaultProps = {
-	store = StorytellerStore.instance,
+	store = defaultValue.store,
 }
 
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
@@ -43,12 +47,7 @@ local function StorytellerProvider(storytellerProviderProps: StorytellerProvider
 end
 
 local function useStorytellerContext(): StorytellerContext
-	local context = useContext(StorytellerContext)
-	if not context then
-		local callerName = debug.info(2, "n") or "useStorytellerContext"
-		error(`{callerName} can only be used with StorytellerProvider in the tree`)
-	end
-	return context
+	return useContext(StorytellerContext)
 end
 
 return {
