@@ -74,21 +74,3 @@ jobs:
         run: lute run test
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
-
-  benchmarks:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: CompeyDev/setup-rokit@v0.1.2
-        with:
-          version: v1.1.1
-
-      - name: Install packages
-        run: lute scripts/install.luau
-
-      - name: Run tests
-        run: lute scripts/test.luau --benchmarks
-        env:
-          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
