@@ -76,10 +76,13 @@ local function query(options: QueryOptions): QueryResult
 	local connections: { RBXScriptConnection } = {}
 
 	local isDestroyed = false
+	local isProcessing = false
 
 	local added = Instance.new("BindableEvent")
 	local changed = Instance.new("BindableEvent")
 	local removed = Instance.new("BindableEvent")
+
+	local startProcessing
 
 	local function get()
 		return matches
@@ -95,6 +98,10 @@ local function query(options: QueryOptions): QueryResult
 		end
 		queued[instance] = true
 		table.insert(queue, instance)
+
+		if not isProcessing then
+			startProcessing()
+		end
 	end
 
 	local function destroy()
@@ -210,6 +217,25 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
+	function startProcessing()
+		local function stepAsync()
+			if isDestroyed then
+				return
+			end
+
+			if #queue == 0 then
+				isProcessing = false
+				return
+			end
+
+			isProcessing = true
+			flush()
+			task.delay(0, stepAsync)
+		end
+
+		task.spawn(stepAsync)
+	end
+
 	table.insert(
 		connections,
 		options.root.DescendantAdded:Connect(function(instance)
@@ -220,15 +246,6 @@ local function query(options: QueryOptions): QueryResult
 	for _, match in options.root:QueryDescendants(options.selector) do
 		enqueue(match)
 	end
-
-	task.spawn(function()
-		while not isDestroyed do
-			if #queue > 0 then
-				flush()
-			end
-			task.wait()
-		end
-	end)
 
 	return {
 		get = get,
