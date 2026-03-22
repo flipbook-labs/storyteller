@@ -1,6 +1,8 @@
 local React = require("@pkg/React")
 
-local useStorytellerContext = require("@root/react/useStorytellerContext")
+local StorytellerContext = require("@root/react/StorytellerContext")
+
+local useStorytellerContext = StorytellerContext.useStorytellerContext
 
 local useEffect = React.useEffect
 

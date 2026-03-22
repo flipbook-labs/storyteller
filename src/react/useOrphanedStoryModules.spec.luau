@@ -2,7 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
-local StorytellerProvider = require("@root/react/StorytellerProvider")
+local StorytellerContext = require("@root/react/StorytellerContext")
 local StorytellerStore = require("@root/stores/StorytellerStore")
 local new = require("@root/test-utils/new")
 local renderHook = require("@root/test-utils/renderHook")
@@ -24,7 +24,7 @@ local container: Folder
 local store: StorytellerStore.StorytellerStore
 
 local function Wrapper(props): React.ReactNode
-	return React.createElement(StorytellerProvider, {
+	return React.createElement(StorytellerContext.StorytellerProvider, {
 		store = store,
 	}, props.children)
 end

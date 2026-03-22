@@ -1,4 +1,5 @@
 local ControlTypes = require("@self/controls/ControlTypes")
+local StorytellerContext = require("@root/react/StorytellerContext")
 local types = require("@self/types")
 
 --[=[
@@ -65,7 +66,7 @@ return {
 
 	-- React
 	StoryContainer = require("@self/react/StoryContainer"),
-	StorytellerProvider = require("@self/react/StorytellerProvider"),
+	StorytellerProvider = StorytellerContext.StorytellerProvider,
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
