@@ -1,5 +1,3 @@
-local ReactRoblox = require("@pkg/ReactRoblox")
-
 type Options = {
 	timeout: number?,
 	interval: number?,
