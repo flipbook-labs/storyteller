@@ -68,28 +68,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
-	local storyModulesQuery = query({
-		root = root,
-		selector = "ModuleScript",
-		matcher = isStoryModule,
-		shouldProcess = shouldProcessModule,
-	})
-
-	local storybookModulesQuery = query({
-		root = root,
-		selector = "ModuleScript",
-		matcher = isStorybookModule,
-		shouldProcess = shouldProcessModule,
-	})
-
-	-- These functions are just wrappers to cast `{ Instance }` to `{
-	-- ModuleScript }` so Luau gets the memo
-	local function storyModulesQueryGet()
-		return (storyModulesQuery.get() :: any) :: { ModuleScript }
-	end
-	local function storybookModulesQueryGet()
-		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
-	end
+	local storyModulesQuery
+	local storybookModulesQuery
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
@@ -189,6 +169,34 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return
 		end
 		status = RunningStatus.Starting
+
+		-- Queries start running immediately so we create them in here to
+		-- ensure they only run when StorytellerStore is started. This fixes
+		-- a performance issue where queries were running immediately when
+		-- constructing a StorytellerStore which gets Storyteller stuck in a
+		-- loop when it is also used within a Storybook
+		storyModulesQuery = query({
+			root = root,
+			selector = "ModuleScript",
+			matcher = isStoryModule,
+			shouldProcess = shouldProcessModule,
+		})
+
+		storybookModulesQuery = query({
+			root = root,
+			selector = "ModuleScript",
+			matcher = isStorybookModule,
+			shouldProcess = shouldProcessModule,
+		})
+
+		-- These functions are just wrappers to cast `{ Instance }` to `{
+		-- ModuleScript }` so Luau gets the memo
+		local function storyModulesQueryGet()
+			return (storyModulesQuery.get() :: any) :: { ModuleScript }
+		end
+		local function storybookModulesQueryGet()
+			return (storybookModulesQuery.get() :: any) :: { ModuleScript }
+		end
 
 		connections = Sift.List.join(connections, {
 			storyModulesQuery.added:Connect(function()
