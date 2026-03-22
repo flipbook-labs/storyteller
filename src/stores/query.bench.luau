@@ -1,5 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
+local measureMemory = require("@root/test-utils/measureMemory")
 local query = require("./query")
 
 local describe = JestGlobals.describe
@@ -54,6 +55,7 @@ describeEach({
 	10000,
 	100000,
 })("stress tests (%s instances)", function(instanceCount)
+	local timeoutMs = 2 * 60 * 1000
 	local container = buildModuleTree(instanceCount)
 
 	test("clones a tree of instances and measures flush time", function()
@@ -72,7 +74,7 @@ describeEach({
 		clone.Parent = queryRoot
 		container:Destroy()
 
-		local t0 = os.clock()
+		local startTime = os.clock()
 		local maxFlushes = 10000
 		for _ = 1, maxFlushes do
 			modulesQuery.flush()
@@ -81,7 +83,7 @@ describeEach({
 			end
 			task.wait()
 		end
-		local elapsed = os.clock() - t0
+		local elapsed = os.clock() - startTime
 		expect(elapsed).toBeGreaterThanOrEqual(0)
 
 		expect(modulesQuery.getQueueSize()).toBe(0)
@@ -95,48 +97,65 @@ describeEach({
 		expect(addedFireCount).toBeGreaterThanOrEqual(1)
 		modulesQuery.destroy()
 		queryRoot:Destroy()
-	end)
+	end, timeoutMs)
 
-	test.skip("measure flush time of sustained high-frequency instance changes", function()
-		local root = Instance.new("Folder")
-		local instances: { ModuleScript } = {}
-		for i = 1, instanceCount do
-			local ms = Instance.new("ModuleScript")
-			ms.Name = "M" .. tostring(i)
-			ms.Parent = root
-			table.insert(instances, ms)
-		end
+	local PINNED_MAX_MEMORY_BY_INSTANCE_COUNT = {
+		[1000] = 2048,
+		[10000] = 6144,
+		[100000] = 12288,
+	}
 
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
-		while modulesQuery.getQueueSize() > 0 do
-			modulesQuery.flush()
-		end
+	test("measures Luau heap growth and verifies memory is released after destroy", function()
+		-- Ceiling on Luau-heap growth (KB) while the query is live. Derived by
+		-- running the benchmarks and taking ~2x the highest observed value to
+		-- leave room for GC variance:
+		--   1000   instances: observed max ≈  1086 KB  → ceiling  2048
+		--   10000  instances: observed max ≈  2960 KB  → ceiling  6144
+		--   100000 instances: GC runs during settling (negative delta)  → ceiling 0
+		local GROWTH_CEILING_KB: { [number]: number } = {
+			[1000] = 2048,
+			[10000] = 6144,
+			[100000] = 20000,
+		}
 
-		local changeCount = 0
-		modulesQuery.changed:Connect(function()
-			changeCount += 1
+		local queryRoot = Instance.new("Folder")
+		buildModuleTree(instanceCount).Parent = queryRoot
+
+		local modulesQuery: any
+		local settleResult = measureMemory(function()
+			modulesQuery = query({
+				root = queryRoot,
+				selector = "ModuleScript",
+			})
+
+			for _ = 1, 10000 do
+				modulesQuery.flush()
+				if modulesQuery.getQueueSize() == 0 and #modulesQuery.get() >= instanceCount then
+					break
+				end
+				task.wait()
+			end
 		end)
 
-		for round = 1, 3 do
-			for _, ms in instances do
-				ms.Name = "M" .. tostring(round) .. "_" .. ms.Name
+		-- Pin growth: ignore negative deltas (GC ran during settling) and assert
+		-- the positive growth stays within the established ceiling.
+		expect(math.max(0, settleResult.deltaKB)).toBeLessThanOrEqual(GROWTH_CEILING_KB[instanceCount])
+
+		-- Destroy the query and wait for Luau's incremental GC to sweep the freed
+		-- tables. Frames needed scales with instance count: ~10 for 1k, ~30 for
+		-- 10k, ~300 for 100k (all well within the timeoutMs budget).
+		local gcFrames = math.max(30, instanceCount // 1000 * 3)
+		local destroyResult = measureMemory(function()
+			modulesQuery.destroy()
+			queryRoot:Destroy()
+
+			for _ = 1, gcFrames do
+				task.wait()
 			end
-		end
+		end)
 
-		local t0 = os.clock()
-		while modulesQuery.getQueueSize() > 0 do
-			modulesQuery.flush()
-		end
-		local elapsed = os.clock() - t0
-		expect(elapsed).toBeGreaterThanOrEqual(0)
-
-		expect(changeCount).toBeGreaterThanOrEqual(1)
-		modulesQuery.destroy()
-		root:Destroy()
-	end)
+		expect(destroyResult.afterKB).toBeLessThan(settleResult.afterKB)
+	end, timeoutMs)
 end)
 
 test("rapid property changes on single instance only enqueue once and fire changed once per flush", function()
