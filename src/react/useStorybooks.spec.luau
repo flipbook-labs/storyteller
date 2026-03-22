@@ -1,8 +1,13 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local StorytellerProvider = require("@root/react/StorytellerProvider")
+local StorytellerStore = require("@root/stores/StorytellerStore")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
+local waitFor = require("@root/test-utils/waitFor")
+
 local useStorybooks = require("./useStorybooks")
 
 local afterEach = JestGlobals.afterEach
@@ -15,13 +20,22 @@ local act = ReactRoblox.act
 type LoadedStorybook = types.LoadedStorybook
 
 local container: Folder
+local store: StorytellerStore.StorytellerStore
+
+local function Wrapper(props): React.ReactNode
+	return React.createElement(StorytellerProvider, {
+		store = store,
+	}, props.children)
+end
 
 beforeEach(function()
 	container = Instance.new("Folder")
 	container.Parent = game
+	store = StorytellerStore.new(container)
 end)
 
 afterEach(function()
+	store.stop()
 	container:Destroy()
 end)
 
@@ -41,16 +55,20 @@ test("loads storybook modules", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	local storybooks = get()
-
-	expect(#storybooks.available).toBe(1)
-	expect(#storybooks.unavailable).toBe(0)
-
-	expect(storybooks.available[1]).toMatchObject({
-		name = "Sample",
+	end, {
+		wrapper = Wrapper,
 	})
+
+	waitFor(function()
+		local storybooks = get()
+
+		expect(#storybooks.available).toBe(1)
+		expect(#storybooks.unavailable).toBe(0)
+
+		expect(storybooks.available[1]).toMatchObject({
+			name = "Sample",
+		})
+	end)
 end)
 
 test("storybooks with syntax errors are marked unavailable", function()
@@ -67,19 +85,23 @@ test("storybooks with syntax errors are marked unavailable", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	local storybooks = get()
-
-	expect(#storybooks.available).toBe(0)
-	expect(#storybooks.unavailable).toBe(1)
-
-	expect(storybooks.unavailable[1]).toMatchObject({
-		problem = expect.any("string"),
-		storybook = {
-			name = storybookModule.Name,
-		},
+	end, {
+		wrapper = Wrapper,
 	})
+
+	waitFor(function()
+		local storybooks = get()
+
+		expect(#storybooks.available).toBe(0)
+		expect(#storybooks.unavailable).toBe(1)
+
+		expect(storybooks.unavailable[1]).toMatchObject({
+			problem = expect.any("string"),
+			storybook = {
+				name = storybookModule.Name,
+			},
+		})
+	end)
 end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
@@ -95,7 +117,9 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	local storybooks = get()
 
@@ -107,20 +131,24 @@ test("adding a new storybook to the DM triggers a re-render", function()
 		task.wait()
 	end)
 
-	storybooks = get()
+	waitFor(function()
+		storybooks = get()
 
-	expect(#storybooks.available).toBe(1)
-	expect(#storybooks.unavailable).toBe(0)
+		expect(#storybooks.available).toBe(1)
+		expect(#storybooks.unavailable).toBe(0)
 
-	expect(storybooks.available[1]).toMatchObject({
-		name = "Sample",
-	})
+		expect(storybooks.available[1]).toMatchObject({
+			name = "Sample",
+		})
+	end)
 end)
 
 test("renaming a ModuleScript to turn it into a Storybook updates as expected", function()
 	local getStorybooks = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	local moduleScript = Instance.new("ModuleScript")
 	moduleScript.Source = [[
@@ -146,14 +174,16 @@ test("renaming a ModuleScript to turn it into a Storybook updates as expected", 
 		task.wait()
 	end)
 
-	storybooks = getStorybooks()
+	waitFor(function()
+		storybooks = getStorybooks()
 
-	expect(#storybooks.available).toBe(1)
-	expect(#storybooks.unavailable).toBe(0)
+		expect(#storybooks.available).toBe(1)
+		expect(#storybooks.unavailable).toBe(0)
 
-	expect(storybooks.available[1]).toMatchObject({
-		name = "Foo",
-	})
+		expect(storybooks.available[1]).toMatchObject({
+			name = "Foo",
+		})
+	end)
 end)
 
 test("removing a storybook from the DM triggers a re-render", function()
@@ -172,17 +202,21 @@ test("removing a storybook from the DM triggers a re-render", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	act(function()
 		storybookModule:Destroy()
 		task.wait()
 	end)
 
-	local storybooks = get()
+	waitFor(function()
+		local storybooks = get()
 
-	expect(#storybooks.available).toBe(0)
-	expect(#storybooks.unavailable).toBe(0)
+		expect(#storybooks.available).toBe(0)
+		expect(#storybooks.unavailable).toBe(0)
+	end)
 end)
 
 test("re-renders on module changes", function()
@@ -201,13 +235,16 @@ test("re-renders on module changes", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	local storybooks = get()
-
-	expect(storybooks.available[1]).toMatchObject({
-		name = "Sample",
+	end, {
+		wrapper = Wrapper,
 	})
+
+	waitFor(function()
+		local storybooks = get()
+		expect(storybooks.available[1]).toMatchObject({
+			name = "Sample",
+		})
+	end)
 
 	act(function()
 		storybookModule.Source = [[
@@ -221,9 +258,11 @@ test("re-renders on module changes", function()
 		task.wait()
 	end)
 
-	storybooks = get()
+	waitFor(function()
+		local storybooks = get()
 
-	expect(storybooks.available[1]).toMatchObject({
-		name = "New Name",
-	})
+		expect(storybooks.available[1]).toMatchObject({
+			name = "New Name",
+		})
+	end)
 end)

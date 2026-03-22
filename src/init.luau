@@ -65,6 +65,7 @@ return {
 
 	-- React
 	StoryContainer = require("@self/react/StoryContainer"),
+	StorytellerProvider = require("@self/react/StorytellerProvider"),
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),

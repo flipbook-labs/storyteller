@@ -1,17 +1,20 @@
 local React = require("@pkg/React")
 
-local StorytellerStore = require("@root/stores/StorytellerStore").instance
+local useStorytellerContext = require("@root/react/useStorytellerContext")
 
 local useEffect = React.useEffect
 
 local function useStorytellerStore()
+	local storytellerContext = useStorytellerContext()
+	local store = storytellerContext.store
+
 	useEffect(function()
 		task.spawn(function()
-			StorytellerStore.init()
+			store.start()
 		end)
-	end, {})
+	end, { store })
 
-	return StorytellerStore
+	return store
 end
 
 return useStorytellerStore

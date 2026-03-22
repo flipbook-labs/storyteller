@@ -1,5 +1,6 @@
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
+local RunningStatus = require("@root/enums/RunningStatus")
 local Sift = require("@pkg/Sift")
 
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
@@ -23,8 +24,8 @@ local function shouldProcessModule(instance: Instance)
 end
 
 export type StorytellerStore = {
-	init: () -> (),
-	destroy: () -> (),
+	start: () -> (),
+	stop: () -> (),
 
 	getLoadedStorybooks: () -> { LoadedStorybook },
 	getUnavailableStorybooks: () -> { UnavailableStorybook },
@@ -42,9 +43,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local connections: { RBXScriptConnection } = {}
 	local effects: { () -> () } = {}
 
-	local isDestroyed = false
-	local isInitializing = false
-	local isInitialized = false
+	local status: RunningStatus.StartedStatus = RunningStatus.None
 
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
@@ -164,10 +163,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	local function destroy()
-		if isDestroyed then
+	local function stop()
+		if status == RunningStatus.Stopped or status == RunningStatus.Stopping then
 			return
 		end
+		status = RunningStatus.Stopping
 
 		storybookModulesQuery.destroy()
 		storyModulesQuery.destroy()
@@ -180,15 +180,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			dispose()
 		end
 
-		isDestroyed = true
+		status = RunningStatus.Stopped
 	end
-	self.destroy = destroy
+	self.stop = stop
 
-	local function init()
-		if isInitializing or isInitialized then
+	local function start()
+		if status == RunningStatus.Starting or status == RunningStatus.Started then
 			return
 		end
-		isInitializing = true
+		status = RunningStatus.Starting
 
 		connections = Sift.List.join(connections, {
 			storyModulesQuery.added:Connect(function()
@@ -236,9 +236,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				end)
 			end),
 
-			root.Destroying:Connect(destroy),
+			root.Destroying:Connect(stop),
 
-			script.Destroying:Connect(destroy),
+			script.Destroying:Connect(stop),
 		})
 
 		local storybookModules = storybookModulesQueryGet()
@@ -252,10 +252,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end
 		end)
 
-		isInitialized = true
-		isInitializing = false
+		status = RunningStatus.Started
 	end
-	self.init = init
+	self.start = start
 
 	return self
 end
