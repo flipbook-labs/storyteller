@@ -1,11 +1,5 @@
 local Charm = require("@pkg/Charm")
 
-local function insertUnique<T>(arr: { T }, item: T)
-	if not table.find(arr, item) then
-		table.insert(arr, item)
-	end
-end
-
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -33,23 +27,63 @@ export type QueryResult = {
 	destroy: () -> (),
 
 	getQueueSize: () -> number,
-	flush: () -> (),
+	flushAsync: () -> (),
+
+	-- Fired any time a matched Instance is added. This happens when...
+	-- 1. The Instance is parented to `root`
+	-- 2. The Instance is changed in such a way that starts matching the query
+	added: RBXScriptSignal<{ Instance }>,
+
+	-- Fired any time the matched Instances have their properties change.
+	changed: RBXScriptSignal<{ Instance }>,
+
+	-- Fired any time a matched Instance is removed. This happens when...
+	-- 1. The Instance is parented outside of `root`
+	-- 2. The Instance is destroyed
+	-- 3. The Instance is changed in such a way that it no longer matches
+	removed: RBXScriptSignal<{ Instance }>,
 }
 
 local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
-	local queue: { Instance } = {}
+	local getQueue, setQueue = Charm.signal({} :: { Instance })
+	local queued = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
+	local changes = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
+	local seen = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
 
 	local connections: { RBXScriptConnection } = {}
-
-	-- Weak table so we don't leak memory from using Instances as keys
-	local seen: { [Instance]: boolean } = {}
-	setmetatable(seen, { __mode = "k" })
-
 	local isDestroyed = false
 
-	local function getQueueSize()
-		return #queue
+	local added = Instance.new("BindableEvent")
+	local changed = Instance.new("BindableEvent")
+	local removed = Instance.new("BindableEvent")
+
+	local getQueueSize = Charm.computed(function()
+		return #getQueue()
+	end)
+
+	local function enqueueSelectedDescendants()
+		local matches = {}
+
+		for _, instance in options.root:QueryDescendants(options.selector) do
+			if seen[instance] or queued[instance] then
+				continue
+			end
+
+			local isMatch = if options.matcher then options.matcher(instance) else true
+
+			if isMatch then
+				table.insert(matches, instance)
+			end
+		end
+
+		setQueue(function(prev)
+			local new = table.clone(prev)
+			for _, match in matches do
+				table.insert(new, match)
+			end
+			return new
+		end)
 	end
 
 	local function destroy()
@@ -60,101 +94,129 @@ local function query(options: QueryOptions): QueryResult
 		end
 	end
 
-	local function flush()
-		local matches = getMatches()
-		local addedInstances: { Instance } = {}
-		local removedInstances: { Instance } = {}
-		local changedInstances: { Instance } = {}
+	local function onInstanceAdded(instance: Instance)
+		seen[instance] = true
 
-		local function processInstance(instance: Instance)
-			local isMatch = if options.matcher then options.matcher(instance) else true
-
-			if seen[instance] then
-				if isMatch and instance:IsDescendantOf(options.root) then
-					local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else true
-
-					if shouldUpdate then
-						table.insert(changedInstances, instance)
-					end
-				else
-					if table.find(matches, instance) then
-						table.insert(removedInstances, instance)
-					end
-				end
-			else
-				seen[instance] = true
-
-				-- If listening to every property change gets expensive another
-				-- option is to add `watchedProperties: { string }` to
-				-- QueryOptions so only specefied options will trigger changes
-				table.insert(
-					connections,
-					instance.Changed:Connect(function()
-						insertUnique(queue, instance)
-					end)
-				)
-
-				if isMatch then
-					table.insert(addedInstances, instance)
-				end
-			end
-		end
-
-		while #queue > 0 do
-			local candidate = table.remove(queue, 1)
-			if candidate then
-				processInstance(candidate)
-			end
-		end
-
-		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
-			local newMatches = table.clone(matches)
-
-			for _, removedInstance in removedInstances do
-				local index = table.find(matches, removedInstance)
-				if index then
-					table.remove(newMatches, index)
-				end
-			end
-
-			for _, addedInstance in addedInstances do
-				table.insert(newMatches, addedInstance)
-			end
-
-			for _, changedInstance in changedInstances do
-				insertUnique(newMatches, changedInstance)
-			end
-
-			Charm.batch(function()
-				setMatches(newMatches)
+		-- NOTE: Let's keep using Changed. We should debounce it, but I
+		-- think we could treat any instance change as a reason to
+		-- refresh for now. We shouldn't need to re-queue though. Maybe
+		-- just move the match to the end of the array so we can trigger
+		-- an update?
+		table.insert(
+			connections,
+			instance.Changed:Connect(function()
+				changes[instance] = true
 			end)
+		)
+
+		setMatches(function(prev)
+			local new = table.clone(prev)
+			table.insert(new, instance)
+			return new
+		end)
+	end
+
+	local function onInstanceChanged(instance: Instance)
+		changes[instance] = nil
+
+		setMatches(function(prev)
+			local new = table.clone(prev)
+			local index = table.find(prev, instance)
+			if index then
+				table.remove(new, index)
+				table.insert(new, instance)
+			end
+			return new
+		end)
+	end
+
+	local function onInstanceRemoved(instance: Instance)
+		queued[instance] = nil
+		seen[instance] = nil
+		changes[instance] = nil
+
+		setMatches(function(prev)
+			local new = table.clone(prev)
+			local index = table.find(prev, instance)
+			if index then
+				table.remove(new, index)
+			end
+			return new
+		end)
+	end
+
+	local function onProcessSeenInstance(instance: Instance)
+		local isMatch = if options.matcher then options.matcher(instance) else true
+
+		if isMatch and instance:IsDescendantOf(options.root) then
+			local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else false
+
+			if shouldUpdate then
+				changes[instance] = true
+			end
+		else
+			onInstanceRemoved(instance)
 		end
 	end
 
-	table.insert(
-		connections,
-		options.root.DescendantAdded:Connect(function(instance)
-			insertUnique(queue, instance)
-		end)
-	)
+	local function flushAsync()
+		while #getQueue() > 0 do
+			local candidate
 
-	for _, match in options.root:QueryDescendants(options.selector) do
-		insertUnique(queue, match)
+			setQueue(function(prev)
+				local new = table.clone(prev)
+				candidate = table.remove(new, 1)
+				return new
+			end)
+
+			if candidate then
+				if seen[candidate] then
+					onProcessSeenInstance(candidate)
+				else
+					onInstanceAdded(candidate)
+				end
+			end
+		end
+
+		for change in pairs(changes) do
+			onInstanceChanged(change)
+		end
 	end
 
-	task.spawn(function()
-		while not isDestroyed do
-			flush()
-			task.wait()
+	local function kickstartProcessing()
+		local function stepAsync()
+			enqueueSelectedDescendants()
+
+			if #getQueue() > 0 then
+				flushAsync()
+			end
+
+			task.delay(0, stepAsync)
+		end
+
+		task.delay(0, stepAsync)
+	end
+
+	Charm.observe(getMatches, function(instance)
+		added:Fire(instance)
+
+		return function()
+			removed:Fire(instance)
 		end
 	end)
+
+	kickstartProcessing()
 
 	return {
 		get = getMatches,
 		destroy = destroy,
 
 		getQueueSize = getQueueSize,
-		flush = flush,
+		flushAsync = flushAsync,
+
+		added = added.Event,
+		changed = changed.Event,
+		removed = removed.Event,
 	}
 end
 
