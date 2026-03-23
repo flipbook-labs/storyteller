@@ -196,7 +196,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			selector = "ModuleScript",
 			matcher = isStoryModule,
 			shouldProcess = shouldProcessModule,
-			watchedProperties = { "Name", "Source", "Parent" },
 		})
 
 		storybookModulesQuery = query({
@@ -204,7 +203,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 			shouldProcess = shouldProcessModule,
-			watchedProperties = { "Name", "Source" },
 		})
 
 		-- These functions are just wrappers to cast `{ Instance }` to `{

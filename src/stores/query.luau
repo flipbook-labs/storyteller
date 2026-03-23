@@ -33,10 +33,6 @@ export type QueryOptions = {
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
-
-	-- Optional list of property names that should trigger `changed` processing
-	-- when they change.
-	watchedProperties: { string }?,
 }
 
 export type QueryResult = {
@@ -197,18 +193,13 @@ local function query(options: QueryOptions): QueryResult
 
 				local connectionMap = getOrCreateInstanceConnections(instance)
 
-				if options.watchedProperties then
-					for _, property in options.watchedProperties do
-						local connection = instance:GetPropertyChangedSignal(property):Connect(function()
-							queueChange()
-						end)
-						connectionMap[property] = connection
+				connectionMap.Changed = instance.Changed:Connect(debounce(function(property)
+					if property == "Parent" then
+						return
 					end
-				else
-					connectionMap.Changed = instance.Changed:Connect(function()
-						queueChange()
-					end)
-				end
+
+					queueChange()
+				end))
 
 				connectionMap.AncestryChanged = instance.AncestryChanged:Connect(function()
 					enqueue(instance)
