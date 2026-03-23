@@ -203,7 +203,6 @@ describe("recomputing Story and Storybook modules", function()
 		prevStorybookModules = storybookModules
 
 		moduleScript.Name = "Foo.storybook"
-		task.wait()
 
 		-- The ModuleScript was renamed to become a Storybook. That's all that's
 		-- needed to get picked up
@@ -215,7 +214,6 @@ describe("recomputing Story and Storybook modules", function()
 		prevStorybookModules = storybookModules
 
 		moduleScript.Parent = nil
-		task.wait()
 
 		waitFor(function()
 			storybookModules = store.getStorybookModules()
@@ -247,10 +245,11 @@ describe("user journeys", function()
 		expect(#store.getUnavailableStorybooks()).toEqual(0)
 
 		storybookModule.Name = "Foo.storybook"
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(0)
-		expect(#store.getUnavailableStorybooks()).toEqual(1)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(0)
+			expect(#store.getUnavailableStorybooks()).toEqual(1)
+		end)
 
 		storybookModule.Source = [[
 			return {
@@ -259,16 +258,18 @@ describe("user journeys", function()
 				}
 			}
 		]]
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(1)
-		expect(#store.getUnavailableStorybooks()).toEqual(0)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(1)
+			expect(#store.getUnavailableStorybooks()).toEqual(0)
+		end)
 
 		storybookModule.Parent = nil
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(0)
-		expect(#store.getUnavailableStorybooks()).toEqual(0)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(0)
+			expect(#store.getUnavailableStorybooks()).toEqual(0)
+		end)
 	end)
 end)
 
@@ -409,9 +410,10 @@ describe("orphaned stories", function()
 		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storyA.Parent = root
-		task.wait()
 
-		expect(store.getOrphanedStoryModules()).toEqual({ storyA })
+		waitFor(function()
+			expect(store.getOrphanedStoryModules()).toEqual({ storyA })
+		end)
 	end)
 
 	test("updates when a storybook is removed", function()
@@ -441,9 +443,10 @@ describe("orphaned stories", function()
 		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storybookModule.Parent = nil
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toBe(0)
-		expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toBe(0)
+			expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
+		end)
 	end)
 end)

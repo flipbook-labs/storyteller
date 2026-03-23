@@ -33,6 +33,10 @@ export type QueryOptions = {
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
+
+	-- Optional list of property names that should trigger `changed` processing
+	-- when they change.
+	watchedProperties: { string }?,
 }
 
 export type QueryResult = {
@@ -74,6 +78,7 @@ local function query(options: QueryOptions): QueryResult
 
 	local matches: { Instance } = {}
 	local connections: { RBXScriptConnection } = {}
+	local instanceConnections: { [Instance]: { [string]: RBXScriptConnection } } = {}
 
 	local isDestroyed = false
 	local isProcessing = false
@@ -83,6 +88,26 @@ local function query(options: QueryOptions): QueryResult
 	local removed = Instance.new("BindableEvent")
 
 	local startProcessing
+
+	local function getOrCreateInstanceConnections(instance: Instance): { [string]: RBXScriptConnection }
+		if not instanceConnections[instance] then
+			instanceConnections[instance] = {}
+		end
+		return instanceConnections[instance]
+	end
+
+	local function disconnectInstanceConnections(instance: Instance)
+		local connectionMap = instanceConnections[instance]
+		if not connectionMap then
+			return
+		end
+
+		for _, connection in connectionMap do
+			connection:Disconnect()
+		end
+
+		instanceConnections[instance] = nil
+	end
 
 	local function get()
 		return matches
@@ -110,6 +135,18 @@ local function query(options: QueryOptions): QueryResult
 		for _, connection in connections do
 			connection:Disconnect()
 		end
+		table.clear(connections)
+
+		for _, connectionMap in instanceConnections do
+			for _, connection in connectionMap do
+				connection:Disconnect()
+			end
+		end
+		table.clear(instanceConnections)
+
+		added:Destroy()
+		changed:Destroy()
+		removed:Destroy()
 	end
 
 	local function flush()
@@ -118,10 +155,23 @@ local function query(options: QueryOptions): QueryResult
 		local changedInstances: { Instance } = {}
 
 		local function processInstance(instance: Instance)
+			local isDescendant = instance:IsDescendantOf(options.root)
+
+			if not isDescendant then
+				if table.find(matches, instance) then
+					table.insert(removedInstances, instance)
+				end
+
+				disconnectInstanceConnections(instance)
+
+				seen[instance] = nil
+				return
+			end
+
 			local isMatch = if options.matcher then options.matcher(instance) else true
 
 			if seen[instance] then
-				if isMatch and instance:IsDescendantOf(options.root) then
+				if isMatch then
 					local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else true
 
 					if shouldUpdate then
@@ -131,19 +181,38 @@ local function query(options: QueryOptions): QueryResult
 					if table.find(matches, instance) then
 						table.insert(removedInstances, instance)
 					end
+
+					disconnectInstanceConnections(instance)
+
+					-- Clear `seen` so the instance is treated as fresh if it
+					-- re-enters the root later.
+					seen[instance] = nil
 				end
 			else
 				seen[instance] = true
 
-				-- If listening to every property change gets expensive another
-				-- option is to add `watchedProperties: { string }` to
-				-- QueryOptions so only specefied options will trigger changes
-				table.insert(
-					connections,
-					instance.Changed:Connect(debounce(function()
-						enqueue(instance)
-					end))
-				)
+				local queueChange = debounce(function()
+					enqueue(instance)
+				end)
+
+				local connectionMap = getOrCreateInstanceConnections(instance)
+
+				if options.watchedProperties then
+					for _, property in options.watchedProperties do
+						local connection = instance:GetPropertyChangedSignal(property):Connect(function()
+							queueChange()
+						end)
+						connectionMap[property] = connection
+					end
+				else
+					connectionMap.Changed = instance.Changed:Connect(function()
+						queueChange()
+					end)
+				end
+
+				connectionMap.AncestryChanged = instance.AncestryChanged:Connect(function()
+					enqueue(instance)
+				end)
 
 				if isMatch then
 					table.insert(addedInstances, instance)
@@ -179,7 +248,7 @@ local function query(options: QueryOptions): QueryResult
 			local newMatches = table.clone(matches)
 
 			for _, removedInstance in removedInstances do
-				local index = table.find(matches, removedInstance)
+				local index = table.find(newMatches, removedInstance)
 				if index then
 					table.remove(newMatches, index)
 				end
@@ -220,6 +289,7 @@ local function query(options: QueryOptions): QueryResult
 	function startProcessing()
 		local function stepAsync()
 			if isDestroyed then
+				isProcessing = false
 				return
 			end
 
@@ -229,11 +299,25 @@ local function query(options: QueryOptions): QueryResult
 			end
 
 			isProcessing = true
+			local prevQueueSize = #queue
 			flush()
-			task.delay(0, stepAsync)
+
+			-- Keep retrying while queue has work. Some candidates are intentionally
+			-- deferred while external locks are active.
+			if #queue > 0 then
+				if #queue < prevQueueSize then
+					task.delay(0, stepAsync)
+				else
+					-- No progress this frame; back off to avoid hot-looping.
+					task.delay(1 / 60, stepAsync)
+				end
+			else
+				isProcessing = false
+			end
 		end
 
-		task.spawn(stepAsync)
+		-- Defer to avoid draining queue synchronously within enqueue().
+		task.delay(0, stepAsync)
 	end
 
 	table.insert(
@@ -244,7 +328,17 @@ local function query(options: QueryOptions): QueryResult
 	)
 
 	for _, match in options.root:QueryDescendants(options.selector) do
-		enqueue(match)
+		if not queued[match] then
+			queued[match] = true
+			table.insert(queue, match)
+		end
+	end
+
+	if #queue > 0 then
+		flush()
+		if #queue > 0 and not isProcessing then
+			startProcessing()
+		end
 	end
 
 	return {

@@ -42,6 +42,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local connections: { RBXScriptConnection } = {}
 	local effects: { () -> () } = {}
+	local storybookSignatures: { [ModuleScript]: string } = {}
 
 	local status: RunningStatus.RunningStatus = RunningStatus.None
 
@@ -71,8 +72,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local storyModulesQuery
 	local storybookModulesQuery
 
+	local function getStorybookSignature(storybookModule: ModuleScript): string
+		return `{storybookModule:GetFullName()}|{storybookModule.Source}`
+	end
+
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
+		storybookSignatures[storybookModule] = getStorybookSignature(storybookModule)
 
 		local storybook: LoadedStorybook?
 		local success, result = pcall(function()
@@ -121,6 +127,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function unloadStorybook(storybookModule: ModuleScript)
+		storybookSignatures[storybookModule] = nil
+
 		Charm.batch(function()
 			setLoadedStorybooks(function(prev)
 				return Sift.List.filter(prev, function(storybook)
@@ -149,16 +157,24 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		status = RunningStatus.Stopping
 
-		storybookModulesQuery.destroy()
-		storyModulesQuery.destroy()
+		if storybookModulesQuery then
+			storybookModulesQuery.destroy()
+		end
+		if storyModulesQuery then
+			storyModulesQuery.destroy()
+		end
 
 		for _, connection in connections do
 			connection:Disconnect()
 		end
+		table.clear(connections)
 
 		for _, dispose in effects do
 			dispose()
 		end
+		table.clear(effects)
+
+		table.clear(storybookSignatures)
 
 		status = RunningStatus.Stopped
 	end
@@ -180,6 +196,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			selector = "ModuleScript",
 			matcher = isStoryModule,
 			shouldProcess = shouldProcessModule,
+			watchedProperties = { "Name", "Source", "Parent" },
 		})
 
 		storybookModulesQuery = query({
@@ -187,6 +204,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 			shouldProcess = shouldProcessModule,
+			watchedProperties = { "Name", "Source" },
 		})
 
 		-- These functions are just wrappers to cast `{ Instance }` to `{
@@ -198,17 +216,51 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return (storybookModulesQuery.get() :: any) :: { ModuleScript }
 		end
 
+		local function setStoryModulesIfChanged(nextModules: { ModuleScript })
+			if Sift.List.equals((getStoryModules() :: any) :: { Instance }, (nextModules :: any) :: { Instance }) then
+				return
+			end
+
+			setStoryModules(nextModules)
+		end
+
+		local function setStorybookModulesIfChanged(nextModules: { ModuleScript })
+			if
+				Sift.List.equals((getStorybookModules() :: any) :: { Instance }, (nextModules :: any) :: { Instance })
+			then
+				return
+			end
+
+			setStorybookModules(nextModules)
+		end
+
+		local function syncStoryModules(force: boolean?)
+			local modules = storyModulesQueryGet()
+			if force then
+				setStoryModules(modules)
+			else
+				setStoryModulesIfChanged(modules)
+			end
+		end
+
+		local function syncStorybookModules()
+			setStorybookModulesIfChanged(storybookModulesQueryGet())
+		end
+
 		connections = Sift.List.join(connections, {
 			storyModulesQuery.added:Connect(function()
-				setStoryModules(storyModulesQueryGet())
+				syncStoryModules()
 			end),
 
 			storyModulesQuery.changed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
+				-- A story can move within the DataModel without changing query
+				-- membership; publish the latest snapshot so orphaned stories
+				-- recompute against updated ancestry.
+				syncStoryModules(true)
 			end),
 
 			storyModulesQuery.removed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
+				syncStoryModules()
 			end),
 
 			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
@@ -218,17 +270,20 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 						loadStorybook(storybookModule)
 					end
 
-					setStorybookModules(storybookModulesQueryGet())
+					syncStorybookModules()
 				end)
 			end),
 
 			storybookModulesQuery.changed:Connect(function(storybookModules)
 				Charm.batch(function()
-					setStorybookModules(storybookModulesQueryGet())
+					syncStorybookModules()
 
 					for _, storybookModule in storybookModules do
 						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						reloadStorybook(storybookModule)
+						local signature = getStorybookSignature(storybookModule)
+						if storybookSignatures[storybookModule] ~= signature then
+							reloadStorybook(storybookModule)
+						end
 					end
 				end)
 			end),
@@ -240,7 +295,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 						unloadStorybook(storybookModule)
 					end
 
-					setStorybookModules(storybookModulesQueryGet())
+					syncStorybookModules()
 				end)
 			end),
 
@@ -252,8 +307,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		local storybookModules = storybookModulesQueryGet()
 
 		Charm.batch(function()
-			setStoryModules(storyModulesQueryGet())
-			setStorybookModules(storybookModules)
+			syncStoryModules()
+			setStorybookModulesIfChanged(storybookModules)
 
 			for _, storybookModule in storybookModules do
 				loadStorybook(storybookModule)

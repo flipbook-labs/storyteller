@@ -77,7 +77,6 @@ test("updates when moving instances around the DataModel", function()
 	})
 
 	root.Parent = container
-	task.wait()
 
 	local getOrphanedStories = renderHook(function()
 		return useOrphanedStoryModules(container)
