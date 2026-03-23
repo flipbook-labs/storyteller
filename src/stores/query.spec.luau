@@ -1,26 +1,18 @@
-local RunService = game:GetService("RunService")
-
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local new = require("@root/test-utils/new")
 local types = require("@root/types")
+local waitFor = require("@root/test-utils/waitFor")
 
 local query = require("./query")
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local jest = JestGlobals.jest
 
 type LoadedStorybook = types.LoadedStorybook
-
-local function waitForEngineEvents()
-	RunService.Heartbeat:Wait()
-end
-
-jest.useFakeTimers()
 
 describe("DataModel behavior", function()
 	test("updates when adding a matching Instance", function()
@@ -35,11 +27,10 @@ describe("DataModel behavior", function()
 		expect(modulesQuery.get()).toEqual({})
 
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 	end)
 
 	test("updates when removing a matching Instance", function()
@@ -47,23 +38,21 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		jest.runOnlyPendingTimers()
-
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Parent = nil
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(modulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({})
+		end)
 	end)
 
 	test("updates when destroying a matching Instance", function()
@@ -71,22 +60,21 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		-- jest.runOnlyPendingTimers()
-
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript:Destroy()
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(modulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({})
+		end)
 	end)
 
 	test("updates when reparenting a matching Instance", function()
@@ -98,25 +86,28 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		local snapshot = modulesQuery.get()
+		local snapshot
 
-		expect(snapshot).toEqual({ moduleScript })
+		waitFor(function()
+			snapshot = modulesQuery.get()
+
+			expect(snapshot).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Parent = child
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		-- The array of matches still has the same contents, but the table
-		-- identity should change
-		expect(modulesQuery.get()).toEqual({ moduleScript })
-		expect(modulesQuery.get()).never.toBe(snapshot)
+		waitFor(function()
+			-- The array of matches still has the same contents, but the table
+			-- identity should change
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+			expect(modulesQuery.get()).never.toBe(snapshot)
+		end)
 	end)
 
 	test("updates when a non-matching Instance becomes a match", function()
@@ -124,7 +115,6 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -140,10 +130,10 @@ describe("DataModel behavior", function()
 				storyRoot }
 			}
 		]]
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		end)
 	end)
 
 	test("updates when a matching Instance no longer matches", function()
@@ -157,7 +147,6 @@ describe("DataModel behavior", function()
 			}
 		]]
 		moduleScript.Parent = root
-		waitForEngineEvents()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -165,15 +154,15 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
-		-- jest.runOnlyPendingTimers()
-
-		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Name = "Foo"
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(storybookModulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({})
+		end)
 	end)
 end)
 
@@ -189,27 +178,34 @@ describe("events", function()
 			selector = "ModuleScript",
 		})
 
+		local snapshot
+		waitFor(function()
+			snapshot = modulesQuery.get()
+			expect(snapshot).toEqual({ moduleScript })
+		end)
+
 		local changeCount = 0
 
 		modulesQuery.changed:Connect(function()
 			changeCount += 1
 		end)
 
-		local snapshot = modulesQuery.get()
 		expect(changeCount).toBe(0)
-		expect(snapshot).toEqual({ moduleScript })
 
 		moduleScript.Name = "NewName"
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
+
+		waitFor(function()
+			expect(changeCount).toBe(1)
+		end)
 
 		moduleScript.Source = [[
 			return "Hello, World!"
 		]]
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(changeCount).toBe(2)
+		waitFor(function()
+			expect(changeCount).toBe(2)
+		end)
+
 		expect(modulesQuery.get()).never.toBe(snapshot)
 		expect(modulesQuery.get()).toEqual({ moduleScript })
 	end)
@@ -233,22 +229,22 @@ describe("events", function()
 		end)
 
 		moduleScriptA.Parent = root
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(addCount).toBe(1)
+		waitFor(function()
+			expect(addCount).toBe(1)
+		end)
 
 		moduleScriptB.Parent = root
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(addCount).toBe(2)
+		waitFor(function()
+			expect(addCount).toBe(2)
+		end)
 
 		moduleScriptC.Parent = root
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(addCount).toBe(3)
+		waitFor(function()
+			expect(addCount).toBe(3)
+		end)
 
 		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB, moduleScriptC })
 	end)
@@ -267,6 +263,10 @@ describe("events", function()
 			selector = "ModuleScript",
 		})
 
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
+		end)
+
 		local removeCount = 0
 
 		modulesQuery.removed:Connect(function()
@@ -274,16 +274,16 @@ describe("events", function()
 		end)
 
 		moduleScriptA.Parent = nil
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(removeCount).toBe(1)
+		waitFor(function()
+			expect(removeCount).toBe(1)
+		end)
 
 		moduleScriptB.Parent = nil
-		waitForEngineEvents()
-		jest.runOnlyPendingTimers()
 
-		expect(removeCount).toBe(2)
+		waitFor(function()
+			expect(removeCount).toBe(2)
+		end)
 
 		expect(modulesQuery.get()).toEqual({})
 	end)
@@ -302,6 +302,10 @@ describe("events", function()
 			selector = "ModuleScript",
 		})
 
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
+		end)
+
 		local removeCount = 0
 
 		modulesQuery.removed:Connect(function()
@@ -309,18 +313,16 @@ describe("events", function()
 		end)
 
 		moduleScriptA:Destroy()
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(removeCount).toBe(1)
+		waitFor(function()
+			expect(removeCount).toBe(1)
+		end)
 
 		moduleScriptB:Destroy()
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(removeCount).toBe(2)
+		waitFor(function()
+			expect(removeCount).toBe(2)
+		end)
 
 		expect(modulesQuery.get()).toEqual({})
 	end)
@@ -344,18 +346,18 @@ describe("user journeys", function()
 		local storybookModule = Instance.new("ModuleScript")
 
 		storybookModule.Parent = root
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(0)
+		end)
 
-		expect(#storybookModulesQuery.get()).toEqual(0)
-
+		-- Rename now correctly enqueues via the Changed connection set up on
+		-- the first flush.
 		storybookModule.Name = "Foo.storybook"
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(#storybookModulesQuery.get()).toEqual(1)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(1)
+		end)
 
 		storybookModule.Source = [[
 			return {
@@ -364,16 +366,14 @@ describe("user journeys", function()
 				}
 			}
 		]]
-		waitForEngineEvents()
 
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
 		storybookModule.Parent = nil
-		waitForEngineEvents()
 
-		jest.runOnlyPendingTimers()
-
-		expect(#storybookModulesQuery.get()).toEqual(0)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(0)
+		end)
 	end)
 end)
 
@@ -394,9 +394,7 @@ describe("queue processing", function()
 		})
 
 		expect(#storybookModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storyModulesQuery.getQueueSize()).toBe(0)
 
 		local storybookModule = new("ModuleScript", {
 			Name = "Foo.storybook",
@@ -421,18 +419,10 @@ describe("queue processing", function()
 		storyModuleA.Parent = root
 		storyModuleB.Parent = root
 
-		expect(#storybookModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.getQueueSize()).toBe(3)
-		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storyModulesQuery.getQueueSize()).toBe(3)
-
-		storybookModulesQuery.flush()
-		storyModulesQuery.flush()
-
-		expect(#storybookModulesQuery.get()).toBe(1)
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
-		expect(#storyModulesQuery.get()).toBe(2)
-		expect(storyModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toBe(1)
+			expect(#storyModulesQuery.get()).toBe(2)
+		end)
 	end)
 
 	test("an instance being changed puts it back in the queue", function()
@@ -458,6 +448,8 @@ describe("queue processing", function()
 		storybookModule.Parent = root
 		storybookModulesQuery.flush()
 
+		-- This would be nicer if we were using Charm and this was all just reactive checks instead of manually flushing
+		-- and checking queue sizes
 		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 
 		storybookModule.Name = "Bar.storybook"
@@ -470,6 +462,7 @@ describe("queue processing", function()
 
 	test("prevents duplicates from being added to the queue", function()
 		local root = Instance.new("Folder")
+		local isProcessingEnabled = true
 
 		local storybookModule = Instance.new("ModuleScript")
 		storybookModule.Name = "Foo.storybook"
@@ -485,6 +478,9 @@ describe("queue processing", function()
 			root = root,
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
+			shouldProcess = function()
+				return isProcessingEnabled
+			end,
 		})
 
 		storybookModule.Parent = root
@@ -492,6 +488,9 @@ describe("queue processing", function()
 		storybookModulesQuery.flush()
 
 		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+
+		-- Pause processing so only enqueue/deduplication behavior is under test.
+		isProcessingEnabled = false
 
 		storybookModule.Name = "Bar.storybook"
 		storybookModule.Source = [[
@@ -502,7 +501,11 @@ describe("queue processing", function()
 			}
 		]]
 
-		expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		waitFor(function()
+			expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		end)
+
+		isProcessingEnabled = true
 
 		storybookModulesQuery.flush()
 
@@ -563,6 +566,8 @@ test("collects all relevant ModuleScripts under the root", function()
 		matcher = isStorybookModule,
 	})
 
-	expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
-	expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
+	waitFor(function()
+		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+		expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
+	end)
 end)
