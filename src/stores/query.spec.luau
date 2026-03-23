@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
@@ -154,10 +155,35 @@ describe("DataModel behavior", function()
 	end)
 end)
 
-describe("events", function()
-	test("fires `changed` when any matching Instances are changed", function()
+describe("reactive get()", function()
+	test("can be listened to with `Charm.listen`", function()
 		local root = Instance.new("Folder")
+		local moduleScript = Instance.new("ModuleScript")
 
+		local modulesQuery = query({
+			root = root,
+			selector = "ModuleScript",
+		})
+
+		local snapshots: { { Instance } } = {}
+		local dispose = Charm.listen(modulesQuery.get, function(matches)
+			table.insert(snapshots, matches)
+		end)
+
+		expect(#snapshots).toBe(1)
+		expect(snapshots[1]).toEqual({})
+
+		moduleScript.Parent = root
+		task.wait()
+
+		expect(#snapshots).toBe(2)
+		expect(snapshots[2]).toEqual({ moduleScript })
+
+		dispose()
+	end)
+
+	test("can be subscribed to with `Charm.subscribe`", function()
+		local root = Instance.new("Folder")
 		local moduleScript = Instance.new("ModuleScript")
 		moduleScript.Parent = root
 
@@ -166,63 +192,22 @@ describe("events", function()
 			selector = "ModuleScript",
 		})
 
-		local changeCount = 0
-
-		modulesQuery.changed:Connect(function()
-			changeCount += 1
+		local callbackCount = 0
+		local dispose = Charm.subscribe(modulesQuery.get, function()
+			callbackCount += 1
 		end)
 
-		local snapshot = modulesQuery.get()
-		expect(changeCount).toBe(0)
-		expect(snapshot).toEqual({ moduleScript })
+		expect(callbackCount).toBe(0)
 
-		moduleScript.Name = "NewName"
+		moduleScript.Name = "Renamed"
 		task.wait()
 
-		moduleScript.Source = [[
-			return "Hello, World!"
-		]]
-		task.wait()
+		expect(callbackCount).toBe(1)
 
-		expect(changeCount).toBe(2)
-		expect(modulesQuery.get()).never.toBe(snapshot)
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		dispose()
 	end)
 
-	test("fires `added` when any matching Instances are added to a root", function()
-		local root = Instance.new("Folder")
-
-		local moduleScriptA = Instance.new("ModuleScript")
-		local moduleScriptB = Instance.new("ModuleScript")
-		local moduleScriptC = Instance.new("ModuleScript")
-
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
-
-		local addCount = 0
-
-		modulesQuery.added:Connect(function()
-			addCount += 1
-		end)
-
-		moduleScriptA.Parent = root
-		task.wait()
-		expect(addCount).toBe(1)
-
-		moduleScriptB.Parent = root
-		task.wait()
-		expect(addCount).toBe(2)
-
-		moduleScriptC.Parent = root
-		task.wait()
-		expect(addCount).toBe(3)
-
-		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB, moduleScriptC })
-	end)
-
-	test("fires `removed` when any matching Instances are removed from a root", function()
+	test("returns updated snapshots when matches are removed", function()
 		local root = Instance.new("Folder")
 
 		local moduleScriptA = Instance.new("ModuleScript")
@@ -236,51 +221,14 @@ describe("events", function()
 			selector = "ModuleScript",
 		})
 
-		local removeCount = 0
-
-		modulesQuery.removed:Connect(function()
-			removeCount += 1
-		end)
+		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
 
 		moduleScriptA.Parent = nil
 		task.wait()
-		expect(removeCount).toBe(1)
-
-		moduleScriptB.Parent = nil
-		task.wait()
-		expect(removeCount).toBe(2)
-
-		expect(modulesQuery.get()).toEqual({})
-	end)
-
-	test("fires `removed` when any matching Instances are destroyed", function()
-		local root = Instance.new("Folder")
-
-		local moduleScriptA = Instance.new("ModuleScript")
-		moduleScriptA.Parent = root
-
-		local moduleScriptB = Instance.new("ModuleScript")
-		moduleScriptB.Parent = root
-
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
-
-		local removeCount = 0
-
-		modulesQuery.removed:Connect(function()
-			removeCount += 1
-		end)
-
-		moduleScriptA:Destroy()
-		task.wait()
-		expect(removeCount).toBe(1)
+		expect(modulesQuery.get()).toEqual({ moduleScriptB })
 
 		moduleScriptB:Destroy()
 		task.wait()
-		expect(removeCount).toBe(2)
-
 		expect(modulesQuery.get()).toEqual({})
 	end)
 end)

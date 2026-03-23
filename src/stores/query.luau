@@ -1,3 +1,5 @@
+local Charm = require("@pkg/Charm")
+
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
 		table.insert(arr, item)
@@ -32,24 +34,10 @@ export type QueryResult = {
 
 	getQueueSize: () -> number,
 	flush: () -> (),
-
-	-- Fired any time a matched Instance is removed. This happens when...
-	-- 1. The Instance is parented to `root`
-	-- 2. The Instance is changed in such a way that starts matching the query
-	added: RBXScriptSignal<{ Instance }>,
-
-	-- Fired any time the matched Instances have their properties change.
-	changed: RBXScriptSignal<{ Instance }>,
-
-	-- Fired any time a matched Instance is removed. This happens when...
-	-- 1. The Instance is parented outside of `root`
-	-- 2. The Instance is destroyed
-	-- 3. The Instance is changed in such a way that it no longer matches
-	removed: RBXScriptSignal<{ Instance }>,
 }
 
 local function query(options: QueryOptions): QueryResult
-	local matches: { Instance } = {}
+	local getMatches, setMatches = Charm.signal({} :: { Instance })
 	local queue: { Instance } = {}
 
 	local connections: { RBXScriptConnection } = {}
@@ -59,14 +47,6 @@ local function query(options: QueryOptions): QueryResult
 	setmetatable(seen, { __mode = "k" })
 
 	local isDestroyed = false
-
-	local added = Instance.new("BindableEvent")
-	local changed = Instance.new("BindableEvent")
-	local removed = Instance.new("BindableEvent")
-
-	local function get()
-		return matches
-	end
 
 	local function getQueueSize()
 		return #queue
@@ -81,6 +61,7 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function flush()
+		local matches = getMatches()
 		local addedInstances: { Instance } = {}
 		local removedInstances: { Instance } = {}
 		local changedInstances: { Instance } = {}
@@ -144,19 +125,9 @@ local function query(options: QueryOptions): QueryResult
 				insertUnique(newMatches, changedInstance)
 			end
 
-			matches = newMatches
-
-			if #addedInstances > 0 then
-				added:Fire(addedInstances)
-			end
-
-			if #changedInstances > 0 then
-				changed:Fire(changedInstances)
-			end
-
-			if #removedInstances > 0 then
-				removed:Fire(removedInstances)
-			end
+			Charm.batch(function()
+				setMatches(newMatches)
+			end)
 		end
 	end
 
@@ -179,15 +150,11 @@ local function query(options: QueryOptions): QueryResult
 	end)
 
 	return {
-		get = get,
+		get = getMatches,
 		destroy = destroy,
 
 		getQueueSize = getQueueSize,
 		flush = flush,
-
-		added = added.Event,
-		changed = changed.Event,
-		removed = removed.Event,
 	}
 end
 

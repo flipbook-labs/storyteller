@@ -72,15 +72,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		matcher = isStorybookModule,
 	})
 
-	-- These functions are just wrappers to cast `{ Instance }` to `{
-	-- ModuleScript }` so Luau gets the memo
-	local function storyModulesQueryGet()
-		return (storyModulesQuery.get() :: any) :: { ModuleScript }
-	end
-	local function storybookModulesQueryGet()
-		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
-	end
-
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
 
@@ -179,67 +170,60 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		isInitializing = true
 
-		connections = Sift.List.join(connections, {
-			storyModulesQuery.added:Connect(function()
-				setStoryModules(storyModulesQueryGet())
+		effects = Sift.List.join(effects, {
+			Charm.listen(storyModulesQuery.get, function(modules)
+				setStoryModules((modules :: any) :: { ModuleScript })
 			end),
 
-			storyModulesQuery.changed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
-			end),
+			Charm.listen(storybookModulesQuery.get, function(modules, previousModules)
+				local storybookModules = (modules :: any) :: { ModuleScript }
+				local previousStorybookModules = (
+					(if previousModules then previousModules else {}) :: any
+				) :: { ModuleScript }
 
-			storyModulesQuery.removed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
-			end),
+				local addedStorybookModules: { ModuleScript } = {}
+				local removedStorybookModules: { ModuleScript } = {}
+				local sharedStorybookModules: { ModuleScript } = {}
 
-			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
-				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						loadStorybook(storybookModule)
+				for _, storybookModule in storybookModules do
+					if table.find(previousStorybookModules, storybookModule) then
+						table.insert(sharedStorybookModules, storybookModule)
+					else
+						table.insert(addedStorybookModules, storybookModule)
 					end
+				end
 
-					setStorybookModules(storybookModulesQueryGet())
-				end)
-			end),
-
-			storybookModulesQuery.changed:Connect(function(storybookModules)
-				Charm.batch(function()
-					setStorybookModules(storybookModulesQueryGet())
-
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						reloadStorybook(storybookModule)
+				for _, previousStorybookModule in previousStorybookModules do
+					if not table.find(storybookModules, previousStorybookModule) then
+						table.insert(removedStorybookModules, previousStorybookModule)
 					end
-				end)
-			end),
+				end
 
-			storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
 				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
+					for _, storybookModule in removedStorybookModules do
 						unloadStorybook(storybookModule)
 					end
 
-					setStorybookModules(storybookModulesQueryGet())
+					for _, storybookModule in addedStorybookModules do
+						loadStorybook(storybookModule)
+					end
+
+					if #addedStorybookModules == 0 and #removedStorybookModules == 0 then
+						for _, storybookModule in sharedStorybookModules do
+							reloadStorybook(storybookModule)
+						end
+					end
+
+					setStorybookModules(storybookModules)
 				end)
 			end),
+		})
 
+		connections = Sift.List.join(connections, {
 			root.Destroying:Connect(destroy),
 
 			script.Destroying:Connect(destroy),
 		})
-
-		local storybookModules = storybookModulesQueryGet()
-
-		Charm.batch(function()
-			setStoryModules(storyModulesQueryGet())
-			setStorybookModules(storybookModules)
-
-			for _, storybookModule in storybookModules do
-				loadStorybook(storybookModule)
-			end
-		end)
 
 		isInitialized = true
 		isInitializing = false
