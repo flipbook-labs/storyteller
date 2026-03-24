@@ -52,6 +52,8 @@ export type QueryResult = {
 }
 
 local function weak<K, V>(t: { [K]: V }): { [K]: V }
+	-- We lie about the metatable because Luau gets upset when trying to use a
+	-- generic iterator and needs `pairs` to be used instead
 	return setmetatable(t, { __mode = "k" }) :: any
 end
 
@@ -80,9 +82,6 @@ local function query(options: QueryOptions): QueryResult
 		local matches = {}
 
 		for _, instance in options.root:QueryDescendants(options.selector) do
-			-- TODO: We may need to hash the instances so we can handle the
-			-- ModuleLoader cloning strategy. Or....Could we just use
-			-- GetFullName? Is it important at all to use instances for these?
 			if seen[instance] or queued[instance] then
 				continue
 			end
@@ -128,11 +127,6 @@ local function query(options: QueryOptions): QueryResult
 	local function onInstanceAdded(instance: Instance)
 		seen[instance] = true
 
-		-- NOTE: Let's keep using Changed. We should debounce it, but I
-		-- think we could treat any instance change as a reason to
-		-- refresh for now. We shouldn't need to re-queue though. Maybe
-		-- just move the match to the end of the array so we can trigger
-		-- an update?
 		table.insert(
 			connections,
 			instance.Changed:Connect(function()
