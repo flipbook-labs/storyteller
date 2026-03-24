@@ -1,10 +1,10 @@
-local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local new = require("@root/test-utils/new")
 local types = require("@root/types")
+local waitFor = require("@root/test-utils/waitFor")
 
 local query = require("./query")
 
@@ -27,9 +27,10 @@ describe("DataModel behavior", function()
 		expect(modulesQuery.get()).toEqual({})
 
 		moduleScript.Parent = root
-		task.wait()
 
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 	end)
 
 	test("updates when removing a matching Instance", function()
@@ -37,19 +38,21 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Parent = nil
-		task.wait()
 
-		expect(modulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({})
+		end)
 	end)
 
 	test("updates when destroying a matching Instance", function()
@@ -57,19 +60,21 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		expect(modulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript:Destroy()
-		task.wait()
 
-		expect(modulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({})
+		end)
 	end)
 
 	test("updates when reparenting a matching Instance", function()
@@ -81,24 +86,28 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		local modulesQuery = query({
 			selector = "ModuleScript",
 			root = root,
 		})
 
-		local snapshot = modulesQuery.get()
+		local snapshot
 
-		expect(snapshot).toEqual({ moduleScript })
+		waitFor(function()
+			snapshot = modulesQuery.get()
+
+			expect(snapshot).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Parent = child
-		task.wait()
 
-		-- The array of matches still has the same contents, but the table
-		-- identity should change
-		expect(modulesQuery.get()).toEqual({ moduleScript })
-		expect(modulesQuery.get()).never.toBe(snapshot)
+		waitFor(function()
+			-- The array of matches still has the same contents, but the table
+			-- identity should change
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+			expect(modulesQuery.get()).never.toBe(snapshot)
+		end)
 	end)
 
 	test("updates when a non-matching Instance becomes a match", function()
@@ -106,7 +115,6 @@ describe("DataModel behavior", function()
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -122,9 +130,10 @@ describe("DataModel behavior", function()
 				storyRoot }
 			}
 		]]
-		task.wait()
 
-		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		end)
 	end)
 
 	test("updates when a matching Instance no longer matches", function()
@@ -138,7 +147,6 @@ describe("DataModel behavior", function()
 			}
 		]]
 		moduleScript.Parent = root
-		task.wait()
 
 		local storybookModulesQuery = query({
 			selector = "ModuleScript",
@@ -146,44 +154,22 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
-		expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ moduleScript })
+		end)
 
 		moduleScript.Name = "Foo"
-		task.wait()
 
-		expect(storybookModulesQuery.get()).toEqual({})
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({})
+		end)
 	end)
 end)
 
-describe("reactive get()", function()
-	test("can be listened to with `Charm.listen`", function()
+describe("events", function()
+	test("fires `changed` when any matching Instances are changed", function()
 		local root = Instance.new("Folder")
-		local moduleScript = Instance.new("ModuleScript")
 
-		local modulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-		})
-
-		local snapshots: { { Instance } } = {}
-		local dispose = Charm.listen(modulesQuery.get, function(matches)
-			table.insert(snapshots, matches)
-		end)
-
-		expect(#snapshots).toBe(1)
-		expect(snapshots[1]).toEqual({})
-
-		moduleScript.Parent = root
-		task.wait()
-
-		expect(#snapshots).toBe(2)
-		expect(snapshots[2]).toEqual({ moduleScript })
-
-		dispose()
-	end)
-
-	test("can be subscribed to with `Charm.subscribe`", function()
-		local root = Instance.new("Folder")
 		local moduleScript = Instance.new("ModuleScript")
 		moduleScript.Parent = root
 
@@ -192,22 +178,78 @@ describe("reactive get()", function()
 			selector = "ModuleScript",
 		})
 
-		local callbackCount = 0
-		local dispose = Charm.subscribe(modulesQuery.get, function()
-			callbackCount += 1
+		local snapshot
+		waitFor(function()
+			snapshot = modulesQuery.get()
+			expect(snapshot).toEqual({ moduleScript })
 		end)
 
-		expect(callbackCount).toBe(0)
+		local changeCount = 0
 
-		moduleScript.Name = "Renamed"
-		task.wait()
+		modulesQuery.changed:Connect(function()
+			changeCount += 1
+		end)
 
-		expect(callbackCount).toBe(1)
+		expect(changeCount).toBe(0)
 
-		dispose()
+		moduleScript.Name = "NewName"
+
+		waitFor(function()
+			expect(changeCount).toBe(1)
+		end)
+
+		moduleScript.Source = [[
+			return "Hello, World!"
+		]]
+
+		waitFor(function()
+			expect(changeCount).toBe(2)
+		end)
+
+		expect(modulesQuery.get()).never.toBe(snapshot)
+		expect(modulesQuery.get()).toEqual({ moduleScript })
 	end)
 
-	test("returns updated snapshots when matches are removed", function()
+	test("fires `added` when any matching Instances are added to a root", function()
+		local root = Instance.new("Folder")
+
+		local moduleScriptA = Instance.new("ModuleScript")
+		local moduleScriptB = Instance.new("ModuleScript")
+		local moduleScriptC = Instance.new("ModuleScript")
+
+		local modulesQuery = query({
+			root = root,
+			selector = "ModuleScript",
+		})
+
+		local addCount = 0
+
+		modulesQuery.added:Connect(function()
+			addCount += 1
+		end)
+
+		moduleScriptA.Parent = root
+
+		waitFor(function()
+			expect(addCount).toBe(1)
+		end)
+
+		moduleScriptB.Parent = root
+
+		waitFor(function()
+			expect(addCount).toBe(2)
+		end)
+
+		moduleScriptC.Parent = root
+
+		waitFor(function()
+			expect(addCount).toBe(3)
+		end)
+
+		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB, moduleScriptC })
+	end)
+
+	test("fires `removed` when any matching Instances are removed from a root", function()
 		local root = Instance.new("Folder")
 
 		local moduleScriptA = Instance.new("ModuleScript")
@@ -221,14 +263,67 @@ describe("reactive get()", function()
 			selector = "ModuleScript",
 		})
 
-		expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
+		end)
+
+		local removeCount = 0
+
+		modulesQuery.removed:Connect(function()
+			removeCount += 1
+		end)
 
 		moduleScriptA.Parent = nil
-		task.wait()
-		expect(modulesQuery.get()).toEqual({ moduleScriptB })
+
+		waitFor(function()
+			expect(removeCount).toBe(1)
+		end)
+
+		moduleScriptB.Parent = nil
+
+		waitFor(function()
+			expect(removeCount).toBe(2)
+		end)
+
+		expect(modulesQuery.get()).toEqual({})
+	end)
+
+	test("fires `removed` when any matching Instances are destroyed", function()
+		local root = Instance.new("Folder")
+
+		local moduleScriptA = Instance.new("ModuleScript")
+		moduleScriptA.Parent = root
+
+		local moduleScriptB = Instance.new("ModuleScript")
+		moduleScriptB.Parent = root
+
+		local modulesQuery = query({
+			root = root,
+			selector = "ModuleScript",
+		})
+
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScriptA, moduleScriptB })
+		end)
+
+		local removeCount = 0
+
+		modulesQuery.removed:Connect(function()
+			removeCount += 1
+		end)
+
+		moduleScriptA:Destroy()
+
+		waitFor(function()
+			expect(removeCount).toBe(1)
+		end)
 
 		moduleScriptB:Destroy()
-		task.wait()
+
+		waitFor(function()
+			expect(removeCount).toBe(2)
+		end)
+
 		expect(modulesQuery.get()).toEqual({})
 	end)
 end)
@@ -251,14 +346,16 @@ describe("user journeys", function()
 		local storybookModule = Instance.new("ModuleScript")
 
 		storybookModule.Parent = root
-		task.wait()
 
-		expect(#storybookModulesQuery.get()).toEqual(0)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(0)
+		end)
 
 		storybookModule.Name = "Foo.storybook"
-		task.wait()
 
-		expect(#storybookModulesQuery.get()).toEqual(1)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(1)
+		end)
 
 		storybookModule.Source = [[
 			return {
@@ -267,14 +364,14 @@ describe("user journeys", function()
 				}
 			}
 		]]
-		task.wait()
 
 		expect(#storybookModulesQuery.get()).toEqual(1)
 
 		storybookModule.Parent = nil
-		task.wait()
 
-		expect(#storybookModulesQuery.get()).toEqual(0)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toEqual(0)
+		end)
 	end)
 end)
 
@@ -295,9 +392,7 @@ describe("queue processing", function()
 		})
 
 		expect(#storybookModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
 		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storyModulesQuery.getQueueSize()).toBe(0)
 
 		local storybookModule = new("ModuleScript", {
 			Name = "Foo.storybook",
@@ -322,29 +417,30 @@ describe("queue processing", function()
 		storyModuleA.Parent = root
 		storyModuleB.Parent = root
 
-		expect(#storybookModulesQuery.get()).toBe(0)
-		expect(storybookModulesQuery.getQueueSize()).toBe(3)
-		expect(#storyModulesQuery.get()).toBe(0)
-		expect(storyModulesQuery.getQueueSize()).toBe(3)
-
-		storybookModulesQuery.flush()
-		storyModulesQuery.flush()
-
-		expect(#storybookModulesQuery.get()).toBe(1)
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
-		expect(#storyModulesQuery.get()).toBe(2)
-		expect(storyModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(#storybookModulesQuery.get()).toBe(1)
+			expect(#storyModulesQuery.get()).toBe(2)
+		end)
 	end)
 
-	test("an instance being changed puts it back in the queue", function()
+	test("an instance being changed puts it at the end of the matches", function()
 		local root = Instance.new("Folder")
 
-		local storybookModule = new("ModuleScript", {
+		local storybookModuleA = new("ModuleScript", {
 			Name = "Foo.storybook",
 			Source = [[
 				return {
-					storyRoot=
-						script.Parent
+					storyRoot = script.Parent
+					}
+				}
+			]],
+		})
+
+		local storybookModuleB = new("ModuleScript", {
+			Name = "Bar.storybook",
+			Source = [[
+				return {
+					storyRoot = script.Parent
 					}
 				}
 			]],
@@ -356,17 +452,18 @@ describe("queue processing", function()
 			matcher = isStorybookModule,
 		})
 
-		storybookModule.Parent = root
-		storybookModulesQuery.flush()
+		storybookModuleA.Parent = root
+		storybookModuleB.Parent = root
 
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ storybookModuleA, storybookModuleB })
+		end)
 
-		storybookModule.Name = "Bar.storybook"
+		storybookModuleA.Name = "SecretThirdThing.storybook"
 
-		expect(storybookModulesQuery.getQueueSize()).toBe(1)
-
-		storybookModulesQuery.flush()
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(storybookModulesQuery.get()).toEqual({ storybookModuleB, storybookModuleA })
+		end)
 	end)
 
 	test("prevents duplicates from being added to the queue", function()
@@ -374,13 +471,6 @@ describe("queue processing", function()
 
 		local storybookModule = Instance.new("ModuleScript")
 		storybookModule.Name = "Foo.storybook"
-		storybookModule.Source = [[
-			return {
-				storyRoot=
-					script.Parent
-				}
-			}
-		]]
 
 		local storybookModulesQuery = query({
 			root = root,
@@ -390,9 +480,9 @@ describe("queue processing", function()
 
 		storybookModule.Parent = root
 
-		storybookModulesQuery.flush()
-
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		end)
 
 		storybookModule.Name = "Bar.storybook"
 		storybookModule.Source = [[
@@ -403,11 +493,13 @@ describe("queue processing", function()
 			}
 		]]
 
-		expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		waitFor(function()
+			expect(storybookModulesQuery.getQueueSize()).toBe(1)
+		end)
 
-		storybookModulesQuery.flush()
-
-		expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		waitFor(function()
+			expect(storybookModulesQuery.getQueueSize()).toBe(0)
+		end)
 	end)
 end)
 
@@ -464,6 +556,8 @@ test("collects all relevant ModuleScripts under the root", function()
 		matcher = isStorybookModule,
 	})
 
-	expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
-	expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
+	waitFor(function()
+		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+		expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
+	end)
 end)

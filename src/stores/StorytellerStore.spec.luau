@@ -1,6 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
+local waitFor = require("@root/test-utils/waitFor")
 
 local StorytellerStore = require("./StorytellerStore")
 
@@ -113,24 +114,26 @@ describe("recomputing Story and Storybook modules", function()
 		local moduleScript = new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		-- The new ModuleScript doesn't match either query yet, so we expect no
 		-- changes
-		expect(store.getStoryModules()).toBe(prevStoryModules)
-		expect(#store.getStoryModules()).toBe(0)
-		expect(store.getStorybookModules()).toBe(prevStorybookModules)
-		expect(#store.getStorybookModules()).toBe(0)
+		waitFor(function()
+			expect(store.getStoryModules()).toBe(prevStoryModules)
+			expect(#store.getStoryModules()).toBe(0)
+			expect(store.getStorybookModules()).toBe(prevStorybookModules)
+			expect(#store.getStorybookModules()).toBe(0)
+		end)
 
 		moduleScript.Parent = nil
-		task.wait()
 
 		-- Same as before. Non-matching ModuleScript was removed, so no changes
 		-- necessary
-		expect(store.getStoryModules()).toBe(prevStoryModules)
-		expect(#store.getStoryModules()).toBe(0)
-		expect(store.getStorybookModules()).toBe(prevStorybookModules)
-		expect(#store.getStorybookModules()).toBe(0)
+		waitFor(function()
+			expect(store.getStoryModules()).toBe(prevStoryModules)
+			expect(#store.getStoryModules()).toBe(0)
+			expect(store.getStorybookModules()).toBe(prevStorybookModules)
+			expect(#store.getStorybookModules()).toBe(0)
+		end)
 	end)
 
 	test("recomputes when a Story module is added or removed", function()
@@ -142,36 +145,40 @@ describe("recomputing Story and Storybook modules", function()
 		expect(#store.getStoryModules()).toBe(0)
 
 		local prevStoryModules = store.getStoryModules()
+		local storyModules
 
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		-- A new ModuleScript was added which means we need to recalculate the
 		-- Story modules, but since the ModuleScript has no Story
 		-- characteristics we still get back 0 modules and the same table
-		local storyModules = store.getStoryModules()
-		expect(#storyModules).toBe(0)
-		expect(storyModules).toBe(prevStoryModules)
-		prevStoryModules = storyModules
+		waitFor(function()
+			storyModules = store.getStoryModules()
+			expect(#storyModules).toBe(0)
+			expect(storyModules).toBe(prevStoryModules)
+		end)
 
+		prevStoryModules = storyModules
 		moduleScript.Name = "Foo.story"
-		task.wait()
 
 		-- The ModuleScript was renamed to become a Story. That's all that's
 		-- needed to get picked up
-		storyModules = store.getStoryModules()
-		expect(#storyModules).toBe(1)
-		expect(storyModules).never.toBe(prevStoryModules)
+		waitFor(function()
+			storyModules = store.getStoryModules()
+			expect(#storyModules).toBe(1)
+			expect(storyModules).never.toBe(prevStoryModules)
+		end)
+
 		prevStoryModules = storyModules
-
 		moduleScript.Parent = nil
-		task.wait()
 
-		storyModules = store.getStoryModules()
-		expect(#storyModules).toBe(0)
-		expect(storyModules).never.toBe(prevStoryModules)
+		waitFor(function()
+			storyModules = store.getStoryModules()
+			expect(#storyModules).toBe(0)
+			expect(storyModules).never.toBe(prevStoryModules)
+		end)
 	end)
 
 	test("recomputes when a Storybook module is added or removed", function()
@@ -183,36 +190,40 @@ describe("recomputing Story and Storybook modules", function()
 		expect(#store.getStorybookModules()).toBe(0)
 
 		local prevStorybookModules = store.getStorybookModules()
+		local storybookModules
 
 		local moduleScript = Instance.new("ModuleScript")
 
 		moduleScript.Parent = root
-		task.wait()
 
 		-- A new ModuleScript was added which means we need to recalculate the
 		-- Storybook modules, but since the ModuleScript has no Storybook
 		-- characteristics we still get back 0 modules
-		local storybookModules = store.getStorybookModules()
-		expect(#storybookModules).toBe(0)
-		expect(storybookModules).toBe(prevStorybookModules)
+		waitFor(function()
+			storybookModules = store.getStorybookModules()
+			expect(#storybookModules).toBe(0)
+			expect(storybookModules).toBe(prevStorybookModules)
+		end)
 		prevStorybookModules = storybookModules
 
 		moduleScript.Name = "Foo.storybook"
-		task.wait()
 
 		-- The ModuleScript was renamed to become a Storybook. That's all that's
 		-- needed to get picked up
-		storybookModules = store.getStorybookModules()
-		expect(#storybookModules).toBe(1)
-		expect(storybookModules).never.toBe(prevStorybookModules)
+		waitFor(function()
+			storybookModules = store.getStorybookModules()
+			expect(#storybookModules).toBe(1)
+			expect(storybookModules).never.toBe(prevStorybookModules)
+		end)
 		prevStorybookModules = storybookModules
 
 		moduleScript.Parent = nil
-		task.wait()
 
-		storybookModules = store.getStorybookModules()
-		expect(#storybookModules).toBe(0)
-		expect(storybookModules).never.toBe(prevStorybookModules)
+		waitFor(function()
+			storybookModules = store.getStorybookModules()
+			expect(#storybookModules).toBe(0)
+			expect(storybookModules).never.toBe(prevStorybookModules)
+		end)
 	end)
 end)
 
@@ -232,16 +243,18 @@ describe("user journeys", function()
 		local storybookModule = Instance.new("ModuleScript")
 
 		storybookModule.Parent = root
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(0)
-		expect(#store.getUnavailableStorybooks()).toEqual(0)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(0)
+			expect(#store.getUnavailableStorybooks()).toEqual(0)
+		end)
 
 		storybookModule.Name = "Foo.storybook"
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(0)
-		expect(#store.getUnavailableStorybooks()).toEqual(1)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(0)
+			expect(#store.getUnavailableStorybooks()).toEqual(1)
+		end)
 
 		storybookModule.Source = [[
 			return {
@@ -250,16 +263,18 @@ describe("user journeys", function()
 				}
 			}
 		]]
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(1)
-		expect(#store.getUnavailableStorybooks()).toEqual(0)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(1)
+			expect(#store.getUnavailableStorybooks()).toEqual(0)
+		end)
 
 		storybookModule.Parent = nil
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toEqual(0)
-		expect(#store.getUnavailableStorybooks()).toEqual(0)
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toEqual(0)
+			expect(#store.getUnavailableStorybooks()).toEqual(0)
+		end)
 	end)
 end)
 
@@ -400,9 +415,10 @@ describe("orphaned stories", function()
 		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storyA.Parent = root
-		task.wait()
 
-		expect(store.getOrphanedStoryModules()).toEqual({ storyA })
+		waitFor(function()
+			expect(store.getOrphanedStoryModules()).toEqual({ storyA })
+		end)
 	end)
 
 	test("updates when a storybook is removed", function()
@@ -432,9 +448,10 @@ describe("orphaned stories", function()
 		expect(store.getOrphanedStoryModules()).toEqual({})
 
 		storybookModule.Parent = nil
-		task.wait()
 
-		expect(#store.getLoadedStorybooks()).toBe(0)
-		expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toBe(0)
+			expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
+		end)
 	end)
 end)

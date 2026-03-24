@@ -1,5 +1,7 @@
 local Charm = require("@pkg/Charm")
 
+local FRAME_BUDGET_MS = 2
+
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -17,6 +19,12 @@ export type QueryOptions = {
 	-- This can be used for more granular updates where you may not want a
 	-- specific change to always trigger an update to the matches.
 	shouldUpdate: ((instance: Instance) -> boolean)?,
+
+	-- This is called right before an Instance is processed and allows you to
+	-- either proceed with processing or defer for later.
+	--
+	-- Return `true` to process now and `false` to defer.
+	shouldProcess: ((instance: Instance) -> boolean)?,
 }
 
 export type QueryResult = {
@@ -27,7 +35,6 @@ export type QueryResult = {
 	destroy: () -> (),
 
 	getQueueSize: () -> number,
-	flushAsync: () -> (),
 
 	-- Fired any time a matched Instance is added. This happens when...
 	-- 1. The Instance is parented to `root`
@@ -44,12 +51,19 @@ export type QueryResult = {
 	removed: RBXScriptSignal<{ Instance }>,
 }
 
+local function weak<K, V>(t: { [K]: V }): { [K]: V }
+	return setmetatable(t, { __mode = "k" }) :: any
+end
+
 local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
 	local getQueue, setQueue = Charm.signal({} :: { Instance })
-	local queued = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
-	local changes = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
-	local seen = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
+
+	local changes = weak({} :: { [Instance]: true })
+	local queued = weak({} :: { [Instance]: true })
+	local seen = weak({} :: { [Instance]: true })
+
+	local observeDispose
 
 	local connections: { RBXScriptConnection } = {}
 	local isDestroyed = false
@@ -66,15 +80,23 @@ local function query(options: QueryOptions): QueryResult
 		local matches = {}
 
 		for _, instance in options.root:QueryDescendants(options.selector) do
+			-- TODO: We may need to hash the instances so we can handle the
+			-- ModuleLoader cloning strategy. Or....Could we just use
+			-- GetFullName? Is it important at all to use instances for these?
 			if seen[instance] or queued[instance] then
 				continue
 			end
 
 			local isMatch = if options.matcher then options.matcher(instance) else true
+			local shouldProcess = if options.shouldProcess then options.shouldProcess(instance) else true
 
-			if isMatch then
+			if isMatch and shouldProcess then
 				table.insert(matches, instance)
 			end
+		end
+
+		if #matches == 0 then
+			return
 		end
 
 		setQueue(function(prev)
@@ -88,6 +110,7 @@ local function query(options: QueryOptions): QueryResult
 
 	local function destroy()
 		isDestroyed = true
+		observeDispose()
 
 		for _, connection in connections do
 			connection:Disconnect()
@@ -104,7 +127,7 @@ local function query(options: QueryOptions): QueryResult
 		-- an update?
 		table.insert(
 			connections,
-			instance.Changed:Connect(function()
+			instance.Changed:Connect(function(property)
 				changes[instance] = true
 			end)
 		)
@@ -116,20 +139,6 @@ local function query(options: QueryOptions): QueryResult
 		end)
 	end
 
-	local function onInstanceChanged(instance: Instance)
-		changes[instance] = nil
-
-		setMatches(function(prev)
-			local new = table.clone(prev)
-			local index = table.find(prev, instance)
-			if index then
-				table.remove(new, index)
-				table.insert(new, instance)
-			end
-			return new
-		end)
-	end
-
 	local function onInstanceRemoved(instance: Instance)
 		queued[instance] = nil
 		seen[instance] = nil
@@ -137,9 +146,35 @@ local function query(options: QueryOptions): QueryResult
 
 		setMatches(function(prev)
 			local new = table.clone(prev)
-			local index = table.find(prev, instance)
+			local index = table.find(new, instance)
 			if index then
 				table.remove(new, index)
+			end
+			return new
+		end)
+	end
+
+	local function onInstanceChanged(instance: Instance)
+		changes[instance] = nil
+
+		changed:Fire(instance)
+
+		local isMatch = if options.matcher then options.matcher(instance) else true
+
+		if not (isMatch and instance:IsDescendantOf(options.root)) then
+			onInstanceRemoved(instance)
+		end
+
+		setMatches(function(prev)
+			local new = table.clone(prev)
+			local index = table.find(new, instance)
+
+			if index then
+				table.remove(new, index)
+
+				if isMatch then
+					table.insert(new, instance)
+				end
 			end
 			return new
 		end)
@@ -160,59 +195,74 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function flushAsync()
-		while #getQueue() > 0 do
-			local candidate
+		local startTime = os.clock()
 
-			setQueue(function(prev)
-				local new = table.clone(prev)
-				candidate = table.remove(new, 1)
-				return new
-			end)
+		while true do
+			if #getQueue() == 0 then
+				break
+			end
+
+			local candidate = getQueue()[1]
 
 			if candidate then
-				if seen[candidate] then
-					onProcessSeenInstance(candidate)
-				else
-					onInstanceAdded(candidate)
+				local shouldProcess = if options.shouldProcess then options.shouldProcess(candidate) else true
+
+				if shouldProcess then
+					-- Now that we know we're going to process this instance we can
+					-- remove it from the queue
+					setQueue(function(prev)
+						local new = table.clone(prev)
+						table.remove(new, 1)
+						return new
+					end)
+
+					if seen[candidate] then
+						onProcessSeenInstance(candidate)
+					else
+						onInstanceAdded(candidate)
+					end
 				end
 			end
-		end
 
-		for change in pairs(changes) do
-			onInstanceChanged(change)
+			local elapsed = (os.clock() - startTime) * 1000
+			if elapsed > FRAME_BUDGET_MS then
+				break
+			end
 		end
 	end
 
-	local function kickstartProcessing()
-		local function stepAsync()
+	local function startProcessingAsync()
+		while not isDestroyed do
 			enqueueSelectedDescendants()
 
 			if #getQueue() > 0 then
 				flushAsync()
 			end
 
-			task.delay(0, stepAsync)
-		end
+			for change in pairs(changes) do
+				onInstanceChanged(change)
+			end
 
-		task.delay(0, stepAsync)
+			task.wait(1 / 30)
+		end
 	end
 
-	Charm.observe(getMatches, function(instance)
-		added:Fire(instance)
+	-- Does this even work?
+	observeDispose = Charm.observe(getMatches, function(instance)
+		added:Fire({ instance })
 
 		return function()
-			removed:Fire(instance)
+			removed:Fire({ instance })
 		end
 	end)
 
-	kickstartProcessing()
+	task.spawn(startProcessingAsync)
 
 	return {
 		get = getMatches,
 		destroy = destroy,
 
 		getQueueSize = getQueueSize,
-		flushAsync = flushAsync,
 
 		added = added.Event,
 		changed = changed.Event,

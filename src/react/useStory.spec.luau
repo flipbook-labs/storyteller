@@ -12,6 +12,39 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local act = ReactRoblox.act
+local DEFAULT_TIMEOUT = 1
+
+local function waitForAct(callback: () -> (), options: { timeout: number?, interval: number? }?)
+	local timeout = if options and options.timeout then options.timeout else DEFAULT_TIMEOUT
+	local interval = if options and options.interval then options.interval else 0
+
+	local startedAt = os.clock()
+	local lastError
+
+	while true do
+		local ok, err = pcall(function()
+			callback()
+		end)
+
+		if ok then
+			return
+		end
+
+		lastError = err
+
+		if os.clock() - startedAt >= timeout then
+			error(lastError, 2)
+		end
+
+		act(function()
+			if interval > 0 then
+				task.wait(interval)
+			else
+				task.wait()
+			end
+		end)
+	end
+end
 
 type LoadedStorybook = types.LoadedStorybook
 
@@ -66,16 +99,18 @@ test("loads a story module", function()
 		return useStory(storyModule, storybook)
 	end)
 
-	local story, err = get()
+	waitForAct(function()
+		local story, err = get()
 
-	expect(err).toBeUndefined()
+		expect(err).toBeUndefined()
 
-	expect(story).toEqual({
-		name = "Sample",
-		story = expect.any("function"),
-		source = storyModule,
-		storybook = storybook,
-	})
+		expect(story).toEqual({
+			name = "Sample",
+			story = expect.any("function"),
+			source = storyModule,
+			storybook = storybook,
+		})
+	end)
 end)
 
 test("handles story errors", function()
@@ -85,10 +120,12 @@ test("handles story errors", function()
 		return useStory(storyModule, storybook)
 	end)
 
-	local story, err = get()
+	waitForAct(function()
+		local story, err = get()
 
-	expect(err).toBeDefined()
-	expect(story).toBeUndefined()
+		expect(err).toBeDefined()
+		expect(story).toBeUndefined()
+	end)
 end)
 
 test("re-renders on module changes", function()
@@ -96,12 +133,14 @@ test("re-renders on module changes", function()
 		return useStory(storyModule, storybook)
 	end)
 
-	local story, err = get()
+	waitForAct(function()
+		local story, err = get()
 
-	expect(err).toBeUndefined()
-	expect(story).toEqual(expect.objectContaining({
-		name = "Sample",
-	}))
+		expect(err).toBeUndefined()
+		expect(story).toEqual(expect.objectContaining({
+			name = "Sample",
+		}))
+	end)
 
 	storyModule.Source = [[
 		local Component = require(script.Parent.Component)
@@ -117,12 +156,14 @@ test("re-renders on module changes", function()
 		task.wait()
 	end)
 
-	story, err = get()
+	waitForAct(function()
+		local story, err = get()
 
-	expect(err).toBeUndefined()
-	expect(story).toEqual(expect.objectContaining({
-		name = "Foo",
-	}))
+		expect(err).toBeUndefined()
+		expect(story).toEqual(expect.objectContaining({
+			name = "Foo",
+		}))
+	end)
 end)
 
 test("reloads on dependency changes", function()
@@ -130,7 +171,12 @@ test("reloads on dependency changes", function()
 		return useStory(storyModule, storybook)
 	end)
 
-	local story = get()
+	local story
+
+	waitForAct(function()
+		story = get()
+		expect(story).never.toBe(nil)
+	end)
 
 	componentModule.Source = [[
 		local function Component(props)
@@ -148,7 +194,9 @@ test("reloads on dependency changes", function()
 		task.wait()
 	end)
 
-	local newStory = get()
+	waitForAct(function()
+		local newStory = get()
 
-	expect(newStory).never.toBe(story)
+		expect(newStory).never.toBe(story)
+	end)
 end)
