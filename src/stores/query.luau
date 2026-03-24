@@ -2,7 +2,7 @@ local debounce = require("@root/debounce")
 
 -- The amount of time (in milliseconds) that this function can spend processing
 -- the queue before deferring to a later frame.
-local FRAME_BUDGET_MS = 2
+local FRAME_BUDGET_MS = 5
 
 local function insertUnique<T>(arr: { T }, item: T)
 	if not table.find(arr, item) then
