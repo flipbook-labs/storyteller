@@ -109,7 +109,15 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function destroy()
+		if isDestroyed then
+			return
+		end
 		isDestroyed = true
+
+		table.clear(changes)
+		table.clear(queued)
+		table.clear(seen)
+
 		observeDispose()
 
 		for _, connection in connections do
