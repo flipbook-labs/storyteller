@@ -4,6 +4,8 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
+local waitForAct = require("@root/test-utils/waitForAct")
+
 local useStory = require("./useStory")
 
 local afterEach = JestGlobals.afterEach
@@ -12,39 +14,6 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 local act = ReactRoblox.act
-local DEFAULT_TIMEOUT = 1
-
-local function waitForAct(callback: () -> (), options: { timeout: number?, interval: number? }?)
-	local timeout = if options and options.timeout then options.timeout else DEFAULT_TIMEOUT
-	local interval = if options and options.interval then options.interval else 0
-
-	local startedAt = os.clock()
-	local lastError
-
-	while true do
-		local ok, err = pcall(function()
-			callback()
-		end)
-
-		if ok then
-			return
-		end
-
-		lastError = err
-
-		if os.clock() - startedAt >= timeout then
-			error(lastError, 2)
-		end
-
-		act(function()
-			if interval > 0 then
-				task.wait(interval)
-			else
-				task.wait()
-			end
-		end)
-	end
-end
 
 type LoadedStorybook = types.LoadedStorybook
 
