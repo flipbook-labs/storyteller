@@ -79,7 +79,7 @@ local function query(options: QueryOptions): QueryResult
 	end)
 
 	local function enqueueSelectedDescendants()
-		local matches = {}
+		local instances = {}
 
 		for _, instance in options.root:QueryDescendants(options.selector) do
 			if seen[instance] or queued[instance] then
@@ -90,18 +90,19 @@ local function query(options: QueryOptions): QueryResult
 			local shouldProcess = if options.shouldProcess then options.shouldProcess(instance) else true
 
 			if isMatch and shouldProcess then
-				table.insert(matches, instance)
+				queued[instance] = true
+				table.insert(instances, instance)
 			end
 		end
 
-		if #matches == 0 then
+		if #instances == 0 then
 			return
 		end
 
 		setQueue(function(prev)
 			local new = table.clone(prev)
-			for _, match in matches do
-				table.insert(new, match)
+			for _, instance in instances do
+				table.insert(new, instance)
 			end
 			return new
 		end)
@@ -125,6 +126,7 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	local function onInstanceAdded(instance: Instance)
+		queued[instance] = nil
 		seen[instance] = true
 
 		table.insert(
