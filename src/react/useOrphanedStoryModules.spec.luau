@@ -76,7 +76,7 @@ test("updates when moving instances around the DataModel", function()
 			storyModuleC,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 
 	act(function()
 		storyModuleA.Parent = root
@@ -89,7 +89,7 @@ test("updates when moving instances around the DataModel", function()
 			storyModuleC,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 
 	act(function()
 		storybookModule.Parent = root
@@ -98,7 +98,7 @@ test("updates when moving instances around the DataModel", function()
 
 	waitForAct(function()
 		expect(getOrphanedStories()).toEqual({})
-	end, { interval = 0 })
+	end)
 end)
 
 test("updates when adding/removing instances from the DataModel", function()
@@ -149,7 +149,7 @@ test("updates when adding/removing instances from the DataModel", function()
 			storyModuleC,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 
 	act(function()
 		storybookModule.Parent = nil
@@ -163,7 +163,7 @@ test("updates when adding/removing instances from the DataModel", function()
 			storyModuleC,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 
 	act(function()
 		storybookModule.Parent = storyModuleB.Parent
@@ -176,7 +176,7 @@ test("updates when adding/removing instances from the DataModel", function()
 			storyModuleC,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 
 	act(function()
 		storyModuleC.Parent = nil
@@ -188,5 +188,5 @@ test("updates when adding/removing instances from the DataModel", function()
 			storyModuleA,
 			storyModuleD,
 		}))
-	end, { interval = 0 })
+	end)
 end)

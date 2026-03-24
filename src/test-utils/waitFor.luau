@@ -9,7 +9,6 @@ local DEFAULT_INTERVAL = 0.05
 local function waitFor(callback: () -> (), options: Options?)
 	local timeout = if options and options.timeout then options.timeout else DEFAULT_TIMEOUT
 	local interval = if options and options.interval then options.interval else DEFAULT_INTERVAL
-	local intervalStep = if interval > 0 then interval else 0
 
 	local lastError
 	local startedAt = os.clock()
@@ -30,11 +29,7 @@ local function waitFor(callback: () -> (), options: Options?)
 			error(lastError, 2)
 		end
 
-		if intervalStep > 0 then
-			task.wait(intervalStep)
-		else
-			task.wait()
-		end
+		task.wait(interval)
 	end
 end
 
