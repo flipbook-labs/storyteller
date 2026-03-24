@@ -23,7 +23,9 @@ local function waitForAct(callback: () -> (), options: { timeout: number?, inter
 	local lastError
 
 	while true do
-		local ok, err = pcall(callback)
+		local ok, err = pcall(function()
+			callback()
+		end)
 
 		if ok then
 			return

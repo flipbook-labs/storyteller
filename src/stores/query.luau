@@ -127,7 +127,7 @@ local function query(options: QueryOptions): QueryResult
 		-- an update?
 		table.insert(
 			connections,
-			instance.Changed:Connect(function(property)
+			instance.Changed:Connect(function()
 				changes[instance] = true
 			end)
 		)
