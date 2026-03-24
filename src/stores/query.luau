@@ -163,23 +163,20 @@ local function query(options: QueryOptions): QueryResult
 
 		local isMatch = if options.matcher then options.matcher(instance) else true
 
-		if not (isMatch and instance:IsDescendantOf(options.root)) then
-			onInstanceRemoved(instance)
-		end
+		if isMatch and instance:IsDescendantOf(options.root) then
+			setMatches(function(prev)
+				local new = table.clone(prev)
+				local index = table.find(new, instance)
 
-		setMatches(function(prev)
-			local new = table.clone(prev)
-			local index = table.find(new, instance)
-
-			if index then
-				table.remove(new, index)
-
-				if isMatch then
+				if index then
+					table.remove(new, index)
 					table.insert(new, instance)
 				end
-			end
-			return new
-		end)
+				return new
+			end)
+		else
+			onInstanceRemoved(instance)
+		end
 	end
 
 	local function onProcessSeenInstance(instance: Instance)
