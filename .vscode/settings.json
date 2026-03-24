@@ -1,4 +1,9 @@
 {
   "luau-lsp.sourcemap.rojoProjectFile": "tests.project.json",
-  "luau-lsp.ignoreGlobs": ["**/LuauPackages/**", "**/_Index/**", "**/dist/**"]
+  "luau-lsp.ignoreGlobs": [
+    "**/LuauPackages/**",
+    "**/_Index/**",
+    "**/dist/**",
+    "**/.lute/typedefs/**"
+  ]
 }

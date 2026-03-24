@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Jest = (require :: any)(ReplicatedStorage.Packages.Jest)
+local Charm = (require :: any)(ReplicatedStorage.Packages.Charm)
 
 local root = ReplicatedStorage.Packages.Storyteller
 
@@ -9,6 +10,9 @@ local root = ReplicatedStorage.Packages.Storyteller
 _G.__DEV__ = true
 -- selene: allow(global_usage)
 _G.__ROACT_17_MOCK_SCHEDULER__ = true
+
+Charm.flags.frozen = true
+Charm.flags.strict = true
 
 local status, result = Jest.runCLI(root, {
 	verbose = false,
