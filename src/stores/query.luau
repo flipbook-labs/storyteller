@@ -22,12 +22,6 @@ export type QueryOptions = {
 	-- selector pattern can't satisfy.
 	matcher: ((instance: Instance) -> boolean)?,
 
-	-- This is called right before an Instance is processed and allows you to
-	-- either proceed with processing or defer for later.
-	--
-	-- Return `true` to process now and `false` to defer.
-	shouldProcess: ((instance: Instance) -> boolean)?,
-
 	-- This is called any time one of the matches changes.
 	--
 	-- This can be used for more granular updates where you may not want a
@@ -216,16 +210,8 @@ local function query(options: QueryOptions): QueryResult
 			local candidate = table.remove(queue, 1)
 
 			if candidate then
-				local shouldProcess = if options.shouldProcess then options.shouldProcess(candidate) else true
-
-				if shouldProcess then
-					queued[candidate] = nil
-					processInstance(candidate)
-				else
-					-- Place the candidate back at the end of the queue to be
-					-- processed again later
-					table.insert(queue, candidate)
-				end
+				queued[candidate] = nil
+				processInstance(candidate)
 			end
 
 			local elapsed = os.clock() - startTime
