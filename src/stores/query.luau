@@ -48,15 +48,8 @@ local function query(options: QueryOptions): QueryResult
 		table.clear(changedConnections)
 	end
 
-	-- Why do I feel like all of this is insane?
-	-- 1. `options.selector` is required, so loop over that subset of instances you'll ever have to deal with
-	-- 2.
-
 	local function queryDescendantsAsync()
 		local matches = {}
-
-		-- If we need to make performance improvements with a `seen` object then
-		-- we can, but for now let's see how far we can get without one
 
 		local startTime = os.clock()
 
