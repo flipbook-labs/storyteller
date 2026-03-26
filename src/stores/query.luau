@@ -86,14 +86,7 @@ local function query(options: QueryOptions): QueryResult
 		local matches = {}
 
 		for _, instance in options.root:QueryDescendants(options.selector) do
-			local isDescendant = instance:IsDescendantOf(options.root)
-
-			if not isDescendant then
-				continue
-			end
-
 			local isMatch = if options.matcher then options.matcher(instance) else true
-
 			if isMatch then
 				table.insert(matches, instance)
 			end
