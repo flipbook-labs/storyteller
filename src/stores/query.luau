@@ -68,7 +68,7 @@ local function query(options: QueryOptions): QueryResult
 
 	local matches: { Instance } = {}
 	local connections: { RBXScriptConnection } = {}
-	local instanceConnections: { [Instance]: { [string]: RBXScriptConnection } } = {}
+	local changedConnections: { [Instance]: RBXScriptConnection } = {}
 
 	local isDestroyed = false
 	local isProcessing = false
@@ -78,26 +78,6 @@ local function query(options: QueryOptions): QueryResult
 	local removed = Instance.new("BindableEvent")
 
 	local startProcessing
-
-	local function getOrCreateInstanceConnections(instance: Instance): { [string]: RBXScriptConnection }
-		if not instanceConnections[instance] then
-			instanceConnections[instance] = {}
-		end
-		return instanceConnections[instance]
-	end
-
-	local function disconnectInstanceConnections(instance: Instance)
-		local connectionMap = instanceConnections[instance]
-		if not connectionMap then
-			return
-		end
-
-		for _, connection in connectionMap do
-			connection:Disconnect()
-		end
-
-		instanceConnections[instance] = nil
-	end
 
 	local function get()
 		return matches
@@ -111,6 +91,7 @@ local function query(options: QueryOptions): QueryResult
 		if queued[instance] then
 			return
 		end
+
 		queued[instance] = true
 		table.insert(queue, instance)
 
@@ -127,12 +108,10 @@ local function query(options: QueryOptions): QueryResult
 		end
 		table.clear(connections)
 
-		for _, connectionMap in instanceConnections do
-			for _, connection in connectionMap do
-				connection:Disconnect()
-			end
+		for _, connection in changedConnections do
+			connection:Disconnect()
 		end
-		table.clear(instanceConnections)
+		table.clear(changedConnections)
 
 		added:Destroy()
 		changed:Destroy()
@@ -144,17 +123,27 @@ local function query(options: QueryOptions): QueryResult
 		local removedInstances: { Instance } = {}
 		local changedInstances: { Instance } = {}
 
+		local function onInstanceRemoved(instance)
+			if table.find(matches, instance) then
+				table.insert(removedInstances, instance)
+			end
+
+			local connection = changedConnections[instance]
+			if connection then
+				connection:Disconnect()
+				changedConnections[instance] = nil
+			end
+
+			-- Clear `seen` so the instance is treated as fresh if it
+			-- re-enters the root later.
+			seen[instance] = nil
+		end
+
 		local function processInstance(instance: Instance)
 			local isDescendant = instance:IsDescendantOf(options.root)
 
 			if not isDescendant then
-				if table.find(matches, instance) then
-					table.insert(removedInstances, instance)
-				end
-
-				disconnectInstanceConnections(instance)
-
-				seen[instance] = nil
+				onInstanceRemoved(instance)
 				return
 			end
 
@@ -168,36 +157,14 @@ local function query(options: QueryOptions): QueryResult
 						table.insert(changedInstances, instance)
 					end
 				else
-					if table.find(matches, instance) then
-						table.insert(removedInstances, instance)
-					end
-
-					disconnectInstanceConnections(instance)
-
-					-- Clear `seen` so the instance is treated as fresh if it
-					-- re-enters the root later.
-					seen[instance] = nil
+					onInstanceRemoved(instance)
 				end
 			else
 				seen[instance] = true
 
-				local queueChange = debounce(function()
+				changedConnections[instance] = instance.Changed:Connect(debounce(function()
 					enqueue(instance)
-				end)
-
-				local connectionMap = getOrCreateInstanceConnections(instance)
-
-				connectionMap.Changed = instance.Changed:Connect(debounce(function(property)
-					if property == "Parent" then
-						return
-					end
-
-					queueChange()
 				end))
-
-				connectionMap.AncestryChanged = instance.AncestryChanged:Connect(function()
-					enqueue(instance)
-				end)
 
 				if isMatch then
 					table.insert(addedInstances, instance)
@@ -265,12 +232,7 @@ local function query(options: QueryOptions): QueryResult
 
 	function startProcessing()
 		local function stepAsync()
-			if isDestroyed then
-				isProcessing = false
-				return
-			end
-
-			if #queue == 0 then
+			if #queue == 0 or isDestroyed then
 				isProcessing = false
 				return
 			end
