@@ -1,14 +1,6 @@
 local Charm = require("@pkg/Charm")
 local Sift = require("@pkg/Sift")
 
-local debounce = require("@root/debounce")
-
-local function weak<K, V>(obj: { [K]: V }): { [K]: V }
-	-- We lie and say there's no metatable so we can use generic for loops. Without
-	-- this the return value has to be wrapped in `pairs` for Luau to get the memo.
-	return setmetatable(obj, { __mode = "k" }) :: any
-end
-
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -35,11 +27,6 @@ local function query(options: QueryOptions): QueryResult
 
 	local connections: { RBXScriptConnection } = {}
 
-	-- We use weak keys so that if an Instance gets removed we release the hold
-	-- on its memory. When Instances are destroyed connections are too, so we
-	-- don't need to worry about those lingering.
-	local changedConnections = weak({} :: { [Instance]: RBXScriptConnection })
-
 	local isDestroyed = false
 
 	local function destroy()
@@ -49,11 +36,6 @@ local function query(options: QueryOptions): QueryResult
 			connection:Disconnect()
 		end
 		table.clear(connections)
-
-		for _, connection in changedConnections do
-			connection:Disconnect()
-		end
-		table.clear(changedConnections)
 	end
 
 	local function queryDescendantsAsync()
@@ -80,16 +62,6 @@ local function query(options: QueryOptions): QueryResult
 					return matches
 				end
 			end)
-
-			for _, match in matches do
-				if not changedConnections[match] then
-					changedConnections[match] = match.Changed:Connect(debounce(function()
-						setMatches(function(prev)
-							return table.clone(prev)
-						end)
-					end))
-				end
-			end
 
 			task.wait()
 		end

@@ -77,39 +77,6 @@ describe("DataModel behavior", function()
 		end)
 	end)
 
-	test("updates when reparenting a matching Instance", function()
-		local root = Instance.new("Folder")
-
-		local child = Instance.new("Folder")
-		child.Parent = root
-
-		local moduleScript = Instance.new("ModuleScript")
-
-		moduleScript.Parent = root
-
-		local modulesQuery = query({
-			selector = "ModuleScript",
-			root = root,
-		})
-
-		local snapshot
-
-		waitFor(function()
-			snapshot = modulesQuery.get()
-
-			expect(snapshot).toEqual({ moduleScript })
-		end)
-
-		moduleScript.Parent = child
-
-		waitFor(function()
-			-- The array of matches still has the same contents, but the table
-			-- identity should change
-			expect(modulesQuery.get()).toEqual({ moduleScript })
-			expect(modulesQuery.get()).never.toBe(snapshot)
-		end)
-	end)
-
 	test("updates when a non-matching Instance becomes a match", function()
 		local root = Instance.new("Folder")
 		local moduleScript = Instance.new("ModuleScript")
