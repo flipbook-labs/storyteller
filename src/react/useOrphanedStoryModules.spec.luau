@@ -79,7 +79,7 @@ test("updates when moving instances around the DataModel", function()
 	root.Parent = container
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules(container)
+		return useOrphanedStoryModules()
 	end, {
 		wrapper = Wrapper,
 	})
@@ -154,7 +154,7 @@ test("updates when adding/removing instances from the DataModel", function()
 	task.wait()
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules(container)
+		return useOrphanedStoryModules()
 	end, {
 		wrapper = Wrapper,
 	})

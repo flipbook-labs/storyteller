@@ -13,7 +13,7 @@ local afterEach = JestGlobals.afterEach
 local store
 
 afterEach(function()
-	store.stop()
+	store.destroy()
 end)
 
 test("collects all relevant ModuleScripts under the root", function()

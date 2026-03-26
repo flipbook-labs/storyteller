@@ -1,6 +1,5 @@
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
-local RunningStatus = require("@root/enums/RunningStatus")
 local Sift = require("@pkg/Sift")
 
 local debounce = require("@root/debounce")
@@ -18,6 +17,7 @@ type LoadedStory<T> = types.LoadedStory<T>
 export type StorytellerStore = {
 	start: () -> (),
 	stop: () -> (),
+	destroy: () -> (),
 
 	getLoadedStorybooks: () -> { LoadedStorybook },
 	getUnavailableStorybooks: () -> { UnavailableStorybook },
@@ -33,13 +33,37 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local status: RunningStatus.RunningStatus = RunningStatus.None
+	local disposeStorybookModuleObserver
+	local disposeStorybookModulesSubscription
+	local disposeStoryModulesSubscription
+
+	local isDestroyed = false
+	local isRunning = false
+
+	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
+	self.getStoryModules = getStoryModules
+
+	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
+	self.getStorybookModules = getStorybookModules
 
 	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
 
 	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
+
+	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
+		local orphans = {}
+		for _, storyModule in getStoryModules() do
+			assert(storyModule:IsA("ModuleScript"), "Luau")
+
+			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
+				table.insert(orphans, storyModule)
+			end
+		end
+		return orphans
+	end)
+	self.getOrphanedStoryModules = getOrphanedStoryModules
 
 	local storyModulesQuery = query({
 		root = root,
@@ -52,34 +76,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
 	})
-
-	-- These functions are just wrappers to cast `{ Instance }` to `{
-	-- ModuleScript }` so Luau gets the memo
-	local function storyModulesQueryGet()
-		return (storyModulesQuery.get() :: any) :: { ModuleScript }
-	end
-	local function storybookModulesQueryGet()
-		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
-	end
-	local function storybookModulesQueryGetSet()
-		return (storybookModulesQuery.getSet() :: any) :: { [ModuleScript]: true }
-	end
-
-	self.getStoryModules = storyModulesQueryGet
-	self.getStorybookModules = storybookModulesQueryGet
-
-	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
-		local orphans = {}
-		for _, storyModule in storyModulesQueryGet() do
-			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
-				table.insert(orphans, storyModule)
-			end
-		end
-		return orphans
-	end)
-	self.getOrphanedStoryModules = getOrphanedStoryModules
-
-	local disposeStorybookModuleObserver
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
@@ -154,17 +150,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function stop()
-		if status == RunningStatus.Stopped or status == RunningStatus.Stopping then
+		if isDestroyed or not isRunning then
 			return
 		end
-		status = RunningStatus.Stopping
-
-		if storybookModulesQuery then
-			storybookModulesQuery.destroy()
-		end
-		if storyModulesQuery then
-			storyModulesQuery.destroy()
-		end
+		isRunning = false
 
 		for _, connection in connections do
 			connection:Disconnect()
@@ -172,18 +161,28 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.clear(connections)
 
 		disposeStorybookModuleObserver()
-
-		status = RunningStatus.Stopped
+		disposeStorybookModulesSubscription()
+		disposeStoryModulesSubscription()
 	end
 	self.stop = stop
 
 	local function start()
-		if status == RunningStatus.Starting or status == RunningStatus.Started then
+		if isDestroyed or isRunning then
 			return
 		end
-		status = RunningStatus.Starting
+		isRunning = true
 
-		disposeStorybookModuleObserver = Charm.observe(storybookModulesQueryGetSet, function(_, storybookModule)
+		disposeStoryModulesSubscription = Charm.listen(storyModulesQuery.get, function(storyModules)
+			setStoryModules((storyModules :: any) :: { ModuleScript })
+		end)
+
+		disposeStorybookModulesSubscription = Charm.listen(storybookModulesQuery.get, function(storybookModules)
+			setStorybookModules((storybookModules :: any) :: { ModuleScript })
+		end)
+
+		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.getSet, function(_, storybookModule)
+			assert(storybookModule:IsA("ModuleScript"), "Luau")
+
 			loadStorybook(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
@@ -199,17 +198,27 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
 
-		local storybookModules = storybookModulesQueryGet()
-
 		Charm.batch(function()
-			for _, storybookModule in storybookModules do
+			for _, storybookModule in storybookModulesQuery.get() do
+				assert(storybookModule:IsA("ModuleScript"), "Luau")
+
 				loadStorybook(storybookModule)
 			end
 		end)
-
-		status = RunningStatus.Started
 	end
 	self.start = start
+
+	local function destroy()
+		if isDestroyed then
+			return
+		end
+
+		isDestroyed = true
+		stop()
+		storyModulesQuery.destroy()
+		storybookModulesQuery.destroy()
+	end
+	self.destroy = destroy
 
 	return self
 end
