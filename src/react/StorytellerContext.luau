@@ -3,8 +3,9 @@ local Sift = require("@pkg/Sift")
 
 local StorytellerStore = require("@root/stores/StorytellerStore")
 
-local useEffect = React.useEffect
 local useContext = React.useContext
+local useEffect = React.useEffect
+local useMemo = React.useMemo
 
 export type StorytellerContext = {
 	store: StorytellerStore.StorytellerStore,
@@ -29,6 +30,12 @@ local defaultProps = {
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
 	local props: StorytellerProviderProps = Sift.Dictionary.join(defaultProps, storytellerProviderProps)
 
+	local context = useMemo(function(): StorytellerContext
+		return {
+			store = props.store,
+		}
+	end, { props.store })
+
 	useEffect(function()
 		task.spawn(function()
 			props.store.start()
@@ -40,9 +47,7 @@ local function StorytellerProvider(storytellerProviderProps: StorytellerProvider
 	end, { props.store })
 
 	return React.createElement(StorytellerContext.Provider, {
-		value = {
-			store = props.store,
-		},
+		value = context,
 	}, props.children)
 end
 
