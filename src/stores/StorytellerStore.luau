@@ -175,9 +175,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		isRunning = true
 
-		storyModulesQuery.start()
-		storybookModulesQuery.start()
-
 		disposeStoryModulesSubscription = Charm.listen(storyModulesQuery.get, function(storyModules)
 			setStoryModules((storyModules :: any) :: { ModuleScript })
 		end)
@@ -200,6 +197,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				changedConn:Disconnect()
 			end
 		end)
+
+		storyModulesQuery.start()
+		storybookModulesQuery.start()
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))

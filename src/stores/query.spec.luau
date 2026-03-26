@@ -24,6 +24,8 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
+		modulesQuery.start()
+
 		expect(modulesQuery.get()).toEqual({})
 
 		moduleScript.Parent = root
@@ -43,6 +45,8 @@ describe("DataModel behavior", function()
 			selector = "ModuleScript",
 			root = root,
 		})
+
+		modulesQuery.start()
 
 		waitFor(function()
 			expect(modulesQuery.get()).toEqual({ moduleScript })
@@ -66,6 +70,8 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
+		modulesQuery.start()
+
 		waitFor(function()
 			expect(modulesQuery.get()).toEqual({ moduleScript })
 		end)
@@ -88,6 +94,8 @@ describe("DataModel behavior", function()
 			matcher = isStorybookModule,
 			root = root,
 		})
+
+		storybookModulesQuery.start()
 
 		expect(storybookModulesQuery.get()).toEqual({})
 
@@ -121,6 +129,8 @@ describe("DataModel behavior", function()
 			root = root,
 		})
 
+		storybookModulesQuery.start()
+
 		waitFor(function()
 			expect(storybookModulesQuery.get()).toEqual({ moduleScript })
 		end)
@@ -145,6 +155,7 @@ describe("user journeys", function()
 			selector = "ModuleScript",
 			matcher = isStorybookModule,
 		})
+		storybookModulesQuery.start()
 
 		expect(#storybookModulesQuery.get()).toEqual(0)
 
@@ -234,6 +245,9 @@ test("collects all relevant ModuleScripts under the root", function()
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
 	})
+
+	storyModulesQuery.start()
+	storybookModulesQuery.start()
 
 	waitFor(function()
 		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))

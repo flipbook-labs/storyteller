@@ -1,6 +1,8 @@
 local Charm = require("@pkg/Charm")
 local Sift = require("@pkg/Sift")
 
+local QUERY_STEP_COOLDOWN_SEC = 0.2
+
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -50,21 +52,25 @@ local function query(options: QueryOptions): QueryResult
 		end
 		isRunning = true
 
-		task.spawn(function()
-			while not isDestroyed and isRunning do
-				local matches = queryDescendantsAsync()
-
-				setMatches(function(prev)
-					if #Sift.List.differenceSymmetric(matches, prev) == 0 then
-						return prev
-					else
-						return matches
-					end
-				end)
-
-				task.wait()
+		local function stepAsync()
+			if isDestroyed or not isRunning then
+				return
 			end
-		end)
+
+			local matches = queryDescendantsAsync()
+
+			setMatches(function(prev)
+				if #Sift.List.differenceSymmetric(matches, prev) == 0 then
+					return prev
+				else
+					return matches
+				end
+			end)
+
+			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)
+		end
+
+		task.spawn(stepAsync)
 	end
 
 	local function stop()
@@ -78,8 +84,6 @@ local function query(options: QueryOptions): QueryResult
 		stop()
 		isDestroyed = true
 	end
-
-	start()
 
 	return {
 		get = getMatches,
