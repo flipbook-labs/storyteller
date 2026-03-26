@@ -180,7 +180,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			setStorybookModules((storybookModules :: any) :: { ModuleScript })
 		end)
 
-		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.getSet, function(_, storybookModule)
+		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
 			assert(storybookModule:IsA("ModuleScript"), "Luau")
 
 			loadStorybook(storybookModule)

@@ -26,8 +26,6 @@ export type QueryResult = {
 	-- Returns a snapshot of the current matched Instances
 	get: () -> { Instance },
 
-	getSet: () -> { [Instance]: true },
-
 	-- Destroys the query, disconnecting open connections and cleaning itself up.
 	destroy: () -> (),
 }
@@ -43,14 +41,6 @@ local function query(options: QueryOptions): QueryResult
 	local changedConnections = weak({} :: { [Instance]: RBXScriptConnection })
 
 	local isDestroyed = false
-
-	local getMatchesSet = Charm.computed(function()
-		local set: { [Instance]: true } = {}
-		for _, instance in getMatches() do
-			set[instance] = true
-		end
-		return set
-	end)
 
 	local function destroy()
 		isDestroyed = true
@@ -107,7 +97,6 @@ local function query(options: QueryOptions): QueryResult
 
 	return {
 		get = getMatches,
-		getSet = getMatchesSet,
 		destroy = destroy,
 	}
 end
