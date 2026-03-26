@@ -1,5 +1,7 @@
 local Charm = require("@pkg/Charm")
 
+local debounce = require("@root/debounce")
+
 local function hasSameMembers<T>(a: { T }, b: { T }): boolean
 	if #a ~= #b then
 		return false
@@ -109,11 +111,11 @@ local function query(options: QueryOptions): QueryResult
 
 			for _, match in matches do
 				if not changedConnections[match] then
-					changedConnections[match] = match.Changed:Connect(function()
+					changedConnections[match] = match.Changed:Connect(debounce(function()
 						setMatches(function(prev)
 							return table.clone(prev)
 						end)
-					end)
+					end))
 				end
 			end
 
