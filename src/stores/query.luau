@@ -1,11 +1,5 @@
 local Charm = require("@pkg/Charm")
 
-local debounce = require("@root/debounce")
-
--- The amount of time (in milliseconds) that this function can spend processing
--- the queue before deferring to a later frame.
-local FRAME_BUDGET_MS = 5
-
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -51,8 +45,6 @@ local function query(options: QueryOptions): QueryResult
 	local function queryDescendantsAsync()
 		local matches = {}
 
-		local startTime = os.clock()
-
 		for _, instance in options.root:QueryDescendants(options.selector) do
 			local isDescendant = instance:IsDescendantOf(options.root)
 
@@ -64,13 +56,6 @@ local function query(options: QueryOptions): QueryResult
 
 			if isMatch then
 				table.insert(matches, instance)
-			end
-
-			local elapsed = os.clock() - startTime
-
-			-- We may not even need this in practice
-			if elapsed * 1000 > FRAME_BUDGET_MS then
-				task.wait()
 			end
 		end
 
