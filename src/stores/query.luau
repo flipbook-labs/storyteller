@@ -1,25 +1,7 @@
 local Charm = require("@pkg/Charm")
+local Sift = require("@pkg/Sift")
 
 local debounce = require("@root/debounce")
-
-local function hasSameMembers<T>(a: { T }, b: { T }): boolean
-	if #a ~= #b then
-		return false
-	end
-
-	local members: { [T]: true } = {}
-	for _, member in a do
-		members[member] = true
-	end
-
-	for _, member in b do
-		if not members[member] then
-			return false
-		end
-	end
-
-	return true
-end
 
 local function weak<K, V>(obj: { [K]: V }): { [K]: V }
 	-- We lie and say there's no metatable so we can use generic for loops. Without
@@ -102,7 +84,7 @@ local function query(options: QueryOptions): QueryResult
 			local matches = queryDescendantsAsync()
 
 			setMatches(function(prev)
-				if hasSameMembers(prev, matches) then
+				if #Sift.List.differenceSymmetric(matches, prev) == 0 then
 					return prev
 				else
 					return matches
