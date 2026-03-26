@@ -98,10 +98,9 @@ local function query(options: QueryOptions): QueryResult
 	task.spawn(function()
 		while not isDestroyed do
 			local matches = queryDescendantsAsync()
-			local prevMatches = getMatches()
 
 			setMatches(function(prev)
-				if hasSameMembers(prevMatches, matches) then
+				if hasSameMembers(prev, matches) then
 					return prev
 				else
 					return matches
