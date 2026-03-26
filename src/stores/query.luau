@@ -60,11 +60,11 @@ local function query(options: QueryOptions): QueryResult
 			local matches = queryDescendantsAsync()
 
 			setMatches(function(prev)
-				if #Sift.List.differenceSymmetric(matches, prev) == 0 then
+				if #matches == #prev and #Sift.List.differenceSymmetric(matches, prev) == 0 then
 					return prev
-				else
-					return matches
 				end
+
+				return matches
 			end)
 
 			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)

@@ -31,7 +31,7 @@ end
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	container.Parent = game
+
 	store = StorytellerStore.new(container)
 end)
 
@@ -79,39 +79,45 @@ test("updates when moving instances around the DataModel", function()
 	root.Parent = container
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules()
+		return useOrphanedStoryModules(container)
 	end, {
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
-		expect(getOrphanedStories()).toEqual(expect.arrayContaining({
-			storyModuleC,
-			storyModuleD,
-		}))
-	end)
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 2
 
-	act(function()
-		storyModuleA.Parent = root
-		task.wait()
-	end)
+	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
+		storyModuleC,
+		storyModuleD,
+	}))
 
-	waitFor(function()
-		expect(getOrphanedStories()).toEqual(expect.arrayContaining({
-			storyModuleA,
-			storyModuleC,
-			storyModuleD,
-		}))
-	end)
+	storyModuleA.Parent = root
 
-	act(function()
-		storybookModule.Parent = root
-		task.wait()
-	end)
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 3
 
-	waitFor(function()
-		expect(getOrphanedStories()).toEqual({})
-	end)
+	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
+		storyModuleA,
+		storyModuleC,
+		storyModuleD,
+	}))
+
+	storybookModule.Parent = root
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 0
+
+	expect(getOrphanedStories()).toEqual({})
 end)
 
 test("updates when adding/removing instances from the DataModel", function()
@@ -154,49 +160,60 @@ test("updates when adding/removing instances from the DataModel", function()
 	task.wait()
 
 	local getOrphanedStories = renderHook(function()
-		return useOrphanedStoryModules()
+		return useOrphanedStoryModules(container)
 	end, {
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
-		expect(getOrphanedStories()).toEqual(expect.arrayContaining({
-			storyModuleC,
-			storyModuleD,
-		}))
-	end)
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 2
 
-	act(function()
-		storybookModule.Parent = nil
-		task.wait()
-	end)
+	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
+		storyModuleC,
+		storyModuleD,
+	}))
+
+	storybookModule.Parent = nil
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 4
+
+	expect(getOrphanedStories()).toEqual(expect.arrayContaining({
+		storyModuleA,
+		storyModuleB,
+		storyModuleC,
+		storyModuleD,
+	}))
+
+	storybookModule.Parent = storyModuleB.Parent
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 3
 
 	waitFor(function()
 		expect(getOrphanedStories()).toEqual(expect.arrayContaining({
 			storyModuleA,
-			storyModuleB,
 			storyModuleC,
 			storyModuleD,
 		}))
 	end)
 
-	act(function()
-		storybookModule.Parent = storyModuleB.Parent
-		task.wait()
-	end)
+	storyModuleC.Parent = nil
 
-	waitFor(function()
-		expect(getOrphanedStories()).toEqual(expect.arrayContaining({
-			storyModuleA,
-			storyModuleC,
-			storyModuleD,
-		}))
-	end)
-
-	act(function()
-		storyModuleC.Parent = nil
-		task.wait()
-	end)
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getOrphanedStories() == 2
 
 	waitFor(function()
 		expect(getOrphanedStories()).toEqual(expect.arrayContaining({

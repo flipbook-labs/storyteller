@@ -9,15 +9,13 @@ local DEFAULT_INTERVAL = 0.05
 local function waitFor(callback: () -> (), options: Options?)
 	local timeout = if options and options.timeout then options.timeout else DEFAULT_TIMEOUT
 	local interval = if options and options.interval then options.interval else DEFAULT_INTERVAL
-	local intervalStep = if interval > 0 then interval else DEFAULT_INTERVAL
 
-	local lastError
+	local lastError: string?
 	local elapsed = 0
 
 	while true do
 		local ok, err = pcall(function()
 			callback()
-			return nil
 		end)
 
 		if ok then
@@ -30,8 +28,7 @@ local function waitFor(callback: () -> (), options: Options?)
 			error(lastError, 2)
 		end
 
-		task.wait(interval)
-		elapsed += intervalStep
+		elapsed += task.wait(interval)
 	end
 end
 

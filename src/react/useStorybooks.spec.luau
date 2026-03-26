@@ -30,12 +30,12 @@ end
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	container.Parent = game
+
 	store = StorytellerStore.new(container)
 end)
 
 afterEach(function()
-	store.stop()
+	store.destroy()
 	container:Destroy()
 end)
 
@@ -126,21 +126,22 @@ test("adding a new storybook to the DM triggers a re-render", function()
 	expect(#storybooks.available).toBe(0)
 	expect(#storybooks.unavailable).toBe(0)
 
-	act(function()
-		storybookModule.Parent = container
-		task.wait()
-	end)
+	storybookModule.Parent = container
 
-	waitFor(function()
-		storybooks = get()
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available > 0
 
-		expect(#storybooks.available).toBe(1)
-		expect(#storybooks.unavailable).toBe(0)
+	storybooks = get()
 
-		expect(storybooks.available[1]).toMatchObject({
-			name = "Sample",
-		})
-	end)
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
+
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Sample",
+	})
 end)
 
 test("renaming a ModuleScript to turn it into a Storybook updates as expected", function()
@@ -158,32 +159,29 @@ test("renaming a ModuleScript to turn it into a Storybook updates as expected", 
 			}
 		}
 	]]
-
-	act(function()
-		moduleScript.Parent = container
-		task.wait()
-	end)
+	moduleScript.Parent = container
 
 	local storybooks = getStorybooks()
 
 	expect(#storybooks.available).toBe(0)
 	expect(#storybooks.unavailable).toBe(0)
 
-	act(function()
-		moduleScript.Name = "Foo.storybook"
-		task.wait()
-	end)
+	moduleScript.Name = "Foo.storybook"
 
-	waitFor(function()
-		storybooks = getStorybooks()
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getStorybooks().available > 0
 
-		expect(#storybooks.available).toBe(1)
-		expect(#storybooks.unavailable).toBe(0)
+	storybooks = getStorybooks()
 
-		expect(storybooks.available[1]).toMatchObject({
-			name = "Foo",
-		})
-	end)
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
+
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Foo",
+	})
 end)
 
 test("removing a storybook from the DM triggers a re-render", function()
@@ -198,7 +196,6 @@ test("removing a storybook from the DM triggers a re-render", function()
 	]]
 
 	storybookModule.Parent = container
-	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -206,17 +203,23 @@ test("removing a storybook from the DM triggers a re-render", function()
 		wrapper = Wrapper,
 	})
 
-	act(function()
-		storybookModule:Destroy()
-		task.wait()
-	end)
+	local storybooks = get()
 
-	waitFor(function()
-		local storybooks = get()
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
 
-		expect(#storybooks.available).toBe(0)
-		expect(#storybooks.unavailable).toBe(0)
-	end)
+	storybookModule:Destroy()
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available == 0
+
+	storybooks = get()
+
+	expect(#storybooks.available).toBe(0)
+	expect(#storybooks.unavailable).toBe(0)
 end)
 
 test("re-renders on module changes", function()
@@ -229,9 +232,7 @@ test("re-renders on module changes", function()
 			}
 		}
 	]]
-
 	storybookModule.Parent = container
-	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
@@ -239,15 +240,18 @@ test("re-renders on module changes", function()
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
-		local storybooks = get()
-		expect(storybooks.available[1]).toMatchObject({
-			name = "Sample",
-		})
-	end)
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available > 0
 
-	act(function()
-		storybookModule.Source = [[
+	local storybooks = get()
+	expect(storybooks.available[1]).toMatchObject({
+		name = "Sample",
+	})
+
+	storybookModule.Source = [[
 			return {
 				name = "New Name",
 				storyRoots = {
@@ -255,14 +259,15 @@ test("re-renders on module changes", function()
 				}
 			}
 		]]
-		task.wait()
-	end)
 
-	waitFor(function()
-		local storybooks = get()
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until get() ~= storybooks
 
-		expect(storybooks.available[1]).toMatchObject({
-			name = "New Name",
-		})
-	end)
+	storybooks = get()
+	expect(storybooks.available[1]).toMatchObject({
+		name = "New Name",
+	})
 end)
