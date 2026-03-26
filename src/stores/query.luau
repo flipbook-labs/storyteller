@@ -71,7 +71,9 @@ local function query(options: QueryOptions): QueryResult
 			for _, match in matches do
 				if not changedConnections[match] then
 					changedConnections[match] = match.Changed:Connect(function()
-						print("Changed!")
+						setMatches(function(prev)
+							return table.clone(prev)
+						end)
 					end)
 				end
 			end
