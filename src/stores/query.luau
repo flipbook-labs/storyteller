@@ -19,6 +19,12 @@ local function hasSameMembers<T>(a: { T }, b: { T }): boolean
 	return true
 end
 
+local function weak<K, V>(obj: { [K]: V }): { [K]: V }
+	-- We lie and say there's no metatable so we can use generic for loops. Without
+	-- this the return value has to be wrapped in `pairs` for Luau to get the memo.
+	return setmetatable(obj, { __mode = "k" }) :: any
+end
+
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -46,7 +52,11 @@ local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
 
 	local connections: { RBXScriptConnection } = {}
-	local changedConnections: { [Instance]: RBXScriptConnection } = {}
+
+	-- We use weak keys so that if an Instance gets removed we release the hold
+	-- on its memory. When Instances are destroyed connections are too, so we
+	-- don't need to worry about those lingering.
+	local changedConnections = weak({} :: { [Instance]: RBXScriptConnection })
 
 	local isDestroyed = false
 
