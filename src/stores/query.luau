@@ -1,5 +1,24 @@
 local Charm = require("@pkg/Charm")
 
+local function hasSameMembers<T>(a: { T }, b: { T }): boolean
+	if #a ~= #b then
+		return false
+	end
+
+	local members: { [T]: true } = {}
+	for _, member in a do
+		members[member] = true
+	end
+
+	for _, member in b do
+		if not members[member] then
+			return false
+		end
+	end
+
+	return true
+end
+
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -17,16 +36,27 @@ export type QueryResult = {
 	-- Returns a snapshot of the current matched Instances
 	get: () -> { Instance },
 
+	getSet: () -> { [Instance]: true },
+
 	-- Destroys the query, disconnecting open connections and cleaning itself up.
 	destroy: () -> (),
 }
 
 local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
+
 	local connections: { RBXScriptConnection } = {}
 	local changedConnections: { [Instance]: RBXScriptConnection } = {}
 
 	local isDestroyed = false
+
+	local getMatchesSet = Charm.computed(function()
+		local set: { [Instance]: true } = {}
+		for _, instance in getMatches() do
+			set[instance] = true
+		end
+		return set
+	end)
 
 	local function destroy()
 		isDestroyed = true
@@ -65,8 +95,15 @@ local function query(options: QueryOptions): QueryResult
 	task.spawn(function()
 		while not isDestroyed do
 			local matches = queryDescendantsAsync()
+			local prevMatches = getMatches()
 
-			setMatches(matches)
+			setMatches(function(prev)
+				if hasSameMembers(prevMatches, matches) then
+					return prev
+				else
+					return matches
+				end
+			end)
 
 			for _, match in matches do
 				if not changedConnections[match] then
@@ -84,6 +121,7 @@ local function query(options: QueryOptions): QueryResult
 
 	return {
 		get = getMatches,
+		getSet = getMatchesSet,
 		destroy = destroy,
 	}
 end

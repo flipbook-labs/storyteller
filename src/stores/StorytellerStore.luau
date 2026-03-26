@@ -33,15 +33,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local storybookSignatures: { [ModuleScript]: string } = {}
-
 	local status: RunningStatus.RunningStatus = RunningStatus.None
-
-	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
-	self.getStoryModules = getStoryModules
-
-	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
-	self.getStorybookModules = getStorybookModules
 
 	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
@@ -49,9 +41,36 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
+	local storyModulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		matcher = isStoryModule,
+	})
+
+	local storybookModulesQuery = query({
+		root = root,
+		selector = "ModuleScript",
+		matcher = isStorybookModule,
+	})
+
+	-- These functions are just wrappers to cast `{ Instance }` to `{
+	-- ModuleScript }` so Luau gets the memo
+	local function storyModulesQueryGet()
+		return (storyModulesQuery.get() :: any) :: { ModuleScript }
+	end
+	local function storybookModulesQueryGet()
+		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
+	end
+	local function storybookModulesQueryGetSet()
+		return (storybookModulesQuery.getSet() :: any) :: { [ModuleScript]: true }
+	end
+
+	self.getStoryModules = storyModulesQueryGet
+	self.getStorybookModules = storybookModulesQueryGet
+
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
 		local orphans = {}
-		for _, storyModule in getStoryModules() do
+		for _, storyModule in storybookModulesQueryGet() do
 			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
 				table.insert(orphans, storyModule)
 			end
@@ -60,18 +79,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
-	local storyModulesQuery
-	local storybookModulesQuery
 	local disposeStorybookModuleObserver
-	local disposeStoryModuleObserver
-
-	local function getStorybookSignature(storybookModule: ModuleScript): string
-		return `{storybookModule:GetFullName()}|{storybookModule.Source}`
-	end
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
-		storybookSignatures[storybookModule] = getStorybookSignature(storybookModule)
 
 		local storybook: LoadedStorybook?
 		local success, result = pcall(function()
@@ -120,8 +131,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function unloadStorybook(storybookModule: ModuleScript)
-		storybookSignatures[storybookModule] = nil
-
 		Charm.batch(function()
 			setLoadedStorybooks(function(prev)
 				return Sift.List.filter(prev, function(storybook)
@@ -134,13 +143,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					return unavailableStorybook.storybook.source ~= storybookModule
 				end)
 			end)
-		end)
-	end
-
-	local function reloadStorybook(storybookModule: ModuleScript)
-		Charm.batch(function()
-			unloadStorybook(storybookModule)
-			loadStorybook(storybookModule)
 		end)
 	end
 
@@ -163,9 +165,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.clear(connections)
 
 		disposeStorybookModuleObserver()
-		disposeStoryModuleObserver()
-
-		table.clear(storybookSignatures)
 
 		status = RunningStatus.Stopped
 	end
@@ -177,77 +176,26 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		status = RunningStatus.Starting
 
-		-- Queries start running immediately so we create them in here to
-		-- ensure they only run when StorytellerStore is started. This fixes
-		-- a performance issue where queries were running immediately when
-		-- constructing a StorytellerStore which gets Storyteller stuck in a
-		-- loop when it is also used within a Storybook
-		storyModulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-			matcher = isStoryModule,
-		})
-
-		storybookModulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-			matcher = isStorybookModule,
-		})
-
-		-- These functions are just wrappers to cast `{ Instance }` to `{
-		-- ModuleScript }` so Luau gets the memo
-		local function storyModulesQueryGet()
-			return (storyModulesQuery.get() :: any) :: { ModuleScript }
-		end
-		local function storybookModulesQueryGet()
-			return (storybookModulesQuery.get() :: any) :: { ModuleScript }
-		end
-
-		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
-			assert(storybookModule:IsA("ModuleScript"), "Luau")
-
-			local signature = getStorybookSignature(storybookModule)
-
-			if storybookSignatures[storybookModule] ~= signature then
-				loadStorybook(storybookModule)
-			end
+		disposeStorybookModuleObserver = Charm.observe(storybookModulesQueryGetSet, function(_, storybookModule)
+			loadStorybook(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
-				reloadStorybook(storybookModule)
+				unloadStorybook(storybookModule)
+				loadStorybook(storybookModule)
 			end))
 
 			return function()
-				setStorybookModules(storybookModulesQueryGet())
 				unloadStorybook(storybookModule)
 				changedConn:Disconnect()
 			end
 		end)
 
-		disposeStoryModuleObserver = Charm.observe(storyModulesQuery.get, function(storyModule)
-			setStoryModules(storyModulesQueryGet())
-
-			local changedConn = storyModule.Changed:Connect(debounce(function(property)
-				print("storyModule Changed, property:", property)
-				setStoryModules(storyModulesQueryGet())
-			end))
-
-			return function()
-				setStoryModules(storyModulesQueryGet())
-				changedConn:Disconnect()
-			end
-		end)
-
-		connections = Sift.List.join(connections, {
-			root.Destroying:Connect(stop),
-			script.Destroying:Connect(stop),
-		})
+		table.insert(connections, root.Destroying:Connect(stop))
+		table.insert(connections, script.Destroying:Connect(stop))
 
 		local storybookModules = storybookModulesQueryGet()
 
 		Charm.batch(function()
-			setStoryModules(storyModulesQueryGet())
-			setStorybookModules(storybookModules)
-
 			for _, storybookModule in storybookModules do
 				loadStorybook(storybookModule)
 			end
