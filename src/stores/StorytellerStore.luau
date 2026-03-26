@@ -177,18 +177,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		status = RunningStatus.Starting
 
 		disposeStorybookModuleObserver = Charm.observe(storybookModulesQueryGetSet, function(_, storybookModule)
-			print("load", storybookModule:GetFullName())
 			loadStorybook(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
-				print("reload", storybookModule:GetFullName())
 				unloadStorybook(storybookModule)
 				loadStorybook(storybookModule)
 			end))
 
 			return function()
-				print("unload", storybookModule:GetFullName())
-
 				unloadStorybook(storybookModule)
 				changedConn:Disconnect()
 			end
