@@ -3,6 +3,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local RunningStatus = require("@root/enums/RunningStatus")
 local Sift = require("@pkg/Sift")
 
+local debounce = require("@root/debounce")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
@@ -32,7 +33,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local effects: { () -> () } = {}
 	local storybookSignatures: { [ModuleScript]: string } = {}
 
 	local status: RunningStatus.RunningStatus = RunningStatus.None
@@ -62,6 +62,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local storyModulesQuery
 	local storybookModulesQuery
+	local disposeStorybookModuleObserver
+	local disposeStoryModuleObserver
 
 	local function getStorybookSignature(storybookModule: ModuleScript): string
 		return `{storybookModule:GetFullName()}|{storybookModule.Source}`
@@ -160,10 +162,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		table.clear(connections)
 
-		for _, dispose in effects do
-			dispose()
-		end
-		table.clear(effects)
+		disposeStorybookModuleObserver()
+		disposeStoryModuleObserver()
 
 		table.clear(storybookSignatures)
 
@@ -203,99 +203,50 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return (storybookModulesQuery.get() :: any) :: { ModuleScript }
 		end
 
-		local function setStoryModulesIfChanged(nextModules: { ModuleScript })
-			if Sift.List.equals((getStoryModules() :: any) :: { Instance }, (nextModules :: any) :: { Instance }) then
-				return
+		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
+			assert(storybookModule:IsA("ModuleScript"), "Luau")
+
+			local signature = getStorybookSignature(storybookModule)
+
+			if storybookSignatures[storybookModule] ~= signature then
+				loadStorybook(storybookModule)
 			end
 
-			setStoryModules(nextModules)
-		end
+			local changedConn = storybookModule.Changed:Connect(debounce(function()
+				reloadStorybook(storybookModule)
+			end))
 
-		local function setStorybookModulesIfChanged(nextModules: { ModuleScript })
-			if
-				Sift.List.equals((getStorybookModules() :: any) :: { Instance }, (nextModules :: any) :: { Instance })
-			then
-				return
+			return function()
+				setStorybookModules(storybookModulesQueryGet())
+				unloadStorybook(storybookModule)
+				changedConn:Disconnect()
 			end
+		end)
 
-			setStorybookModules(nextModules)
-		end
+		disposeStoryModuleObserver = Charm.observe(storyModulesQuery.get, function(storyModule)
+			setStoryModules(storyModulesQueryGet())
 
-		local function syncStoryModules(force: boolean?)
-			local modules = storyModulesQueryGet()
-			if force then
-				setStoryModules(modules)
-			else
-				setStoryModulesIfChanged(modules)
+			local changedConn = storyModule.Changed:Connect(debounce(function(property)
+				print("storyModule Changed, property:", property)
+				setStoryModules(storyModulesQueryGet())
+			end))
+
+			return function()
+				setStoryModules(storyModulesQueryGet())
+				changedConn:Disconnect()
 			end
-		end
-
-		local function syncStorybookModules()
-			setStorybookModulesIfChanged(storybookModulesQueryGet())
-		end
+		end)
 
 		connections = Sift.List.join(connections, {
-			storyModulesQuery.added:Connect(function()
-				syncStoryModules()
-			end),
-
-			storyModulesQuery.changed:Connect(function()
-				-- A story can move within the DataModel without changing query
-				-- membership; publish the latest snapshot so orphaned stories
-				-- recompute against updated ancestry.
-				syncStoryModules(true)
-			end),
-
-			storyModulesQuery.removed:Connect(function()
-				syncStoryModules()
-			end),
-
-			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
-				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						loadStorybook(storybookModule)
-					end
-
-					syncStorybookModules()
-				end)
-			end),
-
-			storybookModulesQuery.changed:Connect(function(storybookModules)
-				Charm.batch(function()
-					syncStorybookModules()
-
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						local signature = getStorybookSignature(storybookModule)
-						if storybookSignatures[storybookModule] ~= signature then
-							reloadStorybook(storybookModule)
-						end
-					end
-				end)
-			end),
-
-			storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
-				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						unloadStorybook(storybookModule)
-					end
-
-					syncStorybookModules()
-				end)
-			end),
-
 			root.Destroying:Connect(stop),
-
 			script.Destroying:Connect(stop),
 		})
 
 		local storybookModules = storybookModulesQueryGet()
 
 		Charm.batch(function()
-			syncStoryModules()
-			setStorybookModulesIfChanged(storybookModules)
+			setStoryModules(storyModulesQueryGet())
+			setStorybookModules(storybookModules)
 
 			for _, storybookModule in storybookModules do
 				loadStorybook(storybookModule)

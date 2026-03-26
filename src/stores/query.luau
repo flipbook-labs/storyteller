@@ -1,3 +1,5 @@
+local Charm = require("@pkg/Charm")
+
 local debounce = require("@root/debounce")
 
 -- The amount of time (in milliseconds) that this function can spend processing
@@ -38,20 +40,6 @@ export type QueryResult = {
 
 	getQueueSize: () -> number,
 	flush: () -> (),
-
-	-- Fired any time a matched Instance is removed. This happens when...
-	-- 1. The Instance is parented to `root`
-	-- 2. The Instance is changed in such a way that starts matching the query
-	added: RBXScriptSignal<{ Instance }>,
-
-	-- Fired any time the matched Instances have their properties change.
-	changed: RBXScriptSignal<{ Instance }>,
-
-	-- Fired any time a matched Instance is removed. This happens when...
-	-- 1. The Instance is parented outside of `root`
-	-- 2. The Instance is destroyed
-	-- 3. The Instance is changed in such a way that it no longer matches
-	removed: RBXScriptSignal<{ Instance }>,
 }
 
 local function query(options: QueryOptions): QueryResult
@@ -66,22 +54,14 @@ local function query(options: QueryOptions): QueryResult
 
 	local seen = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
 
-	local matches: { Instance } = {}
+	local getMatches, setMatches = Charm.signal({} :: { Instance })
 	local connections: { RBXScriptConnection } = {}
 	local changedConnections: { [Instance]: RBXScriptConnection } = {}
 
 	local isDestroyed = false
 	local isProcessing = false
 
-	local added = Instance.new("BindableEvent")
-	local changed = Instance.new("BindableEvent")
-	local removed = Instance.new("BindableEvent")
-
 	local startProcessing
-
-	local function get()
-		return matches
-	end
 
 	local function getQueueSize()
 		return #queue
@@ -112,10 +92,6 @@ local function query(options: QueryOptions): QueryResult
 			connection:Disconnect()
 		end
 		table.clear(changedConnections)
-
-		added:Destroy()
-		changed:Destroy()
-		removed:Destroy()
 	end
 
 	local function flush()
@@ -124,7 +100,7 @@ local function query(options: QueryOptions): QueryResult
 		local changedInstances: { Instance } = {}
 
 		local function onInstanceRemoved(instance)
-			if table.find(matches, instance) then
+			if table.find(getMatches(), instance) then
 				table.insert(removedInstances, instance)
 			end
 
@@ -189,44 +165,32 @@ local function query(options: QueryOptions): QueryResult
 		end
 
 		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
-			local newMatches = table.clone(matches)
+			setMatches(function(prev)
+				local new = table.clone(prev)
 
-			for _, removedInstance in removedInstances do
-				local index = table.find(newMatches, removedInstance)
-				if index then
-					table.remove(newMatches, index)
-				end
-			end
-
-			for _, addedInstance in addedInstances do
-				if table.find(removedInstances, addedInstance) ~= nil then
-					continue
+				for _, removedInstance in removedInstances do
+					local index = table.find(new, removedInstance)
+					if index then
+						table.remove(new, index)
+					end
 				end
 
-				insertUnique(newMatches, addedInstance)
-			end
-
-			for _, changedInstance in changedInstances do
-				if table.find(removedInstances, changedInstance) ~= nil then
-					continue
+				for _, addedInstance in addedInstances do
+					if table.find(removedInstances, addedInstance) ~= nil then
+						continue
+					end
+					insertUnique(new, addedInstance)
 				end
 
-				insertUnique(newMatches, changedInstance)
-			end
+				for _, changedInstance in changedInstances do
+					if table.find(removedInstances, changedInstance) ~= nil then
+						continue
+					end
+					insertUnique(new, changedInstance)
+				end
 
-			matches = newMatches
-
-			if #addedInstances > 0 then
-				added:Fire(addedInstances)
-			end
-
-			if #changedInstances > 0 then
-				changed:Fire(changedInstances)
-			end
-
-			if #removedInstances > 0 then
-				removed:Fire(removedInstances)
-			end
+				return new
+			end)
 		end
 	end
 
@@ -259,6 +223,7 @@ local function query(options: QueryOptions): QueryResult
 		task.delay(0, stepAsync)
 	end
 
+	-- TODO: Try to remove this...
 	table.insert(
 		connections,
 		options.root.DescendantAdded:Connect(function(instance)
@@ -281,15 +246,11 @@ local function query(options: QueryOptions): QueryResult
 	end
 
 	return {
-		get = get,
+		get = getMatches,
 		destroy = destroy,
 
 		getQueueSize = getQueueSize,
 		flush = flush,
-
-		added = added.Event,
-		changed = changed.Event,
-		removed = removed.Event,
 	}
 end
 
