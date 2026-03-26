@@ -20,23 +20,16 @@ export type QueryResult = {
 
 	-- Destroys the query, disconnecting open connections and cleaning itself up.
 	destroy: () -> (),
+
+	start: () -> (),
+	stop: () -> (),
 }
 
 local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
 
-	local connections: { RBXScriptConnection } = {}
-
 	local isDestroyed = false
-
-	local function destroy()
-		isDestroyed = true
-
-		for _, connection in connections do
-			connection:Disconnect()
-		end
-		table.clear(connections)
-	end
+	local isRunning = false
 
 	local function queryDescendantsAsync()
 		local matches = {}
@@ -51,25 +44,49 @@ local function query(options: QueryOptions): QueryResult
 		return matches
 	end
 
-	task.spawn(function()
-		while not isDestroyed do
-			local matches = queryDescendantsAsync()
-
-			setMatches(function(prev)
-				if #Sift.List.differenceSymmetric(matches, prev) == 0 then
-					return prev
-				else
-					return matches
-				end
-			end)
-
-			task.wait()
+	local function start()
+		if isDestroyed or isRunning then
+			return
 		end
-	end)
+		isRunning = true
+
+		task.spawn(function()
+			while not isDestroyed and isRunning do
+				local matches = queryDescendantsAsync()
+
+				setMatches(function(prev)
+					if #Sift.List.differenceSymmetric(matches, prev) == 0 then
+						return prev
+					else
+						return matches
+					end
+				end)
+
+				task.wait()
+			end
+		end)
+	end
+
+	local function stop()
+		if isDestroyed or not isRunning then
+			return
+		end
+		isRunning = false
+	end
+
+	local function destroy()
+		stop()
+		isDestroyed = true
+	end
+
+	start()
 
 	return {
 		get = getMatches,
 		destroy = destroy,
+
+		start = start,
+		stop = stop,
 	}
 end
 
