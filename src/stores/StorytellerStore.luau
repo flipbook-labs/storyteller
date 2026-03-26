@@ -146,6 +146,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
+	local function reloadStorybook(storybookModule: ModuleScript)
+		Charm.batch(function()
+			unloadStorybook(storybookModule)
+			loadStorybook(storybookModule)
+		end)
+	end
+
 	local function stop()
 		if status == RunningStatus.Stopped or status == RunningStatus.Stopping then
 			return
@@ -180,8 +187,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			loadStorybook(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
-				unloadStorybook(storybookModule)
-				loadStorybook(storybookModule)
+				reloadStorybook(storybookModule)
 			end))
 
 			return function()
