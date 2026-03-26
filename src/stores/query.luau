@@ -6,12 +6,6 @@ local debounce = require("@root/debounce")
 -- the queue before deferring to a later frame.
 local FRAME_BUDGET_MS = 5
 
-local function insertUnique<T>(arr: { T }, item: T)
-	if not table.find(arr, item) then
-		table.insert(arr, item)
-	end
-end
-
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
 	root: Instance,
@@ -23,12 +17,6 @@ export type QueryOptions = {
 	-- This function is used for crafting specialized queries that the engine's
 	-- selector pattern can't satisfy.
 	matcher: ((instance: Instance) -> boolean)?,
-
-	-- This is called any time one of the matches changes.
-	--
-	-- This can be used for more granular updates where you may not want a
-	-- specific change to always trigger an update to the matches.
-	shouldUpdate: ((instance: Instance) -> boolean)?,
 }
 
 export type QueryResult = {
@@ -37,48 +25,14 @@ export type QueryResult = {
 
 	-- Destroys the query, disconnecting open connections and cleaning itself up.
 	destroy: () -> (),
-
-	getQueueSize: () -> number,
-	flush: () -> (),
 }
 
 local function query(options: QueryOptions): QueryResult
-	-- We keep track of an ordered queue and a dict of each queued Instance for
-	-- fast lookups.
-	--
-	--  Also note that we use weak tables when keying by Instance to ensure we
-	-- don't hold a lock on those instances (and leak memory) if we forget to
-	-- remove them from the dict
-	local queue: { Instance } = {}
-	local queued = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
-
-	local seen = setmetatable({} :: { [Instance]: true }, { __mode = "k" })
-
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
 	local connections: { RBXScriptConnection } = {}
 	local changedConnections: { [Instance]: RBXScriptConnection } = {}
 
 	local isDestroyed = false
-	local isProcessing = false
-
-	local startProcessing
-
-	local function getQueueSize()
-		return #queue
-	end
-
-	local function enqueue(instance: Instance)
-		if queued[instance] then
-			return
-		end
-
-		queued[instance] = true
-		table.insert(queue, instance)
-
-		if not isProcessing then
-			startProcessing()
-		end
-	end
 
 	local function destroy()
 		isDestroyed = true
@@ -94,163 +48,63 @@ local function query(options: QueryOptions): QueryResult
 		table.clear(changedConnections)
 	end
 
-	local function flush()
-		local addedInstances: { Instance } = {}
-		local removedInstances: { Instance } = {}
-		local changedInstances: { Instance } = {}
+	-- Why do I feel like all of this is insane?
+	-- 1. `options.selector` is required, so loop over that subset of instances you'll ever have to deal with
+	-- 2.
 
-		local function onInstanceRemoved(instance)
-			if table.find(getMatches(), instance) then
-				table.insert(removedInstances, instance)
-			end
+	local function queryDescendantsAsync()
+		local matches = {}
 
-			local connection = changedConnections[instance]
-			if connection then
-				connection:Disconnect()
-				changedConnections[instance] = nil
-			end
+		-- If we need to make performance improvements with a `seen` object then
+		-- we can, but for now let's see how far we can get without one
 
-			-- Clear `seen` so the instance is treated as fresh if it
-			-- re-enters the root later.
-			seen[instance] = nil
-		end
+		local startTime = os.clock()
 
-		local function processInstance(instance: Instance)
+		for _, instance in options.root:QueryDescendants(options.selector) do
 			local isDescendant = instance:IsDescendantOf(options.root)
 
 			if not isDescendant then
-				onInstanceRemoved(instance)
-				return
+				continue
 			end
 
 			local isMatch = if options.matcher then options.matcher(instance) else true
 
-			if seen[instance] then
-				if isMatch then
-					local shouldUpdate = if options.shouldUpdate then options.shouldUpdate(instance) else true
-
-					if shouldUpdate then
-						table.insert(changedInstances, instance)
-					end
-				else
-					onInstanceRemoved(instance)
-				end
-			else
-				seen[instance] = true
-
-				changedConnections[instance] = instance.Changed:Connect(debounce(function()
-					enqueue(instance)
-				end))
-
-				if isMatch then
-					table.insert(addedInstances, instance)
-				end
-			end
-		end
-
-		local startTime = os.clock()
-		while #queue > 0 do
-			local candidate = table.remove(queue, 1)
-
-			if candidate then
-				queued[candidate] = nil
-				processInstance(candidate)
+			if isMatch then
+				table.insert(matches, instance)
 			end
 
 			local elapsed = os.clock() - startTime
 
+			-- We may not even need this in practice
 			if elapsed * 1000 > FRAME_BUDGET_MS then
-				break
+				task.wait()
 			end
 		end
 
-		if #addedInstances > 0 or #changedInstances > 0 or #removedInstances > 0 then
-			setMatches(function(prev)
-				local new = table.clone(prev)
-
-				for _, removedInstance in removedInstances do
-					local index = table.find(new, removedInstance)
-					if index then
-						table.remove(new, index)
-					end
-				end
-
-				for _, addedInstance in addedInstances do
-					if table.find(removedInstances, addedInstance) ~= nil then
-						continue
-					end
-					insertUnique(new, addedInstance)
-				end
-
-				for _, changedInstance in changedInstances do
-					if table.find(removedInstances, changedInstance) ~= nil then
-						continue
-					end
-					insertUnique(new, changedInstance)
-				end
-
-				return new
-			end)
-		end
+		return matches
 	end
 
-	function startProcessing()
-		local function stepAsync()
-			if #queue == 0 or isDestroyed then
-				isProcessing = false
-				return
+	task.spawn(function()
+		while not isDestroyed do
+			local matches = queryDescendantsAsync()
+
+			setMatches(matches)
+
+			for _, match in matches do
+				if not changedConnections[match] then
+					changedConnections[match] = match.Changed:Connect(function()
+						print("Changed!")
+					end)
+				end
 			end
 
-			isProcessing = true
-			local prevQueueSize = #queue
-			flush()
-
-			-- Keep retrying while queue has work. Some candidates are intentionally
-			-- deferred while external locks are active.
-			if #queue > 0 then
-				if #queue < prevQueueSize then
-					task.delay(0, stepAsync)
-				else
-					-- No progress this frame; back off to avoid hot-looping.
-					task.delay(1 / 60, stepAsync)
-				end
-			else
-				isProcessing = false
-			end
+			task.wait()
 		end
-
-		-- Defer to avoid draining queue synchronously within enqueue().
-		task.delay(0, stepAsync)
-	end
-
-	-- TODO: Try to remove this...
-	table.insert(
-		connections,
-		options.root.DescendantAdded:Connect(function(instance)
-			enqueue(instance)
-		end)
-	)
-
-	for _, match in options.root:QueryDescendants(options.selector) do
-		if not queued[match] then
-			queued[match] = true
-			table.insert(queue, match)
-		end
-	end
-
-	if #queue > 0 then
-		flush()
-		if #queue > 0 and not isProcessing then
-			startProcessing()
-		end
-	end
+	end)
 
 	return {
 		get = getMatches,
 		destroy = destroy,
-
-		getQueueSize = getQueueSize,
-		flush = flush,
 	}
 end
 
