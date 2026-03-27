@@ -2,6 +2,7 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
+local debounce = require("@root/debounce")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
@@ -14,7 +15,8 @@ type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
 export type StorytellerStore = {
-	init: () -> (),
+	start: () -> (),
+	stop: () -> (),
 	destroy: () -> (),
 
 	getLoadedStorybooks: () -> { LoadedStorybook },
@@ -31,11 +33,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local effects: { () -> () } = {}
+	local disposeStorybookModuleObserver
+	local disposeStorybookModulesSubscription
+	local disposeStoryModulesSubscription
 
 	local isDestroyed = false
-	local isInitializing = false
-	local isInitialized = false
+	local isRunning = false
 
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
@@ -52,6 +55,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
 		local orphans = {}
 		for _, storyModule in getStoryModules() do
+			assert(storyModule:IsA("ModuleScript"), "Luau")
+
 			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
 				table.insert(orphans, storyModule)
 			end
@@ -71,15 +76,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
 	})
-
-	-- These functions are just wrappers to cast `{ Instance }` to `{
-	-- ModuleScript }` so Luau gets the memo
-	local function storyModulesQueryGet()
-		return (storyModulesQuery.get() :: any) :: { ModuleScript }
-	end
-	local function storybookModulesQueryGet()
-		return (storybookModulesQuery.get() :: any) :: { ModuleScript }
-	end
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
@@ -153,98 +149,82 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
+	local function stop()
+		if isDestroyed or not isRunning then
+			return
+		end
+		isRunning = false
+
+		storyModulesQuery.stop()
+		storybookModulesQuery.stop()
+
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		table.clear(connections)
+
+		disposeStorybookModuleObserver()
+		disposeStorybookModulesSubscription()
+		disposeStoryModulesSubscription()
+	end
+	self.stop = stop
+
+	local function start()
+		if isDestroyed or isRunning then
+			return
+		end
+		isRunning = true
+
+		disposeStoryModulesSubscription = Charm.listen(storyModulesQuery.get, function(storyModules)
+			setStoryModules((storyModules :: any) :: { ModuleScript })
+		end)
+
+		disposeStorybookModulesSubscription = Charm.listen(storybookModulesQuery.get, function(storybookModules)
+			setStorybookModules((storybookModules :: any) :: { ModuleScript })
+		end)
+
+		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
+			assert(storybookModule:IsA("ModuleScript"), "Luau")
+
+			loadStorybook(storybookModule)
+
+			local changedConn = storybookModule.Changed:Connect(debounce(function()
+				reloadStorybook(storybookModule)
+			end))
+
+			return function()
+				unloadStorybook(storybookModule)
+				changedConn:Disconnect()
+			end
+		end)
+
+		storyModulesQuery.start()
+		storybookModulesQuery.start()
+
+		table.insert(connections, root.Destroying:Connect(stop))
+		table.insert(connections, script.Destroying:Connect(stop))
+
+		Charm.batch(function()
+			for _, storybookModule in storybookModulesQuery.get() do
+				assert(storybookModule:IsA("ModuleScript"), "Luau")
+
+				loadStorybook(storybookModule)
+			end
+		end)
+	end
+	self.start = start
+
 	local function destroy()
 		if isDestroyed then
 			return
 		end
 
-		storybookModulesQuery.destroy()
-		storyModulesQuery.destroy()
-
-		for _, connection in connections do
-			connection:Disconnect()
-		end
-
-		for _, dispose in effects do
-			dispose()
-		end
-
 		isDestroyed = true
+		stop()
+		storyModulesQuery.destroy()
+		storybookModulesQuery.destroy()
 	end
 	self.destroy = destroy
-
-	local function init()
-		if isInitializing or isInitialized then
-			return
-		end
-		isInitializing = true
-
-		connections = Sift.List.join(connections, {
-			storyModulesQuery.added:Connect(function()
-				setStoryModules(storyModulesQueryGet())
-			end),
-
-			storyModulesQuery.changed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
-			end),
-
-			storyModulesQuery.removed:Connect(function()
-				setStoryModules(storyModulesQueryGet())
-			end),
-
-			storybookModulesQuery.added:Connect(function(storybookModules: { Instance })
-				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						loadStorybook(storybookModule)
-					end
-
-					setStorybookModules(storybookModulesQueryGet())
-				end)
-			end),
-
-			storybookModulesQuery.changed:Connect(function(storybookModules)
-				Charm.batch(function()
-					setStorybookModules(storybookModulesQueryGet())
-
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						reloadStorybook(storybookModule)
-					end
-				end)
-			end),
-
-			storybookModulesQuery.removed:Connect(function(storybookModules: { Instance })
-				Charm.batch(function()
-					for _, storybookModule in storybookModules do
-						assert(storybookModule:IsA("ModuleScript"), "Luau")
-						unloadStorybook(storybookModule)
-					end
-
-					setStorybookModules(storybookModulesQueryGet())
-				end)
-			end),
-
-			root.Destroying:Connect(destroy),
-
-			script.Destroying:Connect(destroy),
-		})
-
-		local storybookModules = storybookModulesQueryGet()
-
-		Charm.batch(function()
-			setStoryModules(storyModulesQueryGet())
-			setStorybookModules(storybookModules)
-
-			for _, storybookModule in storybookModules do
-				loadStorybook(storybookModule)
-			end
-		end)
-
-		isInitialized = true
-		isInitializing = false
-	end
-	self.init = init
 
 	return self
 end

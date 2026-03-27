@@ -1,8 +1,13 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local StorytellerContext = require("@root/react/StorytellerContext")
+local StorytellerStore = require("@root/stores/StorytellerStore")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
+local waitFor = require("@root/test-utils/waitFor")
+
 local useStorybooks = require("./useStorybooks")
 
 local afterEach = JestGlobals.afterEach
@@ -15,13 +20,22 @@ local act = ReactRoblox.act
 type LoadedStorybook = types.LoadedStorybook
 
 local container: Folder
+local store: StorytellerStore.StorytellerStore
+
+local function Wrapper(props): React.ReactNode
+	return React.createElement(StorytellerContext.StorytellerProvider, {
+		store = store,
+	}, props.children)
+end
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	container.Parent = game
+
+	store = StorytellerStore.new(container)
 end)
 
 afterEach(function()
+	store.destroy()
 	container:Destroy()
 end)
 
@@ -41,16 +55,20 @@ test("loads storybook modules", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	local storybooks = get()
-
-	expect(#storybooks.available).toBe(1)
-	expect(#storybooks.unavailable).toBe(0)
-
-	expect(storybooks.available[1]).toMatchObject({
-		name = "Sample",
+	end, {
+		wrapper = Wrapper,
 	})
+
+	waitFor(function()
+		local storybooks = get()
+
+		expect(#storybooks.available).toBe(1)
+		expect(#storybooks.unavailable).toBe(0)
+
+		expect(storybooks.available[1]).toMatchObject({
+			name = "Sample",
+		})
+	end)
 end)
 
 test("storybooks with syntax errors are marked unavailable", function()
@@ -67,19 +85,23 @@ test("storybooks with syntax errors are marked unavailable", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	local storybooks = get()
-
-	expect(#storybooks.available).toBe(0)
-	expect(#storybooks.unavailable).toBe(1)
-
-	expect(storybooks.unavailable[1]).toMatchObject({
-		problem = expect.any("string"),
-		storybook = {
-			name = storybookModule.Name,
-		},
+	end, {
+		wrapper = Wrapper,
 	})
+
+	waitFor(function()
+		local storybooks = get()
+
+		expect(#storybooks.available).toBe(0)
+		expect(#storybooks.unavailable).toBe(1)
+
+		expect(storybooks.unavailable[1]).toMatchObject({
+			problem = expect.any("string"),
+			storybook = {
+				name = storybookModule.Name,
+			},
+		})
+	end)
 end)
 
 test("adding a new storybook to the DM triggers a re-render", function()
@@ -95,17 +117,22 @@ test("adding a new storybook to the DM triggers a re-render", function()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	local storybooks = get()
 
 	expect(#storybooks.available).toBe(0)
 	expect(#storybooks.unavailable).toBe(0)
 
-	act(function()
-		storybookModule.Parent = container
-		task.wait()
-	end)
+	storybookModule.Parent = container
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available > 0
 
 	storybooks = get()
 
@@ -120,7 +147,9 @@ end)
 test("renaming a ModuleScript to turn it into a Storybook updates as expected", function()
 	local getStorybooks = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	local moduleScript = Instance.new("ModuleScript")
 	moduleScript.Source = [[
@@ -130,21 +159,20 @@ test("renaming a ModuleScript to turn it into a Storybook updates as expected", 
 			}
 		}
 	]]
-
-	act(function()
-		moduleScript.Parent = container
-		task.wait()
-	end)
+	moduleScript.Parent = container
 
 	local storybooks = getStorybooks()
 
 	expect(#storybooks.available).toBe(0)
 	expect(#storybooks.unavailable).toBe(0)
 
-	act(function()
-		moduleScript.Name = "Foo.storybook"
-		task.wait()
-	end)
+	moduleScript.Name = "Foo.storybook"
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #getStorybooks().available > 0
 
 	storybooks = getStorybooks()
 
@@ -168,18 +196,27 @@ test("removing a storybook from the DM triggers a re-render", function()
 	]]
 
 	storybookModule.Parent = container
-	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
-
-	act(function()
-		storybookModule:Destroy()
-		task.wait()
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
 
 	local storybooks = get()
+
+	expect(#storybooks.available).toBe(1)
+	expect(#storybooks.unavailable).toBe(0)
+
+	storybookModule:Destroy()
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available == 0
+
+	storybooks = get()
 
 	expect(#storybooks.available).toBe(0)
 	expect(#storybooks.unavailable).toBe(0)
@@ -195,22 +232,26 @@ test("re-renders on module changes", function()
 			}
 		}
 	]]
-
 	storybookModule.Parent = container
-	task.wait()
 
 	local get = renderHook(function()
 		return useStorybooks(container)
-	end)
+	end, {
+		wrapper = Wrapper,
+	})
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until #get().available > 0
 
 	local storybooks = get()
-
 	expect(storybooks.available[1]).toMatchObject({
 		name = "Sample",
 	})
 
-	act(function()
-		storybookModule.Source = [[
+	storybookModule.Source = [[
 			return {
 				name = "New Name",
 				storyRoots = {
@@ -218,11 +259,14 @@ test("re-renders on module changes", function()
 				}
 			}
 		]]
-		task.wait()
-	end)
+
+	repeat
+		act(function()
+			task.wait()
+		end)
+	until get() ~= storybooks
 
 	storybooks = get()
-
 	expect(storybooks.available[1]).toMatchObject({
 		name = "New Name",
 	})
