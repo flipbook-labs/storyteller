@@ -49,7 +49,7 @@ return {
 	ControlType = require("@self/controls/enums/ControlType"),
 
 	-- Validation
-	isStorybookModule = require("@self/isStoryModule"),
+	isStorybookModule = require("@self/isStorybookModule"),
 	isStoryModule = require("@self/isStoryModule"),
 
 	-- Discovery
