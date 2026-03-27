@@ -14,6 +14,15 @@ type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
+local function shouldProcessModule(instance: Instance)
+	-- ModuleLoader holds a lock on the module it's requiring because it has to
+	-- do some weird indirection with cloning, which naturally results in
+	-- DataModel events. We do not want a module being required to trigger query
+	-- recomputations, so Storyteller needs to pause processing until the lock
+	-- is removed
+	return not ModuleLoader.isLocked(instance)
+end
+
 export type StorytellerStore = {
 	start: () -> (),
 	stop: () -> (),
@@ -69,12 +78,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStoryModule,
+		shouldProcess = shouldProcessModule,
 	})
 
 	local storybookModulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
+		shouldProcess = shouldProcessModule,
 	})
 
 	local function loadStorybook(storybookModule: ModuleScript)
@@ -114,7 +125,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					problem = result,
 					storybook = {
 						name = storybookModule.Name,
-						loader = loader,
 						source = storybookModule,
 						storyRoots = {},
 					},

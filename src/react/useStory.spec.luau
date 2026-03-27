@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
@@ -51,7 +50,6 @@ beforeEach(function()
 
 	storybook = {
 		name = "Storybook",
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		storyRoots = { container },
 	}

@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 
 local loadStoryModule = require("./loadStoryModule")
 local types = require("@root/types")
@@ -19,14 +18,12 @@ beforeEach(function()
 	mockPlainStorybook = {
 		name = "Plain Storybook",
 		storyRoots = {},
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 	}
 
 	mockRoactStorybook = {
 		name = "Roact Storybook",
 		storyRoots = {},
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		packages = {
 			Roact = {
@@ -40,7 +37,6 @@ beforeEach(function()
 	mockReactStorybook = {
 		name = "React Storybook",
 		storyRoots = {},
-		loader = ModuleLoader.new(),
 		source = Instance.new("ModuleScript"),
 		packages = {
 			React = {
@@ -161,7 +157,6 @@ describe("legacy support", function()
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
 			storyRoots = {},
-			loader = ModuleLoader.new(),
 			source = Instance.new("ModuleScript"),
 		}
 
@@ -188,7 +183,6 @@ describe("legacy support", function()
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
 			storyRoots = {},
-			loader = ModuleLoader.new(),
 			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
@@ -224,7 +218,6 @@ describe("roblox internal", function()
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
 			storyRoots = {},
-			loader = ModuleLoader.new(),
 			source = Instance.new("ModuleScript"),
 			packages = {},
 		}
