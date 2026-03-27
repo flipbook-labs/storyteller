@@ -17,8 +17,6 @@ local function isReactElement(maybeElement: any): boolean
 end
 
 local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
-	print("createReactRenderer")
-	print("React", packages.React)
 	local React = packages.React
 	local ReactRoblox = packages.ReactRoblox
 
@@ -49,12 +47,8 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 	end
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
-		print("render to", container)
-
 		root = ReactRoblox.createRoot(container)
 		reactRender(story, props)
-
-		print("#container:GetChildren()", #container:GetChildren())
 	end
 
 	local function update(props: StoryProps)

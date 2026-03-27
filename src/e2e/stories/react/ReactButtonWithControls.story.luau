@@ -14,15 +14,9 @@ type Props = {
 	controls: typeof(controls),
 }
 
-print(script, "LOADED")
-
 return {
 	controls = controls,
 	story = function(props: Props)
-		print("props")
-		for k, v in props do
-			print(k, v)
-		end
 		return React.createElement(ReactButton, {
 			isDisabled = props.controls.isDisabled,
 		})
