@@ -66,17 +66,7 @@ type RenderLifecycle = types.RenderLifecycle
 	@within Storyteller
 ]=]
 local function render<T>(container: Instance, story: LoadedStory<T>, initialExtraProps: ExtraStoryProps?): RenderLifecycle
-	print("render")
 	local renderer = createRendererForStory(story)
-
-	print("story.packages", story.packages)
-	if story.packages then
-		print("story React", story.packages.React)
-	end
-	print("story.storybook", story.storybook)
-	if story.storybook.packages then
-		print("storybook React", story.storybook.packages.React)
-	end
 
 	local prevProps: StoryProps?
 
