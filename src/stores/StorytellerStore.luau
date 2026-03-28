@@ -89,7 +89,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	})
 
 	local function loadStorybook(storybookModule: ModuleScript)
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createProxyModuleLoader()
 
 		local storybook: LoadedStorybook?
 		local success, result = pcall(function()

@@ -16,7 +16,7 @@ local function createMockStorybookModule(source: string): ModuleScript
 end
 
 test("load a storybook module as a table", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createProxyModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 			return {
 				name = "Sample",
@@ -33,7 +33,7 @@ test("load a storybook module as a table", function()
 end)
 
 test("use the name of the storybook module by default", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createProxyModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			storyRoots = {}
@@ -47,7 +47,7 @@ test("use the name of the storybook module by default", function()
 end)
 
 test("nameless storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createProxyModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			storyRoots = {}
@@ -61,7 +61,7 @@ test("nameless storybook", function()
 end)
 
 test("generic failures for storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createProxyModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 		}
@@ -76,7 +76,7 @@ test("generic failures for storybook", function()
 end)
 
 test("malformed storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createProxyModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			name = false,
@@ -94,7 +94,7 @@ end)
 
 describe("legacy support", function()
 	test("packages attached to the storybook get grouped in `packages` object", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createProxyModuleLoader()
 
 		local storybookModule = createMockStorybookModule([[
 			return {
@@ -132,7 +132,7 @@ describe("roblox internal", function()
 	end)
 
 	test("grouping storybooks", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createProxyModuleLoader()
 
 		local storybookModule = createMockStorybookModule([[
 			return {

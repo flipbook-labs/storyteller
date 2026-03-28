@@ -30,12 +30,8 @@ type LoadedStory<T> = types.LoadedStory<T>
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStoryModule<T>(
-	storyModule: ModuleScript,
-	storybook: LoadedStorybook,
-	loader: ModuleLoader.ModuleLoader?
-): LoadedStory<T>
-	local loaderOrDefault = if loader then loader else ModuleLoader.new()
+local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedStorybook, loader: any): LoadedStory<T>
+	local loaderOrDefault = if loader then loader else ModuleLoader.createProxyModuleLoader()
 
 	-- Cram the storybook's source into the loader so that any packages the
 	-- stories are supposed to use get pre-cached.
@@ -49,12 +45,11 @@ local function loadStoryModule<T>(
 	pcall(function()
 		freshStorybook = loadStorybookModule(storybook.source, loaderOrDefault)
 	end)
-
-	print("freshStorybook", freshStorybook)
+	loaderOrDefault.patch(storybook.source, freshStorybook)
 
 	local requiredStory
 	local success, err = pcall(function()
-		requiredStory = loaderOrDefault:require(storyModule)
+		requiredStory = loaderOrDefault.require(storyModule)
 	end)
 
 	if not success then

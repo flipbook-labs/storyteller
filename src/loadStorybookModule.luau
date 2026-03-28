@@ -21,11 +21,11 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
-	local loader = if providedLoader then providedLoader else ModuleLoader.new()
+local function loadStorybookModule(module: ModuleScript, providedLoader: any): LoadedStorybook
+	local loader = if providedLoader then providedLoader else ModuleLoader.createProxyModuleLoader()
 
 	local wasRequired, result = pcall(function()
-		return loader:require(module)
+		return loader.require(module)
 	end)
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)

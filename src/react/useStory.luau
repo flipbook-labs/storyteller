@@ -65,7 +65,7 @@ local function useStory(module: ModuleScript, storybook: types.LoadedStorybook):
 		local connections: { RBXScriptConnection } = {}
 
 		local function loadStory()
-			local loader = ModuleLoader.new()
+			local loader = ModuleLoader.createProxyModuleLoader()
 
 			local newStory
 			local success, result = pcall(function()
