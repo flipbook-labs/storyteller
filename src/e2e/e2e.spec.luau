@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local ControlTypes = require("@root/controls/ControlTypes")
@@ -29,18 +28,7 @@ test("pin number of storybooks", function()
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
-	-- FIXME: This is needed to get around a bug with React renders. I'm hoping
-	-- to keep this for now, but in the future this should really be a
-	-- ModuleLoader instance
-	local mockModuleLoader = (
-		{
-			require = function(_self, path)
-				return (require :: any)(path)
-			end,
-		} :: any
-	) :: ModuleLoader.ModuleLoader
-
-	local storybook = loadStorybookModule(storybookModule, mockModuleLoader)
+	local storybook = loadStorybookModule(storybookModule)
 	local storyModules = findStoryModulesForStorybook(storybook)
 	local container
 
