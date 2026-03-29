@@ -21,14 +21,18 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStorybookModule(module: ModuleScript, providedLoader: any): LoadedStorybook
+local function loadStorybookModule(
+	module: ModuleScript,
+	providedLoader: ModuleLoader.ProxyModuleLoader?
+): LoadedStorybook
 	local loader = if providedLoader then providedLoader else ModuleLoader.createProxyModuleLoader()
 
-	local wasRequired, result = pcall(function()
-		return loader.require(module)
+	local result
+	local wasRequired, err = pcall(function()
+		result = loader.require(module)
 	end)
 
-	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
+	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
 
 	do -- Roblox internal. This behavior may be removed without notice.
 		if not result.storyRoots and result.storyRoot then

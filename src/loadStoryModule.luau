@@ -30,8 +30,12 @@ type LoadedStory<T> = types.LoadedStory<T>
 	@tag Module Loading
 	@within Storyteller
 ]=]
-local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedStorybook, loader: any): LoadedStory<T>
-	local loaderOrDefault = if loader then loader else ModuleLoader.createProxyModuleLoader()
+local function loadStoryModule<T>(
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+	providedLoader: ModuleLoader.ProxyModuleLoader?
+): LoadedStory<T>
+	local loader = if providedLoader then providedLoader else ModuleLoader.createProxyModuleLoader()
 
 	-- Cram the storybook's source into the loader so that any packages the
 	-- stories are supposed to use get pre-cached.
@@ -43,13 +47,12 @@ local function loadStoryModule<T>(storyModule: ModuleScript, storybook: LoadedSt
 	-- will cause a story to fail loading if it's storybook has a problem.
 	local freshStorybook: LoadedStorybook?
 	pcall(function()
-		freshStorybook = loadStorybookModule(storybook.source, loaderOrDefault)
+		freshStorybook = loadStorybookModule(storybook.source, loader)
 	end)
-	loaderOrDefault.patch(storybook.source, freshStorybook)
 
 	local requiredStory
 	local success, err = pcall(function()
-		requiredStory = loaderOrDefault.require(storyModule)
+		requiredStory = loader.require(storyModule)
 	end)
 
 	if not success then
