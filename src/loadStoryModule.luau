@@ -10,6 +10,7 @@ local types = require("@root/types")
 type StoryPackages = types.StoryPackages
 type LoadedStorybook = types.LoadedStorybook
 type LoadedStory<T> = types.LoadedStory<T>
+type ModuleLoader = ModuleLoader.ModuleLoader
 
 --[=[
 	Loads the source of a Story module.
@@ -33,9 +34,9 @@ type LoadedStory<T> = types.LoadedStory<T>
 local function loadStoryModule<T>(
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
-	providedLoader: ModuleLoader.ProxyModuleLoader?
+	providedLoader: ModuleLoader?
 ): LoadedStory<T>
-	local loader = if providedLoader then providedLoader else ModuleLoader.createProxyModuleLoader()
+	local loader = if providedLoader then providedLoader else ModuleLoader.new()
 
 	-- Cram the storybook's source into the loader so that any packages the
 	-- stories are supposed to use get pre-cached.
@@ -50,9 +51,11 @@ local function loadStoryModule<T>(
 		freshStorybook = loadStorybookModule(storybook.source, loader)
 	end)
 
+	local loadedStorybook = if freshStorybook then freshStorybook else storybook
+
 	local requiredStory
 	local success, err = pcall(function()
-		requiredStory = loader.require(storyModule)
+		requiredStory = loader:require(storyModule)
 	end)
 
 	if not success then
@@ -108,12 +111,12 @@ local function loadStoryModule<T>(
 
 	local packages = migrateLegacyPackages(story)
 	if not packages then
-		packages = if freshStorybook then freshStorybook.packages else storybook.packages
+		packages = loadedStorybook.packages
 	end
 
 	local loadedStory: types.LoadedStory<T> = {
 		name = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
-		storybook = storybook,
+		storybook = loadedStorybook,
 		source = storyModule,
 		story = story.story,
 		packages = if isLegacyStory then {} else packages,

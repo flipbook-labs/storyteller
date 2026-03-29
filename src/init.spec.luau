@@ -15,11 +15,11 @@ test("Storyteller can be required", function()
 end)
 
 test("Storyteller can be required in a ModuleLoader context", function()
-	local loader = ModuleLoader.createProxyModuleLoader()
+	local loader = ModuleLoader.new()
 
 	local Storyteller
 	local success = pcall(function()
-		Storyteller = loader.require(script.Parent)
+		Storyteller = loader:require(script.Parent)
 	end)
 
 	expect(success).toBe(true)
