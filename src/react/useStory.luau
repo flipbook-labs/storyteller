@@ -62,7 +62,7 @@ local function useStory(module: ModuleScript, storybook: types.LoadedStorybook):
 	local err, setErr = useState(nil :: string?)
 
 	useEffect(function()
-		local connections: { RBXScriptConnection } = {}
+		local changedConn: RBXScriptConnection
 
 		local function loadStory()
 			local loader = ModuleLoader.new()
@@ -75,20 +75,16 @@ local function useStory(module: ModuleScript, storybook: types.LoadedStorybook):
 			setStory(if success then newStory else nil)
 			setErr(if success then nil else result)
 
-			local conn
-			conn = loader.loadedModuleChanged:Connect(function()
+			changedConn = loader.loadedModuleChanged:Connect(function()
 				loadStory()
-				conn:Disconnect()
+				changedConn:Disconnect()
 			end)
-			table.insert(connections, conn)
 		end
 
 		loadStory()
 
 		return function()
-			for _, connection in connections do
-				connection:Disconnect()
-			end
+			changedConn:Disconnect()
 		end
 	end, { module, storybook } :: { unknown })
 
