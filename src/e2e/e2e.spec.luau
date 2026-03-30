@@ -1,5 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ReactRoblox = require("@pkg/ReactRoblox")
 
 local ControlTypes = require("@root/controls/ControlTypes")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
@@ -7,13 +6,13 @@ local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local describeEach = describe.each :: any
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local act = ReactRoblox.act
 
 type StoryControls = ControlTypes.StoryControls
 
@@ -36,12 +35,14 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		container = Instance.new("Folder")
 	end)
 
-	local function afterRender()
-		if storybookModule == script.Parent.storybooks["React.storybook"] then
-			act(function()
+	local function afterRender(story: types.Story<any>)
+		local packages = if story then story.packages else storybook.packages
+
+		if packages and packages.React and packages.ReactRoblox then
+			packages.ReactRoblox.act(function()
 				task.wait()
 			end)
-		elseif storybookModule == script.Parent.storybooks["Fusion.storybook"] then
+		elseif packages and packages.Fusion then
 			task.wait()
 		end
 	end
@@ -72,7 +73,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			local story = loadStoryModule(storyModule, storybook)
 			local lifecycle = render(container, story)
 
-			afterRender()
+			afterRender(story)
 
 			expect(#container:GetChildren()).toBe(1)
 
@@ -87,7 +88,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			if story.controls then
 				local lifecycle = render(container, story)
 
-				afterRender()
+				afterRender(story)
 
 				expect(#container:GetChildren()).toBe(1)
 
@@ -100,7 +101,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 					isDisabled = true,
 				} :: StoryControls)
 
-				afterRender()
+				afterRender(story)
 
 				expect(#container:GetChildren()).toBe(1)
 
