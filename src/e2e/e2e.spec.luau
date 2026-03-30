@@ -1,6 +1,4 @@
 local JestGlobals = require("@pkg/JestGlobals")
-local ModuleLoader = require("@pkg/ModuleLoader")
-local ReactRoblox = require("@pkg/ReactRoblox")
 
 local ControlTypes = require("@root/controls/ControlTypes")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
@@ -8,13 +6,13 @@ local findStorybookModules = require("@root/findStorybookModules")
 local loadStoryModule = require("@root/loadStoryModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local describeEach = describe.each :: any
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local act = ReactRoblox.act
 
 type StoryControls = ControlTypes.StoryControls
 
@@ -29,18 +27,7 @@ test("pin number of storybooks", function()
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
-	-- FIXME: This is needed to get around a bug with React renders. I'm hoping
-	-- to keep this for now, but in the future this should really be a
-	-- ModuleLoader instance
-	local mockModuleLoader = (
-		{
-			require = function(_self, path)
-				return (require :: any)(path)
-			end,
-		} :: any
-	) :: ModuleLoader.ModuleLoader
-
-	local storybook = loadStorybookModule(storybookModule, mockModuleLoader)
+	local storybook = loadStorybookModule(storybookModule)
 	local storyModules = findStoryModulesForStorybook(storybook)
 	local container
 
@@ -48,12 +35,14 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		container = Instance.new("Folder")
 	end)
 
-	local function afterRender()
-		if storybookModule == script.Parent.storybooks["React.storybook"] then
-			act(function()
+	local function afterRender(story: types.Story<any>)
+		local packages = if story then story.packages else storybook.packages
+
+		if packages and packages.React and packages.ReactRoblox then
+			packages.ReactRoblox.act(function()
 				task.wait()
 			end)
-		elseif storybookModule == script.Parent.storybooks["Fusion.storybook"] then
+		elseif packages and packages.Fusion then
 			task.wait()
 		end
 	end
@@ -84,7 +73,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			local story = loadStoryModule(storyModule, storybook)
 			local lifecycle = render(container, story)
 
-			afterRender()
+			afterRender(story)
 
 			expect(#container:GetChildren()).toBe(1)
 
@@ -99,7 +88,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			if story.controls then
 				local lifecycle = render(container, story)
 
-				afterRender()
+				afterRender(story)
 
 				expect(#container:GetChildren()).toBe(1)
 
@@ -112,7 +101,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 					isDisabled = true,
 				} :: StoryControls)
 
-				afterRender()
+				afterRender(story)
 
 				expect(#container:GetChildren()).toBe(1)
 

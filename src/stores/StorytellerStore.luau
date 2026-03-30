@@ -35,6 +35,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local connections: { RBXScriptConnection } = {}
 	local disposeStorybookModuleObserver
 	local disposeStorybookModulesSubscription
+	local disposeStoryModuleObserver
 	local disposeStoryModulesSubscription
 
 	local isDestroyed = false
@@ -114,7 +115,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					problem = result,
 					storybook = {
 						name = storybookModule.Name,
-						loader = loader,
 						source = storybookModule,
 						storyRoots = {},
 					},
@@ -165,6 +165,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		disposeStorybookModuleObserver()
 		disposeStorybookModulesSubscription()
+		disposeStoryModuleObserver()
 		disposeStoryModulesSubscription()
 	end
 	self.stop = stop
@@ -177,6 +178,20 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		disposeStoryModulesSubscription = Charm.listen(storyModulesQuery.get, function(storyModules)
 			setStoryModules((storyModules :: any) :: { ModuleScript })
+		end)
+
+		disposeStoryModuleObserver = Charm.observe(storyModulesQuery.get, function(storyModule)
+			assert(storyModule:IsA("ModuleScript"), "Luau")
+
+			local changedConn = storyModule.Changed:Connect(debounce(function()
+				setStoryModules(function(prev)
+					return table.clone(prev)
+				end)
+			end))
+
+			return function()
+				changedConn:Disconnect()
+			end
 		end)
 
 		disposeStorybookModulesSubscription = Charm.listen(storybookModulesQuery.get, function(storybookModules)
