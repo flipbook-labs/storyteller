@@ -7,6 +7,7 @@
 darklua = "seaofvoices/darklua@0.17.3"
 luau-lsp = "JohnnyMorganz/luau-lsp@1.59.0"
 lute = "luau-lang/lute@0.1.0-nightly.20260303"
+rocale = "Roblox/rocale-cli@0.1.0"
 rojo = "rojo-rbx/rojo@7.6.1"
 selene = "Kampfkarren/selene@0.29.0"
 stylua = "JohnnyMorganz/StyLua@2.3.1"
