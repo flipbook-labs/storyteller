@@ -36,8 +36,6 @@ end
 
 local filter = args:get("filter")
 
-local testPlacePath = path.join(system.tmpdir(), "tests.rbxl")
-
 run("lute", { "run", "build", "--channel", "dev" })
 
 local function createTestRunnerScript()
@@ -66,7 +64,7 @@ local success, err = pcall(function()
 		"--placeId",
 		project.ROBLOX_UNIT_TESTING_PLACE_ID,
 		"--output",
-		tostring(testPlacePath),
+		`{system.tmpdir()}/tests.rbxl`,
 	}, {
 		env = {
 			ROBLOX_API_KEY = tostring(apiKey),
