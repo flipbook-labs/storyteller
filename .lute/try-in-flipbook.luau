@@ -32,7 +32,7 @@ end
 
 local args = { ... }
 
-local function findFlipbookRoot(startDir: path.path): path.path?
+local function findFlipbookRoot(startDir: path.pathlike): path.path?
 	local dir = startDir
 	while true do
 		local candidate = path.join(dir, "flipbook")
