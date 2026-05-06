@@ -93,6 +93,7 @@ do
 		local packages = {
 			"^charm$",
 			"^react%-charm$",
+			"^vide$",
 		}
 
 		for _, package in packages do
