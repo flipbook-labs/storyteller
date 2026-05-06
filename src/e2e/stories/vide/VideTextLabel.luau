@@ -1,15 +1,14 @@
-local React = require("@pkg/React")
+local Vide = require("@pkg/Vide")
 
-local function ReactTextLabel()
-	return React.createElement("TextLabel", {
+local function VideTextLabel()
+	return Vide.create("TextLabel")({
 		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		Font = Enum.Font.BuilderSans,
 		Text = "Hello World",
 		TextColor3 = Color3.fromRGB(15, 15, 15),
 		TextSize = 16,
-	}, {
-		Padding = React.createElement("UIPadding", {
+		Vide.create("UIPadding")({
 			PaddingTop = UDim.new(0, 8),
 			PaddingRight = UDim.new(0, 8),
 			PaddingBottom = UDim.new(0, 8),
@@ -18,6 +17,4 @@ local function ReactTextLabel()
 	})
 end
 
-return {
-	story = React.createElement(ReactTextLabel),
-}
+return VideTextLabel
