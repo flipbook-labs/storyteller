@@ -23,7 +23,7 @@ local EXCLUDED_FROM_CONFORMANCE = {
 }
 
 test("pin number of storybooks", function()
-	expect(#storybookModules).toBe(4)
+	expect(#storybookModules).toBe(5)
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
@@ -42,7 +42,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			packages.ReactRoblox.act(function()
 				task.wait()
 			end)
-		elseif packages and packages.Fusion then
+		elseif packages and (packages.Fusion or packages.Vide) then
 			task.wait()
 		end
 	end
