@@ -63,7 +63,6 @@ types.IStorybook = t.interface({
 export type LoadedStorybook = {
 	name: string,
 	storyRoots: { Instance },
-	loader: ModuleLoader,
 	source: ModuleScript,
 
 	mapStory: MapStoryFn?,

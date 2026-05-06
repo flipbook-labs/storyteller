@@ -1,4 +1,5 @@
 local ControlTypes = require("@self/controls/ControlTypes")
+local StorytellerContext = require("@root/react/StorytellerContext")
 local types = require("@self/types")
 
 --[=[
@@ -48,7 +49,7 @@ return {
 	ControlType = require("@self/controls/enums/ControlType"),
 
 	-- Validation
-	isStorybookModule = require("@self/isStoryModule"),
+	isStorybookModule = require("@self/isStorybookModule"),
 	isStoryModule = require("@self/isStoryModule"),
 
 	-- Discovery
@@ -65,6 +66,7 @@ return {
 
 	-- React
 	StoryContainer = require("@self/react/StoryContainer"),
+	StorytellerProvider = StorytellerContext.StorytellerProvider,
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),

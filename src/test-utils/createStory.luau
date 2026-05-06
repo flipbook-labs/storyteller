@@ -1,4 +1,3 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
@@ -13,7 +12,6 @@ local function createStory<T>(partial: {
 		source = Instance.new("ModuleScript"),
 		storybook = {
 			name = "Storybook",
-			loader = ModuleLoader.new(),
 			source = Instance.new("ModuleScript"),
 			storyRoots = {},
 		},

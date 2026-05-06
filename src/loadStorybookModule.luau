@@ -24,11 +24,12 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
 	local loader = if providedLoader then providedLoader else ModuleLoader.new()
 
-	local wasRequired, result = pcall(function()
-		return loader:require(module)
+	local result
+	local wasRequired, err = pcall(function()
+		result = loader:require(module)
 	end)
 
-	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {result}`)
+	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
 
 	do -- Roblox internal. This behavior may be removed without notice.
 		if not result.storyRoots and result.storyRoot then
@@ -63,7 +64,6 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 	end
 
 	result.source = module
-	result.loader = loader
 
 	return result
 end

@@ -6,11 +6,10 @@ local test = JestGlobals.test
 
 test("Storyteller can be required", function()
 	local Storyteller
-	local success = pcall(function()
+	expect(function()
 		Storyteller = require("@self")
-	end)
+	end).never.toThrow()
 
-	expect(success).toBe(true)
 	expect(Storyteller).toBeDefined()
 end)
 
@@ -18,10 +17,9 @@ test("Storyteller can be required in a ModuleLoader context", function()
 	local loader = ModuleLoader.new()
 
 	local Storyteller
-	local success = pcall(function()
+	expect(function()
 		Storyteller = loader:require(script.Parent)
-	end)
+	end).never.toThrow()
 
-	expect(success).toBe(true)
 	expect(Storyteller).toBeDefined()
 end)

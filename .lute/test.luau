@@ -1,12 +1,15 @@
 local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
 local cli = require("@luaupkg/batteries/cli")
-local process = require("@lute/process")
+local path = require("@std/path")
+local process = require("@std/process")
+local system = require("@std/system")
 
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
 local findAndReplace = FlipbookBatteries.findAndReplace
 local run = FlipbookBatteries.run
+local copyInto = FlipbookBatteries.copyInto
 
 dotenv()
 
@@ -33,14 +36,13 @@ end
 
 local filter = args:get("filter")
 
-run("lute", { "scripts/build.luau", "--channel", "dev" })
-run("rojo", { "build", "tests.project.json", "-o", "tests.rbxl" })
+run("lute", { "run", "build", "--channel", "dev" })
 
 local function createTestRunnerScript()
-	local testRunnerPath = ".build/tasks/run-tests.luau"
+	local testRunnerPath = path.join(system.tmpdir(), "run-tests.luau")
 
-	run("mkdir", { "-p", ".build/tasks" })
-	run("cp", { "-R", "scripts/tasks/run-tests.luau", testRunnerPath })
+	copyInto(".lute/tasks/run-tests.luau", testRunnerPath)
+
 	if filter then
 		findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
 	end
@@ -51,20 +53,24 @@ end
 local success, err = pcall(function()
 	local testRunnerPath = createTestRunnerScript()
 
-	return run("python3", {
-		"scripts/open-cloud/upload_and_run_task.py",
-		"tests.rbxl",
+	return run("rocale", {
+		"run",
+		"--script",
 		testRunnerPath,
+		"--load.project",
+		project.ROJO_TESTS_PROJECT,
+		"--universeId",
+		project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
+		"--placeId",
+		project.ROBLOX_UNIT_TESTING_PLACE_ID,
+		"--output",
+		`{system.tmpdir()}/tests.rbxl`,
 	}, {
 		env = {
-			ROBLOX_UNIVERSE_ID = project.ROBLOX_UNIT_TESTING_UNIVERSE_ID,
-			ROBLOX_PLACE_ID = project.ROBLOX_UNIT_TESTING_PLACE_ID,
 			ROBLOX_API_KEY = tostring(apiKey),
 		},
 	})
 end)
-
-run("rm", { "tests.rbxl" })
 
 if not success then
 	print(err)
