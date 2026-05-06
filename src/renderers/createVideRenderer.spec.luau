@@ -68,7 +68,7 @@ describe("Vide", function()
 
 	test("controls are transformed into Sources", function()
 		local story = createVideStory(ButtonStory)
-		story.controls = { isDisabled = false } :: StoryControlsSchema
+		story.controls = { isDisabled = true } :: StoryControlsSchema
 
 		render(container, story)
 

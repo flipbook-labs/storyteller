@@ -12,7 +12,7 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local Vide = packages.Vide
 
 	local prevProps: StoryProps? = nil
-	local unmount: (() -> ())? = nil
+	local stopVide: (() -> ())? = nil
 
 	local function transformProps(props: StoryProps)
 		local transformed = table.clone(props)
@@ -36,7 +36,13 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 		props = transformProps(props)
 		prevProps = props
 
-		unmount = Vide.mount(story.story(props), container)
+		stopVide = Vide.mount(function()
+			if typeof(story.story) == "Instance" then
+				return story.story
+			else
+				return story.story(props)
+			end
+		end, container)
 	end
 
 	local function update(props: StoryProps)
@@ -49,8 +55,13 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 				end
 			end
 		end
+	end
 
-		return nil
+	local function unmount()
+		if stopVide then
+			stopVide()
+			stopVide = nil
+		end
 	end
 
 	return {

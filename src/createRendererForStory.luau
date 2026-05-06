@@ -29,7 +29,7 @@ local function createRendererForStory<T>(story: LoadedStory<T>): StoryRenderer<a
 		elseif packages.Fusion then
 			return createFusionRenderer(packages)
 		elseif packages.Vide then
-			createVideRenderer(packages)
+			return createVideRenderer(packages)
 		end
 	end
 
