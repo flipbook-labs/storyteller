@@ -95,10 +95,20 @@ describe("UILabs.Choose", function()
 			default = "Option 2",
 		})
 	end)
+
+	test("preserves non-string item types", function()
+		local control = UILabs.Choose({ 10, 20, 30 })
+
+		expect(migrateUILabsControl(control :: any)).toMatchObject({
+			type = ControlType.Select,
+			items = { 10, 20, 30 },
+			default = 10,
+		})
+	end)
 end)
 
 describe("UILabs.EnumList", function()
-	test("maps to ControlType.Select", function()
+	test("uses keys as items and the default key as default", function()
 		local control = (
 			UILabs.EnumList({
 				Option1 = "Option 1",
@@ -110,11 +120,31 @@ describe("UILabs.EnumList", function()
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
 			items = {
-				"Option 1",
-				"Option 2",
-				"Option 3",
+				"Option1",
+				"Option2",
+				"Option3",
 			},
-			default = "Option 1",
+			default = "Option1",
+		})
+	end)
+
+	test("works when values are non-string types", function()
+		local control = (
+			UILabs.EnumList({
+				Mobile = 500,
+				Tablet = 1000,
+				Desktop = 1500,
+			}, "Mobile") :: any
+		) :: UILabsControl
+
+		expect(migrateUILabsControl(control)).toMatchObject({
+			type = ControlType.Select,
+			items = {
+				"Desktop",
+				"Mobile",
+				"Tablet",
+			},
+			default = "Mobile",
 		})
 	end)
 end)
