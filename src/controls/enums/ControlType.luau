@@ -8,6 +8,7 @@ export type ControlType =
 	| "Color"
 	| "Date"
 	| "MultiSelect"
+	| "Object"
 	| "Radio"
 	| "Select"
 	| "Slider"
@@ -23,6 +24,7 @@ local ControlType = {
 	Color = "Color" :: "Color",
 	Date = "Date" :: "Date",
 	MultiSelect = "MultiSelect" :: "MultiSelect",
+	Object = "Object" :: "Object",
 	Radio = "Radio" :: "Radio",
 	Select = "Select" :: "Select",
 	Slider = "Slider" :: "Slider",

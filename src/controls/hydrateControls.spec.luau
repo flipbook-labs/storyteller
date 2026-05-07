@@ -58,6 +58,9 @@ test("hydrates a schema using all control types", function()
 		date = {
 			type = ControlType.Date,
 		},
+		object = {
+			type = ControlType.Object,
+		},
 		-- List-based
 		dropdown = {
 			type = ControlType.Select,
@@ -194,6 +197,10 @@ test("default value is used when one is not supplied", function()
 			type = ControlType.Date,
 			default = DateTime.now(),
 		},
+		object = {
+			type = ControlType.Object,
+			default = game,
+		},
 		-- List-based
 		dropdown = {
 			type = ControlType.Select,
@@ -251,6 +258,7 @@ test("default value is used when one is not supplied", function()
 		slider = 1,
 		color = expect.any("Color3"),
 		date = expect.any("DateTime"),
+		object = game,
 		dropdown = "Option 1",
 		multiSelect = {
 			"Option 1",
