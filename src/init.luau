@@ -35,6 +35,7 @@ export type ControlType = ControlTypes.ControlType
 export type DateControl = ControlTypes.DateControl
 export type MultiSelectControl = ControlTypes.MultiSelectControl
 export type NumberControl = ControlTypes.NumberControl
+export type ObjectControl = ControlTypes.ObjectControl
 export type RadioControl = ControlTypes.RadioControl
 export type SelectControl = ControlTypes.SelectControl
 export type SliderControl = ControlTypes.SliderControl
@@ -78,6 +79,7 @@ return {
 	createDateControl = require("@self/controls/constructors/createDateControl"),
 	createMultiSelectControl = require("@self/controls/constructors/createMultiSelectControl"),
 	createNumberControl = require("@self/controls/constructors/createNumberControl"),
+	createObjectControl = require("@self/controls/constructors/createObjectControl"),
 	createRadioControl = require("@self/controls/constructors/createRadioControl"),
 	createSelectControl = require("@self/controls/constructors/createSelectControl"),
 	createSliderControl = require("@self/controls/constructors/createSliderControl"),

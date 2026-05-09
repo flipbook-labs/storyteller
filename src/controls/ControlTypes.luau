@@ -7,7 +7,7 @@ local export = {}
 export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
-export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem
+export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem | Instance
 local StoryControlValue: StoryControlValue = gt.union(
 	-- Primitives
 	gt.boolean() :: StoryControlValue,
@@ -17,18 +17,23 @@ local StoryControlValue: StoryControlValue = gt.union(
 	-- Roblox datatypes
 	gt.Color3(),
 	gt.isTypeof("DateTime"),
-	gt.isTypeof("EnumItem")
+	gt.isTypeof("EnumItem"),
+	gt.Instance()
 )
 export.StoryControlValue = gt.build(StoryControlValue)
 
-local function BaseControl<T>(controlType: ControlType, valueType: T)
-	return gt.struct({
+local function BaseControl<T>(name: string, controlType: ControlType, valueType: T)
+	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(valueType),
 	})
+
+	return gt.withCustom(control, function()
+		return true
+	end, name)
 end
 
-local function BaseNumberControl(controlType: ControlType)
+local function BaseNumberControl(name: string, controlType: ControlType)
 	local control = gt.struct({
 		type = gt.literal(controlType) :: ControlType,
 		default = gt.optional(gt.number()),
@@ -47,7 +52,8 @@ local function BaseNumberControl(controlType: ControlType)
 				end
 			end
 			return true, nil
-		end
+		end,
+		name
 	)
 end
 
@@ -60,7 +66,7 @@ local SelectOneOptions = gt.struct({
 	sort = gt.optional(SortFn),
 })
 
-local function SelectOneControl(controlType: ControlType)
+local function SelectOneControl(name: string, controlType: ControlType)
 	local control = gt.intersection(
 		gt.struct({
 			type = gt.literal(controlType) :: ControlType,
@@ -75,7 +81,7 @@ local function SelectOneControl(controlType: ControlType)
 		end
 
 		return true, nil
-	end)
+	end, name)
 end
 
 local SelectManyOptions = gt.struct({
@@ -84,7 +90,7 @@ local SelectManyOptions = gt.struct({
 	sort = gt.optional(SortFn),
 })
 
-local function SelectManyControl(controlType: ControlType)
+local function SelectManyControl(name: string, controlType: ControlType)
 	local control = gt.intersection(
 		gt.struct({
 			type = gt.literal(controlType) :: ControlType,
@@ -103,31 +109,31 @@ local function SelectManyControl(controlType: ControlType)
 		end
 
 		return true, nil
-	end)
+	end, name)
 end
 
-local BooleanControl = BaseControl(ControlType.Boolean, gt.boolean())
+local BooleanControl = BaseControl("BooleanControl", ControlType.Boolean, gt.boolean())
 export.BooleanControl = gt.build(BooleanControl)
 export type BooleanControl = typeof(BooleanControl)
 
-local StringControl = BaseControl(ControlType.String, gt.string())
+local StringControl = BaseControl("StringControl", ControlType.String, gt.string())
 export.StringControl = gt.build(StringControl)
 export type StringControl = typeof(StringControl)
 
-local NumberControl = BaseNumberControl(ControlType.Number)
+local NumberControl = BaseNumberControl("NumberControl", ControlType.Number)
 export.NumberControl = gt.build(NumberControl)
 export type NumberControl = typeof(NumberControl)
 
-local SliderControl = BaseNumberControl(ControlType.Slider)
+local SliderControl = BaseNumberControl("SliderControl", ControlType.Slider)
 export.SliderControl = gt.build(SliderControl)
 export type SliderControl = typeof(SliderControl)
 
-local ColorControl = BaseControl(ControlType.Color, gt.Color3())
+local ColorControl = BaseControl("ColorControl", ControlType.Color, gt.Color3())
 export.ColorControl = gt.build(ColorControl)
 export type ColorControl = typeof(ColorControl)
 export type ColourControl = ColorControl
 
-local DateControl = BaseControl(ControlType.Date, gt.isTypeof("DateTime"))
+local DateControl = BaseControl("DateControl", ControlType.Date, gt.isTypeof("DateTime"))
 export.DateControl = gt.build(DateControl)
 export type DateControl = typeof(DateControl)
 
@@ -135,7 +141,7 @@ local SelectOptions = SelectOneOptions
 export.SelectOptions = gt.build(SelectOptions)
 export type SelectOptions = typeof(SelectOptions)
 
-local SelectControl = SelectOneControl(ControlType.Select)
+local SelectControl = SelectOneControl("SelectControl", ControlType.Select)
 export.SelectControl = gt.build(SelectControl)
 export type SelectControl = typeof(SelectControl)
 
@@ -143,7 +149,7 @@ local RadioOptions = SelectOneOptions
 export.RadioOptions = gt.build(RadioOptions)
 export type RadioOptions = typeof(RadioOptions)
 
-local RadioControl = SelectOneControl(ControlType.Radio)
+local RadioControl = SelectOneControl("RadioControl", ControlType.Radio)
 export.RadioControl = gt.build(RadioControl)
 export type RadioControl = typeof(RadioControl)
 
@@ -151,7 +157,8 @@ local MultiSelectOptions = SelectManyOptions
 export.MultiSelectOptions = gt.build(MultiSelectOptions)
 export type MultiSelectOptions = typeof(MultiSelectOptions)
 
-local MultiSelectControl = gt.intersection(SelectManyControl(ControlType.MultiSelect), MultiSelectOptions)
+local MultiSelectControl =
+	gt.intersection(SelectManyControl("MultiSelectControl", ControlType.MultiSelect), MultiSelectOptions)
 export.MultiSelectControl = gt.build(MultiSelectControl)
 export type MultiSelectControl = typeof(MultiSelectControl)
 
@@ -159,7 +166,7 @@ local CheckOptions = SelectManyOptions
 export.CheckOptions = gt.build(CheckOptions)
 export type CheckOptions = typeof(CheckOptions)
 
-local CheckControl = SelectManyControl(ControlType.Check)
+local CheckControl = SelectManyControl("CheckControl", ControlType.Check)
 export.CheckControl = gt.build(CheckControl)
 export type CheckControl = typeof(CheckControl)
 
@@ -175,7 +182,11 @@ local AdvancedStoryControl = gt.union(SliderControl, ListBasedStoryControl)
 export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
 export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
-local RobloxStoryControl = gt.union(ColorControl, DateControl)
+local ObjectControl = BaseControl("ObjectControl", ControlType.Object, gt.Instance())
+export.ObjectControl = gt.build(ObjectControl)
+export type ObjectControl = typeof(ObjectControl)
+
+local RobloxStoryControl = gt.union(ColorControl, DateControl, ObjectControl)
 export.RobloxStoryControl = gt.build(RobloxStoryControl)
 export type RobloxStoryControl = typeof(RobloxStoryControl)
 

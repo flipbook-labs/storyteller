@@ -7,6 +7,7 @@ local UILabsTypes = require("@root/controls/migrations/ui-labs-v2.4.2/UILabsType
 type UILabsControl = UILabsTypes.Control
 
 type StoryControl = ControlTypes.StoryControl
+type StoryControlValue = ControlTypes.StoryControlValue
 type StringControl = ControlTypes.StringControl
 type NumberControl = ControlTypes.NumberControl
 type BooleanControl = ControlTypes.BooleanControl
@@ -38,15 +39,15 @@ local function migrateUILabsControl(control: UILabsControl): StoryControl?
 	elseif control.Type == "Choose" then
 		local migrated: SelectControl = {
 			type = ControlType.Select,
-			items = Sift.List.map(control.List, tostring),
-			default = tostring(control.List[control.DefIndex]),
+			items = control.List :: { StoryControlValue },
+			default = control.List[control.DefIndex] :: StoryControlValue,
 		}
 		return migrated
 	elseif control.Type == "EnumList" then
 		local migrated: SelectControl = {
 			type = ControlType.Select,
-			items = Sift.List.sort(Sift.Dictionary.values(control.List)),
-			default = control.List[control.DefIndex],
+			items = Sift.List.sort(Sift.Dictionary.keys(control.List)),
+			default = control.DefIndex,
 		}
 		return migrated
 	elseif control.Type == "Slider" then
