@@ -182,7 +182,7 @@ local AdvancedStoryControl = gt.union(SliderControl, ListBasedStoryControl)
 export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
 export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
-local ObjectControl = BaseControl(ControlType.Object, gt.Instance())
+local ObjectControl = BaseControl("ObjectControl", ControlType.Object, gt.Instance())
 export.ObjectControl = gt.build(ObjectControl)
 export type ObjectControl = typeof(ObjectControl)
 
