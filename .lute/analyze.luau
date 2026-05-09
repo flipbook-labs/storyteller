@@ -1,5 +1,5 @@
-local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
-local cli = require("@luaupkg/batteries/cli")
+local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.10.0")
+local cli = require("@batteries/cli")
 local path = require("@std/path")
 local system = require("@std/system")
 
