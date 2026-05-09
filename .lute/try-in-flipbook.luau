@@ -32,18 +32,34 @@ end
 
 local args = { ... }
 
+local function findFlipbookRoot(startDir: path.pathlike): path.path?
+	local dir = startDir
+	while true do
+		local candidate = path.join(dir, "flipbook")
+		if fs.exists(candidate) then
+			return candidate
+		end
+		local parent = path.dirname(dir)
+		if tostring(parent) == tostring(dir) then
+			return nil
+		end
+		dir = parent
+	end
+end
+
 local scriptPath = resolveScriptPath(args[1])
 local repoRoot = path.dirname(path.dirname(scriptPath))
 local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
-local flipbookRoot = path.resolve(path.join(repoRoot, "../flipbook"))
+local flipbookRoot = findFlipbookRoot(path.dirname(repoRoot))
 
-if fs.exists(flipbookRoot) then
+if flipbookRoot then
 	print(`using Flipbook at {flipbookRoot}`)
 else
 	error(
-		`could not find Flipbook at {flipbookRoot}. Make sure your checkout is parented to the same directory as this repo`
+		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
 	)
 end
+flipbookRoot = path.resolve(flipbookRoot :: path.path)
 
 local flipbookPackageIndex = path.join(flipbookRoot, "Packages/_Index")
 local packageInstallation = find(flipbookPackageIndex, WALLY_PACKAGE_NAME_PATTERN)[1]
