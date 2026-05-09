@@ -1,5 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
 local Roact = require("@pkg/Roact")
+
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
@@ -8,9 +10,15 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type StoryControls = ControlTypes.StoryControls
+
 local function createRoactStory(element)
-	return createStory(element, {
-		Roact = Roact,
+	return createStory({
+		story = element,
+		packages = {
+			Roact = Roact,
+		},
 	})
 end
 
@@ -64,9 +72,10 @@ end)
 
 test("pass controls as props", function()
 	local story = createRoactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = true,
-	}
+	} :: StoryControlsSchema
 
 	render(container, story)
 
@@ -78,9 +87,10 @@ end)
 
 test("update the component on arg changes", function()
 	local story = createRoactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = true,
-	}
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
@@ -91,7 +101,7 @@ test("update the component on arg changes", function()
 
 	lifecycle.update({
 		isDisabled = false,
-	})
+	} :: StoryControls)
 
 	expect(button.Text).toBe("Enabled")
 end)
@@ -127,9 +137,10 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
 	local story = createRoactStory(ButtonStory)
+
 	story.controls = {
 		isDisabled = false,
-	}
+	} :: StoryControlsSchema
 
 	local lifecycle = render(container, story)
 
@@ -141,7 +152,7 @@ test("lifecycle", function()
 
 	lifecycle.update({
 		isDisabled = true,
-	})
+	} :: StoryControls)
 
 	expect(#container:GetChildren()).toBe(1)
 

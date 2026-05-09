@@ -1,25 +1,17 @@
 local Sift = require("@pkg/Sift")
 
 local createRendererForStory = require("@root/createRendererForStory")
+local hydrateControls = require("@root/controls/hydrateControls")
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryControls = types.StoryControls
+type StoryControlsSchema = types.StoryControlsSchema
 type StoryProps = types.StoryProps
+type ReservedStoryProps = types.ReservedStoryProps
+type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type RenderLifecycle = types.RenderLifecycle
-
-local function collapseControls(controls: StoryControls): StoryControls
-	return Sift.Dictionary.map(controls, function(control)
-		-- Array values are collapsed to their first element to be passed off to
-		-- the story as props
-		if Sift.List.is(control) then
-			return control[1]
-		else
-			return control
-		end
-	end)
-end
 
 --[=[
 	Render a Story to an [Instance] in the [DataModel].
@@ -73,26 +65,38 @@ end
 	@tag Rendering
 	@within Storyteller
 ]=]
-local function render<T>(container: Instance, story: LoadedStory<T>): RenderLifecycle
+local function render<T>(container: Instance, story: LoadedStory<T>, initialExtraProps: ExtraStoryProps?): RenderLifecycle
 	local renderer = createRendererForStory(story)
 
 	local prevProps: StoryProps?
 
-	local function renderOnce(controls: StoryControls?)
-		local props: StoryProps = Sift.Dictionary.join(story.props or {}, {
+	local function createStoryProps(controls: StoryControls?, extraProps: ExtraStoryProps?): StoryProps
+		local hydratedControls = if story.controls
+			then hydrateControls(story.controls, if controls then controls else {})
+			else {}
+
+		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
 			story = story,
-			theme = "Dark", -- TODO: Support theme changing
-		})
+			controls = hydratedControls,
+		}
 
-		props.controls = Sift.Dictionary.join(
-			if story.controls then collapseControls(story.controls) else nil,
-			if controls then controls else nil
-		)
+		local props: StoryProps = Sift.Dictionary.join({
+			-- DEPRECATED: This prop does nothing and is simply left for
+			-- backwards compatibility. Flipbook controls this property
+			-- itself to provide a dynamic value
+			theme = "Dark",
+		}, extraProps, story.props, reservedStoryProps)
 
 		if renderer.transformProps then
 			props = renderer.transformProps(props, prevProps)
 		end
+
+		return props
+	end
+
+	local function renderOnce(controls: StoryControls?, extraProps: ExtraStoryProps?)
+		local props = createStoryProps(controls, extraProps)
 
 		if not renderer.shouldUpdate or renderer.shouldUpdate(props, prevProps) then
 			renderer.mount(container, story, props)
@@ -101,15 +105,13 @@ local function render<T>(container: Instance, story: LoadedStory<T>): RenderLife
 		prevProps = props
 	end
 
-	local function update(newControls: StoryControls?)
+	local function update(controls: StoryControls?, extraProps: ExtraStoryProps?)
 		if renderer.update then
-			local props = Sift.Dictionary.join(prevProps, {
-				controls = if newControls then collapseControls(newControls) else nil,
-			})
-
+			local props = createStoryProps(controls, extraProps)
 			renderer.update(props, prevProps)
+			prevProps = props
 		else
-			renderOnce(newControls)
+			renderOnce(controls, extraProps)
 		end
 	end
 
@@ -120,7 +122,7 @@ local function render<T>(container: Instance, story: LoadedStory<T>): RenderLife
 		container:ClearAllChildren()
 	end
 
-	renderOnce()
+	renderOnce(nil, initialExtraProps)
 
 	return {
 		update = update,

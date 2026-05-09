@@ -1,4 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
+
+local ControlType = require("@root/controls/enums/ControlType")
+local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local types = require("@root/types")
 
@@ -9,6 +12,7 @@ local jest = JestGlobals.jest
 local test = JestGlobals.test
 
 type StoryRenderer<T> = types.StoryRenderer<T>
+type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
 local container: Instance
 local story: types.LoadedStory<TextLabel>
@@ -17,7 +21,9 @@ local render
 
 beforeEach(function()
 	container = Instance.new("Folder")
-	story = createStory(Instance.new("TextLabel"))
+	story = createStory({
+		story = Instance.new("TextLabel"),
+	})
 
 	jest.mock(script.Parent.createRendererForStory, function()
 		return mockCreateRendererForStory
@@ -86,11 +92,11 @@ end)
 test("props are passed to shouldUpdate", function()
 	local props
 
-	local controls = {
+	local schema: StoryControlsSchema = {
 		foo = true,
 	}
 
-	story.controls = controls
+	story.controls = schema
 
 	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = function(_props)
@@ -104,7 +110,7 @@ test("props are passed to shouldUpdate", function()
 
 	expect(props).toMatchObject({
 		container = container,
-		controls = controls,
+		controls = schema,
 	})
 end)
 
@@ -183,14 +189,18 @@ test("prevProps is nil on the first render", function()
 	expect(mockShouldUpdate.mock.lastCall[2]).toEqual(props)
 end)
 
-test("array controls are collapsed to the first story", function()
-	story.controls = {
+test("array controls are collapsed to the first item", function()
+	local schema: StoryControlsSchema = {
 		font = {
-			Enum.Font.BuilderSans,
-			Enum.Font.RobotoMono,
-			Enum.Font.Merriweather,
+			type = ControlType.Select,
+			items = {
+				Enum.Font.BuilderSans,
+				Enum.Font.RobotoMono,
+				Enum.Font.Merriweather,
+			},
 		},
 	}
+	story.controls = schema
 
 	local font: Enum.Font?
 
@@ -203,4 +213,45 @@ test("array controls are collapsed to the first story", function()
 	render(container, story)
 
 	expect(font).toBe(Enum.Font.BuilderSans)
+end)
+
+test("extra props can be supplied for things like the UI theme", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story, {
+		theme = "Light",
+	})
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			theme = "Light",
+		})
+	)
+end)
+
+test("always passes reserved props", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story)
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			story = story,
+			controls = expect.any("table"),
+		})
+	)
 end)

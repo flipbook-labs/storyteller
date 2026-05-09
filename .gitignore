@@ -10,7 +10,7 @@ dist
 sourcemap*.json
 globalTypes.d.luau
 LuauPackages
-RobloxPackages
+*.lock.luau
 
 # Wally
 /DevPackages
