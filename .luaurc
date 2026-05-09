@@ -1,11 +1,12 @@
 {
 	"languageMode": "strict",
 	"aliases": {
-		"lute": "~/.lute/typedefs/0.1.0/lute",
-		"std": "~/.lute/typedefs/0.1.0/std",
-		"luaupkg": "./LuauPackages",
+		"lute": "~/.lute/typedefs/1.0.1/lute",
+		"std": "~/.lute/typedefs/1.0.1/std",
+		"luaupkg": "~/.loom/store",
 		"pkg": "./Packages",
 		"repo": ".",
-		"root": "./src"
+		"root": "./src",
+		"batteries": "~/.loom/store/Lute@v1.0.1-nightly.20260508/batteries"
 	}
 }
