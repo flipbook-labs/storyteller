@@ -7,7 +7,7 @@ local export = {}
 export type ControlType = ControlType.ControlType
 
 -- Make sure to update this when adding new control types!
-export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem
+export type StoryControlValue = boolean | number | string | Color3 | DateTime | EnumItem | Instance
 local StoryControlValue: StoryControlValue = gt.union(
 	-- Primitives
 	gt.boolean() :: StoryControlValue,
@@ -17,7 +17,8 @@ local StoryControlValue: StoryControlValue = gt.union(
 	-- Roblox datatypes
 	gt.Color3(),
 	gt.isTypeof("DateTime"),
-	gt.isTypeof("EnumItem")
+	gt.isTypeof("EnumItem"),
+	gt.Instance()
 )
 export.StoryControlValue = gt.build(StoryControlValue)
 
@@ -175,7 +176,11 @@ local AdvancedStoryControl = gt.union(SliderControl, ListBasedStoryControl)
 export.AdvancedStoryControl = gt.build(AdvancedStoryControl)
 export type AdvancedStoryControl = typeof(AdvancedStoryControl)
 
-local RobloxStoryControl = gt.union(ColorControl, DateControl)
+local ObjectControl = BaseControl(ControlType.Object, gt.Instance())
+export.ObjectControl = gt.build(ObjectControl)
+export type ObjectControl = typeof(ObjectControl)
+
+local RobloxStoryControl = gt.union(ColorControl, DateControl, ObjectControl)
 export.RobloxStoryControl = gt.build(RobloxStoryControl)
 export type RobloxStoryControl = typeof(RobloxStoryControl)
 
