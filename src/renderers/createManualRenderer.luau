@@ -21,10 +21,15 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		if typeof(story.story) == "Instance" then
 			result = story.story
 		elseif typeof(story.story) == "function" then
-			if debug.info(story.story, "a") >= 2 then
-				result = (story :: any).story(container, props)
+			local mapStory = if story.storybook then story.storybook.mapStory else nil
+
+			if mapStory then
+				local storyFn = mapStory(story.story)
+				result = storyFn(props)
+			elseif debug.info(story.story, "a") >= 2 then
+				result = story.story(container, props)
 			else
-				result = (story :: any).story(props)
+				result = story.story(props)
 			end
 		end
 

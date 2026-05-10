@@ -125,6 +125,30 @@ test("update the GuiObject on arg changes", function()
 	expect(button.Text).toBe("Enabled")
 end)
 
+test("mapStory wraps the story", function()
+	local story = createStory({
+		story = function(_props)
+			local label = Instance.new("TextLabel")
+			return label
+		end,
+	})
+
+	story.storybook.mapStory = function(element)
+		return function(props)
+			local frame = Instance.new("Frame")
+			local inner = element(props)
+			inner.Parent = frame
+			return frame
+		end
+	end
+
+	render(container, story)
+
+	local frame = container:FindFirstChildWhichIsA("Frame") :: Frame
+	expect(frame).toBeDefined()
+	expect(frame:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+end)
+
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 
