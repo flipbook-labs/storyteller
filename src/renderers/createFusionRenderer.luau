@@ -39,13 +39,21 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	end
 
 	local function mount(container: Instance, story: LoadedStory<Instance>, props: StoryProps)
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+
 		props = transformProps(props)
 		prevProps = props
 
 		if typeof(story.story) == "Instance" then
 			handle = story.story
 		elseif typeof(story.story) == "function" then
-			handle = story.story(props)
+			local storyFn = story.story
+
+			if mapStory then
+				storyFn = mapStory(story.story)
+			end
+
+			handle = storyFn(props)
 		end
 
 		if handle then

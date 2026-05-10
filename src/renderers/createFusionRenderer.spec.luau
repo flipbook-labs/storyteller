@@ -121,6 +121,25 @@ describe("Fusion 0.3.0", function()
 
 		expect(element.Text).toBe("Enabled")
 	end)
+
+	test("mapStory wraps the story", function()
+		local story = createFusionStory(TextStory)
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				local frame = scope:New("Frame")({})
+				local inner = element(props)
+				inner.Parent = frame
+				return frame
+			end
+		end
+
+		render(container, story)
+
+		local frame = container:FindFirstChildWhichIsA("Frame") :: Frame
+		expect(frame).toBeDefined()
+		expect(frame:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+	end)
 end)
 
 describe("Fusion 0.2.0", function()
@@ -221,5 +240,25 @@ describe("Fusion 0.2.0", function()
 		task.wait()
 
 		expect(element.Text).toBe("Enabled")
+	end)
+
+	test("mapStory wraps the story", function()
+		local story = createFusionStory(TextStory)
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				local frame = New("Frame")({})
+				local inner = element(props)
+				inner.Parent = frame
+				return frame
+			end
+		end
+
+		render(container, story)
+
+		local frame = container:FindFirstChildWhichIsA("Frame")
+		expect(frame).toBeDefined()
+		assert(frame, "no frame found")
+		expect(frame:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 	end)
 end)
