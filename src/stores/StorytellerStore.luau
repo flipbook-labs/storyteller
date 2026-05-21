@@ -3,7 +3,6 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local debounce = require("@root/debounce")
-local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
@@ -54,11 +53,28 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
+		-- Flatten all story roots once to avoid O(n²) allocations — previously
+		-- isOrphanedStoryModule rebuilt this list inside the per-story-module loop.
+		local storyRoots = {}
+		for _, storybook in getLoadedStorybooks() do
+			for _, storybookRoot in storybook.storyRoots do
+				table.insert(storyRoots, storybookRoot)
+			end
+		end
+
 		local orphans = {}
 		for _, storyModule in getStoryModules() do
 			assert(storyModule:IsA("ModuleScript"), "Luau")
 
-			if isOrphanedStoryModule(storyModule, getLoadedStorybooks()) then
+			local isOrphaned = true
+			for _, storyRoot in storyRoots do
+				if storyRoot:IsAncestorOf(storyModule) then
+					isOrphaned = false
+					break
+				end
+			end
+
+			if isOrphaned then
 				table.insert(orphans, storyModule)
 			end
 		end
@@ -201,7 +217,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
 			assert(storybookModule:IsA("ModuleScript"), "Luau")
 
-			loadStorybook(storybookModule)
+			-- Deferring module loading avoids exhausting the script budget when
+			-- many storybooks are discovered simultaneously (e.g. a large
+			-- monorepo).
+			task.defer(loadStorybook, storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
 				reloadStorybook(storybookModule)
@@ -218,14 +237,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
-
-		Charm.batch(function()
-			for _, storybookModule in storybookModulesQuery.get() do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-
-				loadStorybook(storybookModule)
-			end
-		end)
 	end
 	self.start = start
 
