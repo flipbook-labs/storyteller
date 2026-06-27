@@ -62,6 +62,7 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 			stopVide()
 			stopVide = nil
 		end
+		prevProps = nil
 	end
 
 	return {
