@@ -1,4 +1,4 @@
-local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.10.1")
 local fs = require("@std/fs")
 local process = require("@std/process")
 
@@ -10,7 +10,7 @@ local function findLuaFiles()
 	local matches = {}
 
 	local function search(path: string)
-		for _, file in fs.listdirectory(path) do
+		for _, file in fs.listDirectory(path) do
 			local filePath = `{path}/{file.name}`
 
 			if file.type == "dir" then

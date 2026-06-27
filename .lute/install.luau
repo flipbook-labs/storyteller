@@ -3,26 +3,16 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local loomConfig = require("@repo/loom.config")
 local project = require("@repo/project")
 
-local LUAU_PACKAGES_PATH = "LuauPackages"
-
-local function move(src: path.pathlike, dest: path.pathlike)
-	local res = process.run({ "mv", tostring(src), tostring(dest) }, {
-		stdio = "inherit",
-	})
-	assert(res.ok, res.stderr)
-end
-
 -- Install Loom dependencies first since the rest of the script depends on them
-local function getDescendants(dirPath: path.pathlike): { path.path }
+local function getDescendants(dirPath: path.Pathlike): { path.Path }
 	if fs.type(dirPath) ~= "dir" then
 		return {}
 	end
 
-	local function reduce(rootPath: path.path, accumulator: { path.path }): { path.path }
-		for _, child in fs.listdirectory(rootPath) do
+	local function reduce(rootPath: path.Path, accumulator: { path.Path }): { path.Path }
+		for _, child in fs.listDirectory(rootPath) do
 			local childPath = path.join(rootPath, child.name)
 			table.insert(accumulator, childPath)
 
@@ -36,28 +26,17 @@ local function getDescendants(dirPath: path.pathlike): { path.path }
 	return reduce(path.resolve(dirPath), {})
 end
 
--- Install flipbook-batteries first because it has a lot of the useful functions
+-- Install FlipbookBatteries first because it has a lot of the useful functions
 -- we need when installing the rest of our packages
 do
 	local res = process.run({ "lute", "pkg", "install" }, {
 		stdio = "inherit",
 	})
 	assert(res.ok, res.stderr)
-
-	fs.removedirectory(LUAU_PACKAGES_PATH, {
-		recursive = true,
-	})
-	fs.createdirectory(LUAU_PACKAGES_PATH)
-
-	-- Since Wally and Loom both write to the Packages dir, we disambiguate our
-	-- packages by moving all the Loom dependencies into LuauPackages
-	for dependencyName in loomConfig.package.dependencies :: { [string]: unknown } do
-		move(path.join(project.PACKAGES_PATH, dependencyName), path.join(LUAU_PACKAGES_PATH, dependencyName))
-	end
 end
 
 do
-	local FlipbookBatteries = require("@luaupkg/flipbook-batteries")
+	local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.10.1")
 
 	local run = FlipbookBatteries.run
 	local find = FlipbookBatteries.find
@@ -67,22 +46,6 @@ do
 		run("wally", { "install" })
 		run("rojo", { "sourcemap", project.ROJO_BUILD_PROJECT, "-o", "sourcemap.json" })
 		run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
-	end
-
-	local function installLuteBatteries()
-		local commit = "7b4e269"
-		local batteries = {
-			"cli.luau",
-			"toml.luau",
-		}
-
-		local dest = `{LUAU_PACKAGES_PATH}/batteries`
-		run("mkdir", { "-p", dest })
-		for _, battery in batteries do
-			run("curl", { "-LO", `https://raw.githubusercontent.com/luau-lang/lute/{commit}/batteries/{battery}` }, {
-				cwd = dest,
-			})
-		end
 	end
 
 	-- Some of our Wally packages are written with string requires which are not
@@ -139,6 +102,5 @@ do
 	end
 
 	installWallyPackages()
-	installLuteBatteries()
 	patchStringRequires()
 end
