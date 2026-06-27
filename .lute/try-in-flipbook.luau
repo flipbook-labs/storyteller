@@ -32,7 +32,7 @@ end
 
 local args = { ... }
 
-local function findFlipbookRoot(startDir: path.pathlike): path.path?
+local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	local dir = startDir
 	while true do
 		local candidate = path.join(dir, "flipbook")
@@ -59,7 +59,7 @@ else
 		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
 	)
 end
-flipbookRoot = path.resolve(flipbookRoot :: path.path)
+flipbookRoot = path.resolve(flipbookRoot :: path.Path)
 
 local flipbookPackageIndex = path.join(flipbookRoot, "Packages/_Index")
 local packageInstallation = find(flipbookPackageIndex, WALLY_PACKAGE_NAME_PATTERN)[1]
