@@ -1,6 +1,1 @@
 std = "selene-requires"
-
-[lints]
-# This is only allowed for the Vide stories. If Vide ever changes its API to no
-# longer use mixed tables we should remove this.
-mixed_table = "allow"
