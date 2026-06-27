@@ -47,13 +47,15 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 
 	local function update(props: StoryProps)
 		if prevProps ~= nil then
-			for key, control in props.controls do
-				local prevControl = prevProps.controls[key]
+			Vide.batch(function()
+				for key, control in props.controls do
+					local prevControl = prevProps.controls[key]
 
-				if prevControl ~= nil then
-					prevControl(control)
+					if prevControl ~= nil then
+						prevControl(control)
+					end
 				end
-			end
+			end)
 		end
 	end
 

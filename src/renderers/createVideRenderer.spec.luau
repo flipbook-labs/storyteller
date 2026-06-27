@@ -5,6 +5,7 @@ local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
 
+local afterEach = JestGlobals.afterEach
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
@@ -102,5 +103,35 @@ describe("Vide", function()
 		task.wait()
 
 		expect(element.Text).toBe("Enabled")
+	end)
+
+	describe("strict mode", function()
+		local prevStrict
+		beforeEach(function()
+			prevStrict = Vide.strict
+			Vide.strict = true
+		end)
+		afterEach(function()
+			Vide.strict = prevStrict
+		end)
+
+		test("renders and updates a single instance", function()
+			local story = createVideStory(ButtonStory)
+			story.controls = { isDisabled = true } :: StoryControlsSchema
+
+			local lifecycle = render(container, story)
+
+			expect(#container:GetChildren()).toBe(1)
+
+			local element = container:FindFirstChildWhichIsA("TextButton")
+			assert(element, "no element found")
+			expect(element.Text).toBe("Disabled")
+
+			lifecycle.update({ isDisabled = false } :: StoryControls)
+			task.wait()
+
+			expect(#container:GetChildren()).toBe(1)
+			expect(element.Text).toBe("Enabled")
+		end)
 	end)
 end)
