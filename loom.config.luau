@@ -1,7 +1,7 @@
 return {
 	package = {
 		name = "Storyteller",
-		version = "1.11.0",
+		version = "1.12.0",
 		dependencies = {
 			FlipbookBatteries = {
 				rev = "v0.11.0",
