@@ -75,7 +75,8 @@ local function createIrisRenderer(packages: Packages): StoryRenderer<IrisStory>
 		end
 
 		-- Freeze Iris so the global cycle doesn't regenerate a root into the
-		-- container after we've torn it down.
+		-- container after we've torn it down. This is a singleton flag, so it
+		-- also pauses any host-app Iris UI running in the same session.
 		Iris.Disabled = true
 
 		if wrapper then
