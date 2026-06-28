@@ -256,9 +256,8 @@ describe("Fusion 0.2.0", function()
 
 		render(container, story)
 
-		local frame = container:FindFirstChildWhichIsA("Frame")
+		local frame = container:FindFirstChildWhichIsA("Frame") :: Frame
 		expect(frame).toBeDefined()
-		assert(frame, "no frame found")
 		expect(frame:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 	end)
 end)
