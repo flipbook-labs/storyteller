@@ -5,7 +5,6 @@
 
 [tools]
 darklua = "seaofvoices/darklua@0.19.0"
-git-cliff = "orhun/git-cliff@2.13.1"
 luau-lsp = "JohnnyMorganz/luau-lsp@1.59.0"
 lute = "luau-lang/lute@1.0.1-nightly.20260612"
 rocale = "Roblox/rocale-cli@0.1.0"
