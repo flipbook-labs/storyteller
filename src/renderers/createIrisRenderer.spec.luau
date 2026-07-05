@@ -122,6 +122,36 @@ test("a story can mount after a previous story unmounted", function()
 	expect(#secondContainer:GetChildren()).toBe(0)
 end)
 
+test("mapStory middleware wraps the story", function()
+	local story = createIrisStory(function()
+		Iris.Window({ "My Window" })
+		Iris.Text({ "FromStory" })
+		Iris.End()
+	end)
+
+	story.storybook.mapStory = function(originalStory)
+		return function(props)
+			originalStory(props)
+
+			Iris.Window({ "Middleware Window" })
+			Iris.Text({ "FromMiddleware" })
+			Iris.End()
+		end
+	end
+
+	local lifecycle = render(container, story)
+
+	local wrapper = container:FindFirstChildWhichIsA("Frame")
+	assert(wrapper, "no wrapper Frame was created")
+
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "FromStory")).toBeDefined()
+		expect(findTextLabelWithText(wrapper, "FromMiddleware")).toBeDefined()
+	end)
+
+	lifecycle.unmount()
+end)
+
 test("update passes new controls to the story", function()
 	local rendered = {}
 

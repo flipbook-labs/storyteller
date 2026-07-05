@@ -145,6 +145,22 @@ describe("Vide", function()
 		expect(#container:GetChildren()).toBe(0)
 	end)
 
+	test("mapStory middleware wraps the story", function()
+		local story = createVideStory(TextStory)
+
+		story.storybook.mapStory = function(originalStory)
+			return function(props)
+				local instance = originalStory(props)
+				instance.Name = "Mapped"
+				return instance
+			end
+		end
+
+		render(container, story)
+
+		expect(container:FindFirstChild("Mapped")).toBeDefined()
+	end)
+
 	test("errors thrown by the story propagate out of render", function()
 		local story = createVideStory(function()
 			error("vide story blew up")

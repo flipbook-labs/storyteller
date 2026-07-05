@@ -137,6 +137,38 @@ describe("Fusion 0.3.0", function()
 		expect(instance.Parent).toBeNil()
 	end)
 
+	test("mapStory middleware wraps the story", function()
+		local story = createFusionStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControlsSchema
+
+		story.storybook.mapStory = function(originalStory)
+			return function(props)
+				local instance = originalStory(props)
+				instance.Name = "Mapped"
+				return instance
+			end
+		end
+
+		local lifecycle = render(container, story)
+
+		local mapped = container:FindFirstChild("Mapped")
+		assert(mapped, "no mapped element found")
+		assert(mapped:IsA("TextButton"), "mapped element is not the story's TextButton")
+		expect(mapped.Text).toBe("Disabled")
+
+		-- Controls must keep working through the middleware
+		lifecycle.update({
+			isDisabled = false,
+		} :: StoryControls)
+
+		task.wait()
+
+		expect(mapped.Text).toBe("Enabled")
+	end)
+
 	test("errors thrown by the story propagate out of render", function()
 		local story = createFusionStory(function()
 			error("fusion story blew up")
@@ -263,6 +295,22 @@ describe("Fusion 0.2.0", function()
 
 		expect(#container:GetChildren()).toBe(0)
 		expect(instance.Parent).toBeNil()
+	end)
+
+	test("mapStory middleware wraps the story", function()
+		local story = createFusionStory(TextStory)
+
+		story.storybook.mapStory = function(originalStory)
+			return function(props)
+				local instance = originalStory(props)
+				instance.Name = "Mapped"
+				return instance
+			end
+		end
+
+		render(container, story)
+
+		expect(container:FindFirstChild("Mapped")).toBeDefined()
 	end)
 
 	test("errors thrown by the story propagate out of render", function()

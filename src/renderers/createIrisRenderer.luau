@@ -55,9 +55,12 @@ local function createIrisRenderer(packages: Packages): StoryRenderer<IrisStory>
 
 		Iris.Disabled = false
 
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+		local storyFn: any = if mapStory then mapStory(story.story) else story.story
+
 		disconnect = Iris:Connect(function()
-			if typeof(story.story) == "function" then
-				(story :: any).story(currentProps)
+			if typeof(storyFn) == "function" then
+				storyFn(currentProps)
 			end
 		end)
 	end
