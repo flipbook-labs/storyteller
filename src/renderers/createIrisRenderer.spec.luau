@@ -136,6 +136,8 @@ test("mapStory middleware wraps the story", function()
 			Iris.Window({ "Middleware Window" })
 			Iris.Text({ "FromMiddleware" })
 			Iris.End()
+
+			return nil
 		end
 	end
 
