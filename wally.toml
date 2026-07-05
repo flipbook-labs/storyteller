@@ -27,6 +27,7 @@ UILabs = "pepeeltoro41/ui-labs@2.4.2"
 # [dev-dependencies]
 Fusion = "elttob/fusion@0.2.0"
 Fusion3 = "elttob/fusion@0.3.0"
+Iris = "sirmallard/iris@2.5.1"
 Jest = "jsdotlua/jest@3.10.0"
 JestGlobals = "jsdotlua/jest-globals@3.10.0"
 ReactRoblox = "jsdotlua/react-roblox@17.0.2"

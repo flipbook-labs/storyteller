@@ -1,4 +1,5 @@
 local createFusionRenderer = require("@root/renderers/createFusionRenderer")
+local createIrisRenderer = require("@root/renderers/createIrisRenderer")
 local createManualRenderer = require("@root/renderers/createManualRenderer")
 local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
@@ -30,6 +31,8 @@ local function createRendererForStory<T>(story: LoadedStory<T>): StoryRenderer<a
 			return createFusionRenderer(packages)
 		elseif packages.Vide then
 			return createVideRenderer(packages)
+		elseif packages.Iris then
+			return createIrisRenderer(packages)
 		end
 	end
 
