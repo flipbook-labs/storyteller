@@ -36,7 +36,7 @@ do
 end
 
 do
-	local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.11.0")
+	local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 
 	local run = FlipbookBatteries.run
 	local find = FlipbookBatteries.find
@@ -56,6 +56,7 @@ do
 		local packages = {
 			"^charm$",
 			"^react%-charm$",
+			"^vide$",
 		}
 
 		for _, package in packages do
