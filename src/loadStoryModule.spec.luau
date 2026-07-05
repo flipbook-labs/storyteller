@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local loadStoryModule = require("./loadStoryModule")
@@ -240,8 +241,6 @@ describe("roblox internal", function()
 end)
 
 describe("frozen Charm state (Studio behavior)", function()
-	local Charm = require("@pkg/Charm")
-
 	local prevFrozen
 
 	beforeEach(function()

@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -474,8 +475,6 @@ describe("orphaned stories", function()
 end)
 
 describe("frozen Charm state (Studio behavior)", function()
-	local Charm = require("@pkg/Charm")
-
 	local prevFrozen
 
 	beforeEach(function()

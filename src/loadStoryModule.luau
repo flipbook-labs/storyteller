@@ -122,7 +122,7 @@ local function loadStoryModule<T>(
 		packages = if isLegacyStory then {} else packages,
 	}
 
-	local merged: types.LoadedStory<T> = Sift.Dictionary.merge(loadedStory, story) :: any
+	local merged = Sift.Dictionary.merge(loadedStory, story) :: types.LoadedStory<T>
 
 	local mergedPackages = merged.packages
 	if mergedPackages and getmetatable(mergedPackages :: any) == nil then

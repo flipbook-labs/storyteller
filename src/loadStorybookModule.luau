@@ -54,7 +54,11 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		-- metatable. UI libraries mutate their module-level state while
 		-- rendering (React reassigns ReactCurrentDispatcher.current on every
 		-- render), so freezing has to stop at this foreign-module boundary
-		-- (flipbook-labs/storyteller#100)
+		-- (flipbook-labs/storyteller#100).
+		--
+		-- The clone matters: when the storybook declares `packages` directly,
+		-- the table belongs to the author's module and may be shared between
+		-- storybooks or frozen, so we must not attach a metatable in place
 		result.packages = setmetatable(table.clone(result.packages), {})
 	end
 
