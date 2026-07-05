@@ -167,6 +167,33 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 end)
 
+test("unmounting runs willUnmount", function()
+	local unmounted = false
+
+	local StoryWithWillUnmount = Roact.Component:extend("StoryWithWillUnmount")
+
+	function StoryWithWillUnmount:render()
+		return Roact.createElement("TextLabel", {
+			Text = "Effectful",
+		})
+	end
+
+	function StoryWithWillUnmount:willUnmount()
+		unmounted = true
+	end
+
+	local lifecycle = render(container, createRoactStory(StoryWithWillUnmount))
+
+	expect(unmounted).toBe(false)
+
+	lifecycle.unmount()
+
+	-- Stories rely on their lifecycle methods running when the story is
+	-- closed, so unmounting must go through Roact rather than only
+	-- clearing the container
+	expect(unmounted).toBe(true)
+end)
+
 describe("middleware", function()
 	test("supply context provider to all stories", function()
 		local ThemeContext = Roact.createContext(nil)

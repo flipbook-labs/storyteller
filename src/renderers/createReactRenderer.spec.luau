@@ -207,6 +207,41 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 end)
 
+test("unmounting runs effect cleanups", function()
+	local cleanedUp = false
+
+	local function StoryWithEffect()
+		React.useEffect(function()
+			return function()
+				cleanedUp = true
+			end
+		end, {})
+
+		return React.createElement("TextLabel", {
+			Text = "Effectful",
+		})
+	end
+
+	local lifecycle = render(container, createReactStory(StoryWithEffect))
+
+	act(function()
+		task.wait()
+	end)
+
+	expect(cleanedUp).toBe(false)
+
+	lifecycle.unmount()
+
+	act(function()
+		task.wait()
+	end)
+
+	-- Stories rely on their effect cleanups running when the story is
+	-- closed, so unmounting must go through React rather than only
+	-- clearing the container
+	expect(cleanedUp).toBe(true)
+end)
+
 describe("middleware", function()
 	test("supply context provider to all stories", function()
 		local ThemeContext = React.createContext(nil)
