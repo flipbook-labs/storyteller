@@ -48,6 +48,16 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		result.packages = migrateLegacyPackages(result)
 	end
 
+	if result.packages and getmetatable(result.packages) == nil then
+		-- Loaded storybooks get stored in Charm state, which deep-freezes
+		-- everything it can reach in Studio, but skips tables that have a
+		-- metatable. UI libraries mutate their module-level state while
+		-- rendering (React reassigns ReactCurrentDispatcher.current on every
+		-- render), so freezing has to stop at this foreign-module boundary
+		-- (flipbook-labs/storyteller#100)
+		result.packages = setmetatable(table.clone(result.packages), {})
+	end
+
 	if not result.name then
 		local name = module.Name:gsub(constants.STORYBOOK_NAME_PATTERN, "")
 		if name == "" then
