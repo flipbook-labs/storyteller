@@ -72,12 +72,21 @@ jobs:
       group: release-pr-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     steps:
+      - name: Load secrets from 1Password
+        id: op
+        uses: 1Password/load-secrets-action@v3
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          FLIPBOOK_BACKEND_APP_PRIVATE_KEY: op://Flipbook/flipbook-backend.2025-12-13.private-key/private key
+
       - name: Generate app token
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ secrets.FLIPBOOK_BACKEND_APP_ID }}
-          private-key: ${{ secrets.FLIPBOOK_BACKEND_APP_PRIVATE_KEY }}
+          private-key: ${{ steps.op.outputs.FLIPBOOK_BACKEND_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@v6
         with:
