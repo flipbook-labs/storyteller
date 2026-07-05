@@ -23,7 +23,7 @@ local EXCLUDED_FROM_CONFORMANCE = {
 }
 
 test("pin number of storybooks", function()
-	expect(#storybookModules).toBe(5)
+	expect(#storybookModules).toBe(6)
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
