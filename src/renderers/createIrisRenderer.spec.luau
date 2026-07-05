@@ -4,6 +4,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local waitFor = require("@root/test-utils/waitFor")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
@@ -27,6 +28,15 @@ local function createIrisStory(story)
 	})
 end
 
+local function findTextLabelWithText(root: Instance, text: string): TextLabel?
+	for _, descendant in root:GetDescendants() do
+		if descendant:IsA("TextLabel") and descendant.Text == text then
+			return descendant
+		end
+	end
+	return nil
+end
+
 test("render an Iris component", function()
 	local story = createIrisStory(function()
 		Iris.Window({ "My Window" })
@@ -34,7 +44,7 @@ test("render an Iris component", function()
 		Iris.End()
 	end)
 
-	render(container, story)
+	local lifecycle = render(container, story)
 
 	-- Iris renders on its next cycle, so wait a frame before asserting.
 	task.wait()
@@ -43,7 +53,14 @@ test("render an Iris component", function()
 
 	local wrapper = container:FindFirstChildWhichIsA("Frame")
 	assert(wrapper, "no wrapper Frame was created")
-	expect(#wrapper:GetDescendants() > 0).toBe(true)
+
+	-- The first Iris cycle can take a couple of frames to draw widgets, so
+	-- poll rather than waiting a fixed number of frames
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "Hello, World")).toBeDefined()
+	end)
+
+	lifecycle.unmount()
 end)
 
 test("unmount an Iris component", function()
@@ -61,6 +78,48 @@ test("unmount an Iris component", function()
 	lifecycle.unmount()
 
 	expect(#container:GetChildren()).toBe(0)
+end)
+
+test("a story can mount after a previous story unmounted", function()
+	local firstStory = createIrisStory(function()
+		Iris.Window({ "First Window" })
+		Iris.Text({ "First" })
+		Iris.End()
+	end)
+
+	local firstLifecycle = render(container, firstStory)
+
+	task.wait()
+
+	firstLifecycle.unmount()
+
+	-- Iris is a global singleton that can only be initialized once, so a
+	-- second mount must re-point the existing instance at the new container
+	local secondContainer = Instance.new("Folder")
+	local secondStory = createIrisStory(function()
+		Iris.Window({ "Second Window" })
+		Iris.Text({ "Second" })
+		Iris.End()
+	end)
+
+	local secondLifecycle = render(secondContainer, secondStory)
+
+	task.wait()
+
+	local wrapper = secondContainer:FindFirstChildWhichIsA("Frame")
+	assert(wrapper, "no wrapper Frame was created on the second mount")
+
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "Second")).toBeDefined()
+	end)
+
+	-- The first story was unmounted, so its widgets must not leak into the
+	-- second story's render
+	expect(findTextLabelWithText(wrapper, "First")).toBeNil()
+
+	secondLifecycle.unmount()
+
+	expect(#secondContainer:GetChildren()).toBe(0)
 end)
 
 test("update passes new controls to the story", function()
@@ -89,4 +148,6 @@ test("update passes new controls to the story", function()
 	task.wait()
 
 	expect(rendered.value).toBe("updated")
+
+	lifecycle.unmount()
 end)

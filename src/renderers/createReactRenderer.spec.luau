@@ -239,4 +239,146 @@ describe("middleware", function()
 		assert(element, "no TextLabel found")
 		expect(element.Text).toBe("Dark")
 	end)
+
+	test("mapStory continues to wrap the story on updates", function()
+		local ThemeContext = React.createContext(nil)
+
+		local function StoryThatNeedsContext(props: {
+			controls: {
+				isDisabled: boolean?,
+			},
+		})
+			local theme = React.useContext(ThemeContext)
+			local state = if props.controls.isDisabled then "Disabled" else "Enabled"
+
+			return React.createElement("TextLabel", {
+				Text = `{theme} {state}`,
+			})
+		end
+
+		local story = createReactStory(StoryThatNeedsContext)
+
+		story.controls = {
+			isDisabled = false,
+		} :: StoryControlsSchema
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				return React.createElement(ThemeContext.Provider, {
+					value = "Dark",
+				}, React.createElement(element, props))
+			end
+		end
+
+		local lifecycle = render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		local element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark Enabled")
+
+		lifecycle.update({
+			isDisabled = true,
+		} :: StoryControls)
+
+		act(function()
+			task.wait()
+		end)
+
+		element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark Disabled")
+	end)
+
+	test("mapDefinition is applied exactly once, at mount", function()
+		local applications = 0
+
+		local story = createReactStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = false,
+		} :: StoryControlsSchema
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			applications += 1
+			return table.clone(storyDefinition)
+		end
+
+		local lifecycle = render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		expect(applications).toBe(1)
+
+		lifecycle.update({
+			isDisabled = true,
+		} :: StoryControls)
+
+		act(function()
+			task.wait()
+		end)
+
+		-- Updating re-renders the already-mapped story; the definition must
+		-- not be transformed a second time
+		expect(applications).toBe(1)
+
+		local button = container:FindFirstChildWhichIsA("TextButton")
+		assert(button, "no TextButton found")
+		expect(button.Text).toBe("Disabled")
+	end)
+
+	test("mapDefinition can replace the story's component", function()
+		local story = createReactStory(ButtonStory)
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			local mapped = table.clone(storyDefinition)
+			mapped.story = function()
+				return React.createElement("TextLabel", {
+					Text = "Replaced",
+				})
+			end
+			return mapped
+		end
+
+		render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Replaced")
+	end)
+end)
+
+test("updating a pre-created element story does not error", function()
+	local story = createReactStory(React.createElement("TextLabel", {
+		Text = "Hello, World",
+	}))
+
+	local lifecycle = render(container, story)
+
+	act(function()
+		task.wait()
+	end)
+
+	expect(#container:GetChildren()).toBe(1)
+
+	lifecycle.update()
+
+	act(function()
+		task.wait()
+	end)
+
+	expect(#container:GetChildren()).toBe(1)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Hello, World")
 end)
