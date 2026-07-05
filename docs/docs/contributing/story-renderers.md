@@ -37,7 +37,7 @@ When adding a new renderer, use the existing ones as reference and use the below
 
 `theme: "Dark" | "Light"`
 
-Deprecated. This prop is always `"Dark"` and is only kept for backwards compatibility; hosts like Flipbook supply the real theme themselves via extra props.
+Deprecated. This prop is always `"Dark"` and is only kept for backwards compatibility. Hosts like Flipbook supply the real theme themselves via extra props.
 
 #### container
 

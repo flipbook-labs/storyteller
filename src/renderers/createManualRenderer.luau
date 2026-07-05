@@ -17,7 +17,7 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		currentStory = story
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local storyValue: any = if mapStory then mapStory(story.story) else story.story
+		local storyValue: Instance | ((...any) -> any) = if mapStory then mapStory(story.story) else story.story
 
 		local result
 
