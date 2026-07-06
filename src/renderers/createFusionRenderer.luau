@@ -42,6 +42,12 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		props = transformProps(props)
 		prevProps = props
 
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
+
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 
 		if mapStory then

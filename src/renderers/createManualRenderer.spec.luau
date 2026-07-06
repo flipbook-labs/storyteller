@@ -180,3 +180,64 @@ test("mapStory middleware wraps the story", function()
 
 	expect(container:FindFirstChild("Mapped")).toBeDefined()
 end)
+
+test("mapDefinition is applied exactly once, at mount", function()
+	local applications = 0
+
+	local story = createStory({
+		story = ButtonStory,
+	})
+
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControlsSchema
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		applications += 1
+		return table.clone(storyDefinition)
+	end
+
+	local lifecycle = render(container, story)
+
+	expect(applications).toBe(1)
+
+	local button = container:FindFirstChildWhichIsA("TextButton")
+	assert(button, "no TextButton found")
+	expect(button.Text).toBe("Disabled")
+
+	lifecycle.update({
+		isDisabled = false,
+	} :: StoryControls)
+
+	-- The manual renderer re-renders on update, but the definition is mapped
+	-- once at mount so it must not be transformed again
+	expect(applications).toBe(1)
+
+	button = container:FindFirstChildWhichIsA("TextButton")
+	assert(button, "no TextButton found")
+	expect(button.Text).toBe("Enabled")
+end)
+
+test("mapDefinition can replace the story's component", function()
+	local story = createStory({
+		story = function()
+			return Instance.new("TextButton")
+		end,
+	})
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		local mapped = table.clone(storyDefinition)
+		mapped.story = function()
+			local label = Instance.new("TextLabel")
+			label.Text = "Replaced"
+			return label
+		end
+		return mapped
+	end
+
+	render(container, story)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Replaced")
+end)
