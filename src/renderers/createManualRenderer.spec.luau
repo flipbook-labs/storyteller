@@ -248,8 +248,6 @@ test("mapDefinition is applied exactly once, at mount", function()
 		isDisabled = false,
 	} :: StoryControls)
 
-	-- The manual renderer re-renders on update, but the definition is mapped
-	-- once at mount so it must not be transformed again
 	expect(applications).toBe(1)
 
 	button = container:FindFirstChildWhichIsA("TextButton")

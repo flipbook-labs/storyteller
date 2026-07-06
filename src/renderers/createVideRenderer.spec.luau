@@ -143,8 +143,6 @@ describe("Vide", function()
 
 		task.wait()
 
-		-- Updating mutates the existing sources rather than remounting, so
-		-- the definition must not be transformed a second time
 		expect(applications).toBe(1)
 		expect(button.Text).toBe("Enabled")
 	end)

@@ -182,8 +182,6 @@ describe("Fusion 0.3.0", function()
 
 		task.wait()
 
-		-- Updating mutates the existing controls rather than remounting, so
-		-- the definition must not be transformed a second time
 		expect(applications).toBe(1)
 		expect(button.Text).toBe("Enabled")
 	end)
@@ -353,8 +351,6 @@ describe("Fusion 0.2.0", function()
 
 		task.wait()
 
-		-- Updating mutates the existing controls rather than remounting, so
-		-- the definition must not be transformed a second time
 		expect(applications).toBe(1)
 		expect(button.Text).toBe("Enabled")
 	end)

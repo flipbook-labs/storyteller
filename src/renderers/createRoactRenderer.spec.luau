@@ -220,8 +220,6 @@ describe("middleware", function()
 			isDisabled = true,
 		} :: StoryControls)
 
-		-- Updating re-renders the already-mapped story. The definition must
-		-- not be transformed a second time
 		expect(applications).toBe(1)
 
 		local button = container:FindFirstChildWhichIsA("TextButton")
