@@ -26,7 +26,7 @@ return {
 
 ## Middleware
 
-A Storybook can define middleware that runs against every Story it manages. This is handy for cross-cutting concerns like wrapping every Story in a theme provider or tagging Story names. Both hooks are optional and are honored by every renderer (React, Roact, Fusion, Vide, and the manual renderer).
+A Storybook can define middleware that runs against every Story it manages. This is handy for cross-cutting concerns like wrapping every Story in a theme provider or tagging Story names. Both hooks are optional and are honored by every renderer.
 
 ### mapStory
 
@@ -41,7 +41,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
-local ThemeContext = require(ReplicatedStorage.Packages.ThemeContext)
+local ThemeContext = require(script.Parent.ThemeContext)
 
 return {
     storyRoots = {

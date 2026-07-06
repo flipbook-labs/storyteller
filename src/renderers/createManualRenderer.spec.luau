@@ -125,6 +125,45 @@ test("update the GuiObject on arg changes", function()
 	expect(button.Text).toBe("Enabled")
 end)
 
+test("update re-renders a story that manages its own cleanup", function()
+	local cleanups = 0
+
+	local story = createStory({
+		story = function(props)
+			local label = Instance.new("TextLabel")
+			label.Text = if props.controls.isDisabled then "Disabled" else "Enabled"
+			label.Parent = props.container
+
+			return function()
+				cleanups += 1
+				label:Destroy()
+			end
+		end,
+	})
+
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControlsSchema
+
+	local lifecycle = render(container, story)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Disabled")
+
+	lifecycle.update({
+		isDisabled = false,
+	} :: StoryControls)
+
+	-- The previous render is cleaned up and a fresh one is mounted, just as a
+	-- full remount would do
+	expect(cleanups).toBe(1)
+
+	label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Enabled")
+end)
+
 test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 

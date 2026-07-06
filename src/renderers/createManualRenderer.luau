@@ -42,9 +42,6 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
-		-- The definition is mapped once here rather than in renderStory so
-		-- that updates re-render the already-mapped story instead of
-		-- transforming it a second time
 		if mapDefinition then
 			story = mapDefinition(story)
 		end
