@@ -17,9 +17,9 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		currentStory = story
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local storyValue: Instance | ((...any) -> any) = if mapStory then mapStory(story.story) else story.story
+		local storyValue: Instance | ((...any) -> unknown) = if mapStory then mapStory(story.story) else story.story
 
-		local result
+		local result: unknown
 
 		if typeof(storyValue) == "Instance" then
 			result = storyValue
@@ -32,7 +32,7 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		end
 
 		if typeof(result) == "function" then
-			cleanup = result
+			cleanup = result :: CleanupFn
 		elseif typeof(result) == "Instance" then
 			if not result.Parent then
 				result.Parent = container
