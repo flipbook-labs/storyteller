@@ -20,10 +20,13 @@ local storybookModules = findStorybookModules(script.Parent.storybooks)
 
 local EXCLUDED_FROM_CONFORMANCE = {
 	script.Parent.storybooks["Hoarcekat.storybook"],
+	-- Iris is immediate-mode and cannot produce the top-level TextButton the
+	-- conformance tests expect, so its stories are exempt.
+	script.Parent.storybooks["Iris.storybook"],
 }
 
 test("pin number of storybooks", function()
-	expect(#storybookModules).toBe(5)
+	expect(#storybookModules).toBe(6)
 end)
 
 describeEach(storybookModules)("e2e %s", function(storybookModule)
@@ -42,7 +45,8 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			packages.ReactRoblox.act(function()
 				task.wait()
 			end)
-		elseif packages and (packages.Fusion or packages.Vide) then
+		elseif packages and (packages.Fusion or packages.Vide or packages.Iris) then
+			-- Fusion, Vide, and Iris all render on their next cycle, so wait a frame.
 			task.wait()
 		end
 	end
