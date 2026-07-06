@@ -3,4 +3,4 @@ bump: patch
 category: Fixed
 ---
 
-Apply a storybook's `mapDefinition` middleware exactly once when the React renderer mounts a story, matching the Roact renderer. Previously every control change re-applied it to the already-mapped story, stacking transformations for non-idempotent middleware.
+Apply a storybook's `mapDefinition` middleware exactly once when the React renderer mounts a story, matching the Roact renderer. Control changes re-render the already-mapped story rather than re-applying the middleware, so a non-idempotent `mapDefinition` no longer stacks transformations on every update.

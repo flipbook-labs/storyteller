@@ -270,7 +270,7 @@ describe("middleware", function()
 			task.wait()
 		end)
 
-		-- Updating re-renders the already-mapped story; the definition must
+		-- Updating re-renders the already-mapped story. The definition must
 		-- not be transformed a second time
 		expect(applications).toBe(1)
 
