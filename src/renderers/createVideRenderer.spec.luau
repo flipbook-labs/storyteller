@@ -103,4 +103,20 @@ describe("Vide", function()
 
 		expect(element.Text).toBe("Enabled")
 	end)
+
+	test("mapStory middleware wraps the story", function()
+		local story = createVideStory(TextStory)
+
+		story.storybook.mapStory = function(originalStory)
+			return function(props)
+				local instance = originalStory(props)
+				instance.Name = "Mapped"
+				return instance
+			end
+		end
+
+		render(container, story)
+
+		expect(container:FindFirstChild("Mapped")).toBeDefined()
+	end)
 end)
