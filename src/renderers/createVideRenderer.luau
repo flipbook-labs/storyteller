@@ -36,8 +36,12 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 		props = transformProps(props)
 		prevProps = props
 
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+
 		stopVide = Vide.mount(function()
-			if typeof(story.story) == "Instance" then
+			if mapStory then
+				return mapStory(story.story)(props)
+			elseif typeof(story.story) == "Instance" then
 				return story.story
 			else
 				return story.story(props)
