@@ -25,11 +25,6 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 
 	local function reactRender(story: types.LoadedStory<unknown>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
-
-		if mapDefinition then
-			story = mapDefinition(story)
-		end
 
 		local element
 		if isReactElement(story.story) then
@@ -47,6 +42,12 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 	end
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
+
 		root = ReactRoblox.createRoot(container)
 		reactRender(story, props)
 	end
