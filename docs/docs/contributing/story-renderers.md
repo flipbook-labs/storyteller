@@ -88,7 +88,7 @@ If the renderer does not define `update`, `mount` is also called for every updat
 
 Called any time the story's props change, typically from the user interacting with story controls. By comparing `props` and `prevProps` a renderer can choose how it wants to re-render the story.
 
-This hook is optional. When it is defined, the renderer is responsible for reflecting the new props in the rendered UI — for example, Fusion keeps its Instances' identities stable by pushing new control values through `Fusion.Value` objects. When it is not defined, the story is unmounted and remounted from scratch with the new props.
+This hook is optional. When it is defined, the renderer is responsible for reflecting the new props in the rendered UI. For example, Fusion keeps its Instances' identities stable by pushing new control values through `Fusion.Value` objects. When it is not defined, the story is unmounted and remounted from scratch with the new props.
 
 #### unmount
 
