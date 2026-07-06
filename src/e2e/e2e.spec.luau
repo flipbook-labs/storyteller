@@ -46,7 +46,6 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 				task.wait()
 			end)
 		elseif packages and (packages.Fusion or packages.Vide or packages.Iris) then
-			-- Fusion, Vide, and Iris all render on their next cycle, so wait a frame.
 			task.wait()
 		end
 	end

@@ -183,3 +183,76 @@ test("update passes new controls to the story", function()
 
 	lifecycle.unmount()
 end)
+
+test("mapDefinition is applied exactly once, at mount", function()
+	local applications = 0
+	local rendered = {}
+
+	local story = createIrisStory(function(props)
+		rendered.value = props.controls.value
+		Iris.Window({ "My Window" })
+		Iris.Text({ props.controls.value })
+		Iris.End()
+	end)
+
+	story.controls = {
+		value = "initial",
+	} :: StoryControlsSchema
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		applications += 1
+		return table.clone(storyDefinition)
+	end
+
+	local lifecycle = render(container, story)
+
+	task.wait()
+
+	expect(applications).toBe(1)
+	expect(rendered.value).toBe("initial")
+
+	lifecycle.update({
+		value = "updated",
+	} :: StoryControls)
+
+	task.wait()
+
+	-- Immediate-mode reads props every frame, so the update must re-render the
+	-- already-mapped story rather than re-applying the definition
+	expect(applications).toBe(1)
+	expect(rendered.value).toBe("updated")
+
+	lifecycle.unmount()
+end)
+
+test("mapDefinition can replace the story's component", function()
+	local story = createIrisStory(function()
+		Iris.Window({ "My Window" })
+		Iris.Text({ "Original" })
+		Iris.End()
+	end)
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		local mapped = table.clone(storyDefinition)
+		mapped.story = function()
+			Iris.Window({ "Replaced Window" })
+			Iris.Text({ "Replaced" })
+			Iris.End()
+		end
+		return mapped
+	end
+
+	local lifecycle = render(container, story)
+
+	local wrapper = container:FindFirstChildWhichIsA("Frame")
+	assert(wrapper, "no wrapper Frame was created")
+
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "Replaced")).toBeDefined()
+	end)
+
+	-- The original definition's widgets must not leak through once it's replaced
+	expect(findTextLabelWithText(wrapper, "Original")).toBeNil()
+
+	lifecycle.unmount()
+end)
