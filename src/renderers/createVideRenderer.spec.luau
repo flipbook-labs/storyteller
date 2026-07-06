@@ -119,4 +119,51 @@ describe("Vide", function()
 
 		expect(container:FindFirstChild("Mapped")).toBeDefined()
 	end)
+
+	test("mapDefinition is applied exactly once, at mount", function()
+		local applications = 0
+
+		local story = createVideStory(ButtonStory)
+		story.controls = { isDisabled = true } :: StoryControlsSchema
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			applications += 1
+			return table.clone(storyDefinition)
+		end
+
+		local lifecycle = render(container, story)
+
+		expect(applications).toBe(1)
+
+		local button = container:FindFirstChildWhichIsA("TextButton")
+		assert(button, "no element found")
+		expect(button.Text).toBe("Disabled")
+
+		lifecycle.update({ isDisabled = false } :: StoryControls)
+
+		task.wait()
+
+		expect(applications).toBe(1)
+		expect(button.Text).toBe("Enabled")
+	end)
+
+	test("mapDefinition can replace the story's component", function()
+		local story = createVideStory(TextStory)
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			local mapped = table.clone(storyDefinition)
+			mapped.story = function()
+				return Vide.create("TextLabel")({
+					Text = "Replaced",
+				})
+			end
+			return mapped
+		end
+
+		render(container, story)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Replaced")
+	end)
 end)
