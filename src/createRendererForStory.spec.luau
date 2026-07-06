@@ -107,12 +107,14 @@ test("selects the Manual renderer when no packages are provided", function()
 	local renderer = createRendererForStory(createStoryWithPackages(nil))
 
 	expect(renderer).toBe(MANUAL_RENDERER)
+	expect(mockCreateManualRenderer).toHaveBeenCalled()
 end)
 
 test("selects the Manual renderer when no packages match a UI library", function()
 	local renderer = createRendererForStory(createStoryWithPackages({ SomethingElse = {} }))
 
 	expect(renderer).toBe(MANUAL_RENDERER)
+	expect(mockCreateManualRenderer).toHaveBeenCalled()
 end)
 
 test("prefers Roact over every other renderer", function()

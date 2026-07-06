@@ -143,6 +143,7 @@ describe("Vide", function()
 		lifecycle.unmount()
 
 		expect(#container:GetChildren()).toBe(0)
+		expect(instance.Parent).toBeNil()
 	end)
 
 	test("errors thrown by the story propagate out of render", function()
