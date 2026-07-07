@@ -1,3 +1,4 @@
+local Archivist = require("@luaupkg/Archivist@v0.1.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local cli = require("@batteries/cli")
 local path = require("@std/path")
@@ -10,6 +11,8 @@ local dotenv = FlipbookBatteries.dotenv
 local findAndReplace = FlipbookBatteries.findAndReplace
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
+
+local logger = Archivist.createLogger("test")
 
 dotenv()
 
@@ -28,8 +31,8 @@ args:parse({ ... })
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
 if not apiKey then
-	print(
-		"err: A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
+	logger.err(
+		"A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
 	)
 	process.exit(1)
 end
@@ -73,6 +76,6 @@ local success, err = pcall(function()
 end)
 
 if not success then
-	print(err)
+	logger.err(err)
 	process.exit(1)
 end

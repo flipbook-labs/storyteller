@@ -4,6 +4,7 @@
 	path/git dependencies, so we have to make our own shim.
 ]]
 
+local Archivist = require("@luaupkg/Archivist@v0.1.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local fs = require("@std/fs")
 local path = require("@std/path")
@@ -11,6 +12,8 @@ local path = require("@std/path")
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
 local find = FlipbookBatteries.find
+
+local logger = Archivist.createLogger("try-in-flipbook")
 
 local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
 local BUNDLE_DIR_NAME = "dist"
@@ -53,7 +56,7 @@ local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
 local flipbookRoot = findFlipbookRoot(path.dirname(repoRoot))
 
 if flipbookRoot then
-	print(`using Flipbook at {flipbookRoot}`)
+	logger.info(`using Flipbook at {flipbookRoot}`)
 else
 	error(
 		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
@@ -77,4 +80,4 @@ fs.removeDirectory(dest, {
 run("lute", { "run", "build" })
 copyInto(src, dest)
 
-print(`successfully installed to {dest}`)
+logger.info(`successfully installed to {dest}`)
