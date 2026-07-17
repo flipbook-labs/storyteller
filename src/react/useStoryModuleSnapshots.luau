@@ -26,9 +26,11 @@ local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): { [Modul
 
 	useEffect(function()
 		local loaderConnections = {} :: { [ModuleScript]: RBXScriptConnection }
+		local pendingTargets = {} :: { [ModuleScript]: StoryModuleTarget }
 		local reloadByModule = {} :: { [ModuleScript]: () -> () }
 		local sourceConnections = {} :: { [ModuleScript]: RBXScriptConnection }
 		local isActive = true
+		local isProcessing = false
 
 		setSnapshots({})
 
@@ -69,17 +71,57 @@ local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): { [Modul
 			loaderConnections[storyModule] = loader.loadedModuleChanged:Connect(reloadByModule[storyModule])
 		end
 
+		local function processPendingTargets()
+			if isProcessing then
+				return
+			end
+			isProcessing = true
+
+			task.spawn(function()
+				while isActive do
+					local nextTarget: StoryModuleTarget?
+					for storyModule, target in pendingTargets do
+						pendingTargets[storyModule] = nil
+						nextTarget = target
+						break
+					end
+
+					if not nextTarget then
+						break
+					end
+
+					loadTarget(nextTarget)
+
+					-- Some Storybooks contain hundreds of Stories whose
+					-- dependencies are expensive to evaluate. Yield after each
+					-- snapshot so initial discovery and dependency changes do
+					-- not exhaust Studio's script timeout.
+					task.wait()
+				end
+
+				isProcessing = false
+			end)
+		end
+
+		local function queueTarget(target: StoryModuleTarget)
+			pendingTargets[target.storyModule] = target
+			processPendingTargets()
+		end
+
 		for _, target in targets do
 			local storyModule = target.storyModule
 			reloadByModule[storyModule] = debounce(function()
-				task.spawn(loadTarget, target)
+				queueTarget(target)
 			end, 50)
-			sourceConnections[storyModule] = storyModule.Changed:Connect(reloadByModule[storyModule])
-			task.spawn(loadTarget, target)
+			sourceConnections[storyModule] =
+				storyModule:GetPropertyChangedSignal("Source"):Connect(reloadByModule[storyModule])
+			pendingTargets[storyModule] = target
 		end
+		processPendingTargets()
 
 		return function()
 			isActive = false
+			table.clear(pendingTargets)
 			for _, connection in loaderConnections do
 				connection:Disconnect()
 			end

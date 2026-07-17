@@ -46,8 +46,14 @@ test("loads snapshots and isolates malformed modules", function()
 		return useStoryModuleSnapshots(targets)
 	end)
 
+	act(function()
+		task.wait()
+	end)
+
 	waitFor(function()
 		local snapshots = get()
+		expect(snapshots[validStoryModule]).toBeDefined()
+		expect(snapshots[invalidStoryModule]).toBeDefined()
 		expect(snapshots[validStoryModule].stories).toEqual({
 			expect.objectContaining({ id = "Alpha", name = "Alpha" }),
 			expect.objectContaining({ id = "Beta", name = "Beta" }),
