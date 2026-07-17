@@ -1,11 +1,14 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
 local useStoriesForModule = require("./useStoriesForModule")
+local waitFor = require("@root/test-utils/waitFor")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local act = ReactRoblox.act
 
 test("loads every story from a module", function()
 	local storyModule = Instance.new("ModuleScript")
@@ -28,9 +31,18 @@ test("loads every story from a module", function()
 	local get = renderHook(function()
 		return useStoriesForModule(storyModule, storybook)
 	end)
-	local stories, err = get()
+	act(function()
+		task.wait(0.1)
+	end)
 
-	expect(err).toBeUndefined()
+	local stories
+	waitFor(function()
+		local err
+		stories, err = get()
+		expect(err).toBeUndefined()
+		expect(stories).toBeDefined()
+	end)
+
 	expect(stories).toEqual({
 		expect.objectContaining({
 			id = "First",

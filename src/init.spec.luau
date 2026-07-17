@@ -13,6 +13,16 @@ test("Storyteller can be required", function()
 	expect(Storyteller).toBeDefined()
 end)
 
+test("only exposes the required multi-story runtime API", function()
+	local Storyteller = require("@self")
+	local publicApi = Storyteller :: any
+
+	expect(Storyteller.useStoryModuleSnapshots).toBeDefined()
+	expect(publicApi.loadStoriesFromModule).toBeUndefined()
+	expect(publicApi.loadStoryModuleSnapshot).toBeUndefined()
+	expect(publicApi.useStoriesForModule).toBeUndefined()
+end)
+
 test("Storyteller can be required in a ModuleLoader context", function()
 	local loader = ModuleLoader.new()
 

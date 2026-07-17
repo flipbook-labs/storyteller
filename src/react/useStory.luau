@@ -5,7 +5,9 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 	This hook triggers a rerender when the Story module or any of its required
 	modules change. For example, updating the `story` property or updating a
 	React component’s source will trigger useStory to rerender with the new
-	content.
+	content. Pass a `storyId` to select one Story from a multi-Story module. If
+	the ID is omitted or unavailable, the first Story is returned for backward
+	compatibility.
 
 	:::info
 	In the future version hooks may be migrated to a new package to remove the React dependency from Storyteller.
@@ -51,9 +53,25 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 	@tag Story
 	@within Storyteller
 ]=]
-local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
+local function useStory(
+	module: ModuleScript,
+	storybook: types.LoadedStorybook,
+	storyId: string?
+): (types.LoadedStory<unknown>?, string?)
 	local stories, err = useStoriesForModule(module, storybook)
-	return if stories then stories[1] else nil, err
+	if not stories then
+		return nil, err
+	end
+
+	if storyId then
+		for _, story in stories do
+			if story.id == storyId then
+				return story, err
+			end
+		end
+	end
+
+	return stories[1], err
 end
 
 return useStory

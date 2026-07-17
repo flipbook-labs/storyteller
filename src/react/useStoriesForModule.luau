@@ -1,11 +1,11 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local ReactCharm = require("@pkg/ReactCharm")
 
-local loadStoriesFromModule = require("@root/loadStoriesFromModule")
 local types = require("@root/types")
+local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useEffect = React.useEffect
-local useState = React.useState
+local useSignalState = ReactCharm.useSignalState
 
 --[=[
 	Loads every Story exported by a Story module and reloads them when the
@@ -19,46 +19,21 @@ local function useStoriesForModule(
 	module: ModuleScript,
 	storybook: types.LoadedStorybook
 ): ({ types.LoadedStory<unknown> }?, string?)
-	local stories, setStories = useState(nil :: { types.LoadedStory<unknown> }?)
-	local err, setErr = useState(nil :: string?)
+	local storytellerStore = useStorytellerStore()
+	local records = useSignalState(storytellerStore.getStoryModuleRecords)
 
 	useEffect(function()
-		local changedConn: RBXScriptConnection?
-		local isActive = true
+		return storytellerStore.requestStoryModules({
+			{
+				storyModule = module,
+				storybook = storybook,
+			},
+		}, "interactive")
+	end, { module, storytellerStore, storybook } :: { unknown })
 
-		local function loadStories()
-			if changedConn then
-				changedConn:Disconnect()
-				changedConn = nil
-			end
-
-			local loader = ModuleLoader.new()
-			local newStories
-			local success, result = pcall(function()
-				newStories = loadStoriesFromModule(module, storybook, loader)
-			end)
-
-			if not isActive then
-				return
-			end
-
-			setStories(if success then newStories else nil)
-			setErr(if success then nil else result)
-
-			changedConn = loader.loadedModuleChanged:Connect(loadStories)
-		end
-
-		loadStories()
-
-		return function()
-			isActive = false
-			if changedConn then
-				changedConn:Disconnect()
-			end
-		end
-	end, { module, storybook } :: { unknown })
-
-	return stories, err
+	local recordsForModule = records[module]
+	local record = if recordsForModule then recordsForModule[storybook.source] else nil
+	return if record then record.stories else nil, if record then record.problem else nil
 end
 
 return useStoriesForModule

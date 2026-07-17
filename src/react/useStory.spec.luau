@@ -4,6 +4,7 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
 local useStory = require("./useStory")
+local waitFor = require("@root/test-utils/waitFor")
 
 local afterEach = JestGlobals.afterEach
 local beforeEach = JestGlobals.beforeEach
@@ -18,6 +19,12 @@ local container: Folder
 local componentModule: ModuleScript
 local storyModule: ModuleScript
 local storybook: LoadedStorybook
+
+local function flushStoryLoad()
+	act(function()
+		task.wait(0.1)
+	end)
+end
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -63,10 +70,15 @@ test("loads a story module", function()
 	local get = renderHook(function()
 		return useStory(storyModule, storybook)
 	end)
+	flushStoryLoad()
 
-	local story, err = get()
-
-	expect(err).toBeUndefined()
+	local story
+	waitFor(function()
+		local err
+		story, err = get()
+		expect(err).toBeUndefined()
+		expect(story).toBeDefined()
+	end)
 
 	expect(story).toEqual({
 		id = "default",
@@ -77,30 +89,60 @@ test("loads a story module", function()
 	})
 end)
 
+test("selects a story by id", function()
+	storyModule.Source = [[
+		return {
+			stories = {
+				{ id = "first", story = function() end },
+				{ id = "second", story = function() end },
+			},
+		}
+	]]
+
+	local get = renderHook(function()
+		return useStory(storyModule, storybook, "second")
+	end)
+	flushStoryLoad()
+
+	waitFor(function()
+		local story, err = get()
+		expect(err).toBeUndefined()
+		expect(story).toEqual(expect.objectContaining({
+			id = "second",
+		}))
+	end)
+end)
+
 test("handles story errors", function()
 	storyModule.Source = "syntax error" .. storyModule.Source
 
 	local get = renderHook(function()
 		return useStory(storyModule, storybook)
 	end)
+	flushStoryLoad()
 
-	local story, err = get()
-
-	expect(err).toBeDefined()
-	expect(story).toBeUndefined()
+	waitFor(function()
+		local story, err = get()
+		expect(err).toBeDefined()
+		expect(story).toBeUndefined()
+	end)
 end)
 
 test("re-renders on module changes", function()
 	local get = renderHook(function()
 		return useStory(storyModule, storybook)
 	end)
+	flushStoryLoad()
 
-	local story, err = get()
-
-	expect(err).toBeUndefined()
-	expect(story).toEqual(expect.objectContaining({
-		name = "Sample",
-	}))
+	local story
+	waitFor(function()
+		local err
+		story, err = get()
+		expect(err).toBeUndefined()
+		expect(story).toEqual(expect.objectContaining({
+			name = "Sample",
+		}))
+	end)
 
 	storyModule.Source = [[
 		local Component = require(script.Parent.Component)
@@ -116,20 +158,26 @@ test("re-renders on module changes", function()
 		task.wait()
 	end)
 
-	story, err = get()
-
-	expect(err).toBeUndefined()
-	expect(story).toEqual(expect.objectContaining({
-		name = "Foo",
-	}))
+	waitFor(function()
+		local newStory, err = get()
+		expect(err).toBeUndefined()
+		expect(newStory).toEqual(expect.objectContaining({
+			name = "Foo",
+		}))
+	end)
 end)
 
 test("reloads on dependency changes", function()
 	local get = renderHook(function()
 		return useStory(storyModule, storybook)
 	end)
+	flushStoryLoad()
 
-	local story = get()
+	local story
+	waitFor(function()
+		story = get()
+		expect(story).toBeDefined()
+	end)
 
 	componentModule.Source = [[
 		local function Component(props)
@@ -147,7 +195,8 @@ test("reloads on dependency changes", function()
 		task.wait()
 	end)
 
-	local newStory = get()
-
-	expect(newStory).never.toBe(story)
+	waitFor(function()
+		local newStory = get()
+		expect(newStory).never.toBe(story)
+	end)
 end)

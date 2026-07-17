@@ -20,12 +20,7 @@ local types = require("@self/types")
 
 export type RenderLifecycle = types.RenderLifecycle
 export type Story<T> = types.Story<T>
-export type StoryGroup<T> = types.StoryGroup<T>
-export type StoryModule<T> = types.StoryModule<T>
 export type LoadedStory<T> = types.LoadedStory<T>
-export type StorySnapshot = types.StorySnapshot
-export type StoryModuleSnapshot = types.StoryModuleSnapshot
-export type StoryModuleTarget = types.StoryModuleTarget
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
@@ -64,9 +59,7 @@ return {
 	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
 	-- Module loading
-	loadStoriesFromModule = require("@self/loadStoriesFromModule"),
 	loadStoryModule = require("@self/loadStoryModule"),
-	loadStoryModuleSnapshot = require("@self/loadStoryModuleSnapshot"),
 	loadStorybookModule = require("@self/loadStorybookModule"),
 
 	-- Rendering
@@ -76,7 +69,6 @@ return {
 	StoryContainer = require("@self/react/StoryContainer"),
 	StorytellerProvider = StorytellerContext.StorytellerProvider,
 	useStory = require("@self/react/useStory"),
-	useStoriesForModule = require("@self/react/useStoriesForModule"),
 	useStoryModuleSnapshots = require("@self/react/useStoryModuleSnapshots"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
