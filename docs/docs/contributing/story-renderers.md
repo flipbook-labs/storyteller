@@ -11,6 +11,7 @@ For each renderer, Storyteller provides a mounting point, context, and lifecycle
 | React               | Result of `React.createElement` or a function that takes `props` as the first argument and creates an element                           |
 | Roact               | Result of `Roact.createElement` or a function that takes `props` as the first argument and creates an element                           |
 | Fusion              | Result of `Fusion.New` or a function that takes `props` as the first argument and creates an Instance                                   |
+| Iris                | A function that takes `props` as the first argument and issues Iris widget calls (immediate-mode)                                       |
 | Manual              | A function that takes `props` as the first argument and returns an Instance                                                             |
 | Functional (Legacy) | A function that takes `target` as the first argument, `props` as the second, and optionally returns a function for manually cleaning up |
 | Hoarcekat (Legacy)  | Same as `Functional (Legacy)` but the story file itself is represented by a function                                                    |
@@ -139,6 +140,23 @@ return {
 	},
 	packages = {
 		Fusion = Fusion,
+	},
+}
+```
+
+### Iris
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Iris = require(ReplicatedStorage.Packages.Iris)
+
+return {
+	storyRoots = {
+		script.Parent.Components,
+	},
+	packages = {
+		Iris = Iris,
 	},
 }
 ```
