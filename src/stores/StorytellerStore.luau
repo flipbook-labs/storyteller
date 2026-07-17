@@ -250,11 +250,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			loader = loader,
 			connection = loader.loadedModuleChanged:Connect(function(changedModule)
 				local changedTarget = loaderEntry.targets[changedModule]
-				if changedTarget and not changedTarget.reloadLoader then
-					invalidateTarget(
-						changedTarget,
-						if changedTarget.interactiveRefCount > 0 then "interactive" else "background"
-					)
+				if changedTarget then
+					if not changedTarget.reloadLoader then
+						invalidateTarget(
+							changedTarget,
+							if changedTarget.interactiveRefCount > 0 then "interactive" else "background"
+						)
+					end
+					-- Story source changes have a dedicated connection. Only shared
+					-- dependency changes should invalidate sibling stories.
 					return
 				end
 
@@ -738,7 +742,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 
 		stop()
-		clearStoryModuleRequests()
 		isDestroyed = true
 		storyModulesQuery.destroy()
 		storybookModulesQuery.destroy()

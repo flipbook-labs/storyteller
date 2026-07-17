@@ -580,6 +580,55 @@ describe("requesting story modules", function()
 		expect(getRecord(target)).toBe(cachedRecord)
 	end)
 
+	test("does not reload sibling stories when one story source changes", function()
+		local root = Instance.new("Folder")
+		local firstLoadCount = Instance.new("IntValue")
+		firstLoadCount.Name = "FirstLoadCount"
+		firstLoadCount.Parent = root
+		local secondLoadCount = Instance.new("IntValue")
+		secondLoadCount.Name = "SecondLoadCount"
+		secondLoadCount.Parent = root
+
+		local first = createTarget("First")
+		first.storyModule.Source = [[
+			script.Parent.FirstLoadCount.Value += 1
+			return { name = "First", story = function() end }
+		]]
+		first.storyModule.Parent = root
+
+		local second = createTarget("Second")
+		second.storyModule.Source = [[
+			script.Parent.SecondLoadCount.Value += 1
+			return { name = "Second", story = function() end }
+		]]
+		second.storyModule.Parent = root
+		second.storybook = first.storybook
+
+		store = StorytellerStore.new(root)
+		store.requestStoryModules({ first, second })
+
+		waitFor(function()
+			expect(firstLoadCount.Value).toBe(1)
+			expect(secondLoadCount.Value).toBe(1)
+		end)
+
+		first.storyModule.Source = [[
+			script.Parent.FirstLoadCount.Value += 1
+			return { name = "First updated", story = function() end }
+		]]
+
+		waitFor(function()
+			local record = getRecord(first)
+			assert(record and record.story, "expected the changed story to reload")
+			expect(record.story.name).toBe("First updated")
+		end)
+		-- ModuleLoader reports source changes asynchronously after the store's
+		-- direct Source connection has already published the replacement.
+		task.wait(0.2)
+		expect(firstLoadCount.Value).toBe(2)
+		expect(secondLoadCount.Value).toBe(1)
+	end)
+
 	test("drops the record once every request is released", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Disposable")
