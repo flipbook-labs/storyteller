@@ -6,13 +6,13 @@ Any ModuleScript with a `.storybook` extension will be picked up as a Storybook.
 
 The properties that can be used in the module are as follows:
 
-| **Property** | **Type**             | **Description**                                                                                                                                                                                                                                                         |
-| ------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storyRoots` | `{ Instance }`       | Locations that the Storybook manages. Each instance will have its descendants searched for Story modules.                                                                                                                                                               |
-| `name`       | `string?`            | An optional name for the Storybook. Defaults to the module name with the extension removed. i.e. `Sample.storybook` becomes `Sample`.                                                                                                                                   |
-| `packages`   | `{ [string]: any }?` | An optional dictionary used for supplying the Storybook with the packages to use when rendering its Stories. This dictionary can also be supplied per-Story to change the renderer used, but it can be convenient to define your packages globally to avoid repetition. |
-| `mapStory`      | `((story: any) -> (props) -> any)?` | Optional [middleware](#middleware) that wraps every rendered Story, e.g. to supply a shared context provider.                                                                                                                                            |
-| `mapDefinition` | `((story: any) -> any)?`            | Optional [middleware](#middleware) that transforms every Story's definition before it renders.                                                                                                                                                          |
+| **Property**    | **Type**                            | **Description**                                                                                                                                                                                                                                                         |
+| --------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storyRoots`    | `{ Instance }`                      | Locations that the Storybook manages. Each instance will have its descendants searched for Story modules.                                                                                                                                                               |
+| `name`          | `string?`                           | An optional name for the Storybook. Defaults to the module name with the extension removed. i.e. `Sample.storybook` becomes `Sample`.                                                                                                                                   |
+| `packages`      | `{ [string]: any }?`                | An optional dictionary used for supplying the Storybook with the packages to use when rendering its Stories. This dictionary can also be supplied per-Story to change the renderer used, but it can be convenient to define your packages globally to avoid repetition. |
+| `mapStory`      | `((story: any) -> (props) -> any)?` | Optional [middleware](#middleware) that wraps every rendered Story, e.g. to supply a shared context provider.                                                                                                                                                           |
+| `mapDefinition` | `((story: any) -> any)?`            | Optional [middleware](#middleware) that transforms every Story's definition before it renders.                                                                                                                                                                          |
 
 The most basic Storybook module can be represented as:
 
@@ -99,17 +99,48 @@ return {
 
 Any ModuleScript with a `.story` extension will be picked up as a Story when it is a descendant of one of the `storyRoots` that a Storybook manages.
 
-The only required member of a Story definition is the `story` property.
+Story modules can export one `story` or a non-empty `stories` collection.
 
-| **Property** | **Type**                        | **Description**                                                                                                                                                                                                                             |
-| ------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `story`      | `<T>((props: StoryProps) -> T)` |                                                                                                                                                                                                                                             |
-| `name`       | `string?`                       | The name of the Story as it appears in Flipbook. Defaults to the name of the Story module. i.e. `Sample.story` becomes `Sample`                                                                                                             |
-| `summary`    | `string?`                       | A description of the Story that will appear above the rendered preview in Flipbook.                                                                                                                                                         |
-| `controls`   | `{ [string]: any }?`            | Controls allow for on-the-fly configuration of your rendered UI. Read more about how to define and use controls [here](https://flipbook-labs.github.io/flipbook/docs/creating-stories/controls).                                            |
-| `packages`   | `{ [string]: any }?`            | An optional dictionary used for supplying the Story with the packages to use when rendering. The Story inherits the packages defined by the Storybook, so this is mostly used in cases where Story needs to deviate from the usual renderer |
+| **Property** | **Type**                            | **Description**                                                                                                                                                                                                                             |
+| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `story`      | `<T>((props: StoryProps) -> T)?`    | A single Story. Required when `stories` is not provided.                                                                                                                                                                                    |
+| `stories`    | `{ Story } \| { [string]: Story }?` | Multiple Stories from the same module. Arrays preserve author order. Dictionaries are ordered alphabetically by key, with each key supplying the Story's default name and ID.                                                               |
+| `id`         | `string?`                           | An optional stable identifier for a Story within its module. Defaults to its explicit name, dictionary key, array index, or `default` for an unnamed single Story.                                                                          |
+| `name`       | `string?`                           | The name of the Story as it appears in Flipbook. Defaults to the name of the Story module. i.e. `Sample.story` becomes `Sample`                                                                                                             |
+| `summary`    | `string?`                           | A description of the Story that will appear above the rendered preview in Flipbook.                                                                                                                                                         |
+| `controls`   | `{ [string]: any }?`                | Controls allow for on-the-fly configuration of your rendered UI. Read more about how to define and use controls [here](https://flipbook-labs.github.io/flipbook/docs/creating-stories/controls).                                            |
+| `packages`   | `{ [string]: any }?`                | An optional dictionary used for supplying the Story with the packages to use when rendering. The Story inherits the packages defined by the Storybook, so this is mostly used in cases where Story needs to deviate from the usual renderer |
 
 The type of the `story` property is dependent on what kind of Story is being rendered. Storyteller does not prescribe one particular way of writing Stories, or even a particular UI library that must be used.
+
+### Multiple Stories
+
+Fields defined beside `stories`, such as `controls`, `packages`, `props`, and `summary`, are inherited by each entry. Entries can override individual values. Dictionary values may be Story tables or Story functions for compatibility with Developer Storybook.
+
+```lua title="Button.story.luau"
+return {
+    name = "Button",
+    controls = {
+        disabled = false,
+    },
+    stories = {
+        {
+            id = "primary",
+            name = "Primary",
+            story = function(props)
+                -- ...
+            end,
+        },
+        {
+            id = "secondary",
+            name = "Secondary",
+            story = function(props)
+                -- ...
+            end,
+        },
+    },
+}
+```
 
 ## StoryProps
 
