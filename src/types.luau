@@ -92,6 +92,7 @@ types.IStoryDefinition = t.interface({
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
 })
 
 export type StoryEntry<T> = Story<T> | T | (props: StoryProps) -> T
@@ -111,6 +112,7 @@ types.IStoryGroup = t.interface({
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
 })
 
 export type StoryModule<T> = Story<T> | StoryGroup<T>

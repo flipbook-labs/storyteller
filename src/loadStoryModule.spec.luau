@@ -293,7 +293,7 @@ describe("multiple stories", function()
 			name = "apple",
 		})
 		expect(stories[2]).toMatchObject({
-			id = "Custom banana",
+			id = "Banana",
 			name = "Custom banana",
 		})
 		expect(stories[3]).toMatchObject({

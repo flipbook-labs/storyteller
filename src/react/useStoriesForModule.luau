@@ -7,14 +7,6 @@ local useStorytellerStore = require("@root/react/useStorytellerStore")
 local useEffect = React.useEffect
 local useSignalState = ReactCharm.useSignalState
 
---[=[
-	Loads every Story exported by a Story module and reloads them when the
-	module or one of its dependencies changes.
-
-	@tag React
-	@tag Story
-	@within Storyteller
-]=]
 local function useStoriesForModule(
 	module: ModuleScript,
 	storybook: types.LoadedStorybook

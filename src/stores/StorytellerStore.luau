@@ -32,17 +32,6 @@ export type StoryModuleRecords = {
 
 export type StoryModuleRequestPriority = "background" | "interactive"
 
-export type SchedulerDriver = {
-	defer: (callback: () -> ()) -> (),
-	now: () -> number,
-	wait: () -> (),
-}
-
-export type StorytellerStoreOptions = {
-	schedulerDriver: SchedulerDriver?,
-	workBudgetSeconds: number?,
-}
-
 export type StorytellerStore = {
 	start: () -> (),
 	stop: () -> (),
@@ -91,11 +80,11 @@ type PendingPublication = {
 	record: StoryModuleRecord,
 }
 
-local WORK_BUDGET_SECONDS = 0.004
+local WORK_BUDGET_MS = 4
 
 local StorytellerStore = {}
 
-function StorytellerStore.new(root: Instance, options: StorytellerStoreOptions?): StorytellerStore
+function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
@@ -106,21 +95,6 @@ function StorytellerStore.new(root: Instance, options: StorytellerStoreOptions?)
 
 	local isDestroyed = false
 	local isRunning = false
-
-	local schedulerDriver: SchedulerDriver = if options and options.schedulerDriver
-		then options.schedulerDriver
-		else {
-			defer = function(callback)
-				task.defer(callback)
-			end,
-			now = os.clock,
-			wait = function()
-				task.wait()
-			end,
-		}
-	local workBudgetSeconds = if options and options.workBudgetSeconds
-		then options.workBudgetSeconds
-		else WORK_BUDGET_SECONDS
 
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
@@ -393,9 +367,9 @@ function StorytellerStore.new(root: Instance, options: StorytellerStoreOptions?)
 		end
 		isProcessingTargets = true
 
-		schedulerDriver.defer(function()
+		task.defer(function()
 			local publications = {} :: { [TargetEntry]: PendingPublication }
-			local workStarted = schedulerDriver.now()
+			local workStarted = os.clock()
 
 			while not isDestroyed do
 				local entry = popQueue(interactiveQueue, "interactive") or popQueue(backgroundQueue, "background")
@@ -413,11 +387,11 @@ function StorytellerStore.new(root: Instance, options: StorytellerStoreOptions?)
 					record = record,
 				}
 
-				if schedulerDriver.now() - workStarted >= workBudgetSeconds then
+				if (os.clock() - workStarted) * 1000 >= WORK_BUDGET_MS then
 					publishStoryModuleRecords(publications)
 					publications = {}
-					schedulerDriver.wait()
-					workStarted = schedulerDriver.now()
+					task.wait()
+					workStarted = os.clock()
 				end
 			end
 
