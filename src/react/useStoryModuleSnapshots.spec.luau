@@ -47,7 +47,7 @@ test("loads snapshots and isolates malformed modules", function()
 	end)
 
 	act(function()
-		task.wait()
+		task.wait(0.1)
 	end)
 
 	waitFor(function()
@@ -67,7 +67,7 @@ test("loads snapshots and isolates malformed modules", function()
 				story = function() end,
 			}
 		]]
-		task.wait()
+		task.wait(0.1)
 	end)
 
 	waitFor(function()
@@ -79,5 +79,72 @@ test("loads snapshots and isolates malformed modules", function()
 				name = "Invalid",
 			}),
 		})
+	end)
+end)
+
+test("shares dependency loads during initial discovery", function()
+	local container = Instance.new("Folder")
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Source = "return {}"
+	dependency.Parent = container
+
+	local firstStoryModule = Instance.new("ModuleScript")
+	firstStoryModule.Name = "First.story"
+	firstStoryModule.Source = [[
+		local dependency = require(script.Parent.Dependency)
+		return {
+			name = tostring(dependency),
+			story = function() end,
+		}
+	]]
+	firstStoryModule.Parent = container
+
+	local secondStoryModule = Instance.new("ModuleScript")
+	secondStoryModule.Name = "Second.story"
+	secondStoryModule.Source = firstStoryModule.Source
+	secondStoryModule.Parent = container
+
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+	local targets = {
+		{
+			storyModule = firstStoryModule,
+			storybook = storybook,
+		},
+		{
+			storyModule = secondStoryModule,
+			storybook = storybook,
+		},
+	}
+
+	local get = renderHook(function()
+		return useStoryModuleSnapshots(targets)
+	end)
+
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local snapshots = get()
+		expect(snapshots[firstStoryModule]).toBeDefined()
+		expect(snapshots[secondStoryModule]).toBeDefined()
+		expect(snapshots[firstStoryModule].stories[1].name).toBe(snapshots[secondStoryModule].stories[1].name)
+	end)
+
+	local initialName = get()[firstStoryModule].stories[1].name
+	act(function()
+		dependency.Source = "return { changed = true }"
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local snapshots = get()
+		expect(snapshots[firstStoryModule].stories[1].name).never.toBe(initialName)
+		expect(snapshots[secondStoryModule].stories[1].name).never.toBe(initialName)
 	end)
 end)
