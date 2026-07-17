@@ -1,4 +1,5 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
+local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
 local loadStorybookModule = require("@root/loadStorybookModule")
@@ -23,47 +24,13 @@ local function optionalString(value: unknown): string?
 	return if typeof(value) == "string" then value else nil
 end
 
-local function mergeDictionaries(defaults: RawStory?, overrides: RawStory?): RawStory?
+-- Sift.Dictionary.merge always returns a table, but an absent dictionary field
+-- must stay nil so the packages fallback and equality checks behave.
+local function mergeField(defaults: RawStory?, overrides: RawStory?): RawStory?
 	if not defaults and not overrides then
 		return nil
 	end
-
-	local merged: RawStory = if defaults then table.clone(defaults) else {}
-	if overrides then
-		for key, value in overrides do
-			merged[key] = value
-		end
-	end
-	return merged
-end
-
-local function isArray(value: { [unknown]: unknown }): boolean
-	local count = 0
-	local largestIndex = 0
-	for key in value do
-		if typeof(key) ~= "number" or key < 1 or key % 1 ~= 0 then
-			return false
-		end
-		count += 1
-		largestIndex = math.max(largestIndex, key)
-	end
-	return count == largestIndex
-end
-
-local function sortedKeys(value: { [unknown]: unknown }): { string }
-	local keys = {}
-	for key in value do
-		if typeof(key) ~= "string" then
-			error("Story is malformed. `stories` must be an array or a dictionary with string keys")
-		end
-		table.insert(keys, key)
-	end
-
-	table.sort(keys, function(a, b)
-		local lowerA, lowerB = a:lower(), b:lower()
-		return if lowerA == lowerB then a < b else lowerA < lowerB
-	end)
-	return keys
+	return Sift.Dictionary.merge(defaults, overrides)
 end
 
 local function toRawStory(entry: unknown): RawStory
@@ -76,10 +43,10 @@ end
 -- The dictionary fields (controls, packages, props) merge key-by-key rather
 -- than being replaced wholesale, so an entry only overrides the keys it sets.
 local function inheritDefaults(entry: RawStory, defaults: RawStory, id: string, name: string): RawStory
-	local story = mergeDictionaries(defaults, entry) :: RawStory
-	story.controls = mergeDictionaries(defaults.controls :: RawStory?, entry.controls :: RawStory?)
-	story.packages = mergeDictionaries(defaults.packages :: RawStory?, entry.packages :: RawStory?)
-	story.props = mergeDictionaries(defaults.props :: RawStory?, entry.props :: RawStory?)
+	local story = Sift.Dictionary.merge(defaults, entry) :: RawStory
+	story.controls = mergeField(defaults.controls :: RawStory?, entry.controls :: RawStory?)
+	story.packages = mergeField(defaults.packages :: RawStory?, entry.packages :: RawStory?)
+	story.props = mergeField(defaults.props :: RawStory?, entry.props :: RawStory?)
 	story.id = id
 	story.name = name
 	return story
@@ -128,7 +95,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	local stories = module.stories :: { [unknown]: unknown }
 	local normalized: { RawStory } = {}
 
-	if isArray(stories) then
+	if Sift.Array.is(stories) then
 		for index, entry in stories :: { unknown } do
 			local raw = toRawStory(entry)
 			local fallback = tostring(index)
@@ -136,9 +103,20 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 			table.insert(normalized, inheritDefaults(raw, defaults, id, optionalString(raw.name) or fallback))
 		end
 	else
+		local keys = Sift.Dictionary.keys(stories)
+		if not Sift.Array.every(keys, function(key)
+			return typeof(key) == "string"
+		end) then
+			error("Story is malformed. `stories` must be an array or a dictionary with string keys")
+		end
+
 		-- The dictionary key is the stable id, so renaming an entry's `name`
 		-- does not change the id consumers persist.
-		for _, key in sortedKeys(stories) do
+		local sortedKeys = Sift.Array.sort(keys :: { string }, function(a, b)
+			local lowerA, lowerB = a:lower(), b:lower()
+			return if lowerA == lowerB then a < b else lowerA < lowerB
+		end)
+		for _, key in sortedKeys do
 			local raw = toRawStory(stories[key])
 			table.insert(
 				normalized,
