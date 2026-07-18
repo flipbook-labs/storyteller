@@ -316,6 +316,41 @@ describe("user journeys", function()
 			expect(#store.getUnavailableStorybooks()).toEqual(0)
 		end)
 	end)
+
+	test("keeps loaded Storybook package state mutable", function()
+		Charm.flags.frozen = true
+		local root = new("Folder")
+		local packageModule = new("ModuleScript", {
+			Name = "Package",
+			Source = "return { value = 1 }",
+		})
+		packageModule.Parent = root
+		local storybookModule = new("ModuleScript", {
+			Name = "Mutable.storybook",
+			Source = [[
+				return {
+					storyRoots = {
+						script.Parent
+					},
+					packages = {
+						Package = require(script.Parent.Package),
+					},
+				}
+			]],
+		})
+		storybookModule.Parent = root
+
+		store = StorytellerStore.new(root)
+		store.start()
+
+		waitFor(function()
+			local storybook = store.getLoadedStorybooks()[1]
+			assert(storybook and storybook.packages, "expected a loaded Storybook with packages")
+			local packageState = storybook.packages.Package :: { value: number }
+			packageState.value = 2
+			expect(packageState.value).toBe(2)
+		end)
+	end)
 end)
 
 describe("orphaned stories", function()

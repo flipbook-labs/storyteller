@@ -81,6 +81,13 @@ local function query(options: QueryOptions): QueryResult
 		local workStarted = os.clock()
 
 		for index, root in roots do
+			if root:IsA(options.selector) then
+				local isMatch = if options.matcher then options.matcher(root) else true
+				if isMatch then
+					table.insert(matches, root)
+				end
+			end
+
 			for _, instance in root:QueryDescendants(options.selector) do
 				local isMatch = if options.matcher then options.matcher(instance) else true
 				if isMatch then

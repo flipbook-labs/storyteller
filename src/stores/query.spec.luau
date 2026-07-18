@@ -41,6 +41,10 @@ describe("DataModel behavior", function()
 		priorityStory.Name = "Priority.story"
 		priorityStory.Parent = priorityRoot
 
+		local directStory = Instance.new("ModuleScript")
+		directStory.Name = "Direct.story"
+		directStory.Parent = root
+
 		local storyModulesQuery = query({
 			root = root,
 			selector = "ModuleScript",
@@ -62,6 +66,7 @@ describe("DataModel behavior", function()
 				priorityStory,
 				secondPriorityStory,
 				remainingStory,
+				directStory,
 			})
 		end)
 	end)

@@ -15,6 +15,7 @@ local types = require("@root/types")
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
+type StoryPackages = types.StoryPackages
 type StoryModuleSnapshot = types.StoryModuleSnapshot
 type StoryModuleTarget = types.StoryModuleTarget
 
@@ -95,6 +96,12 @@ local LOADED_STORIES_METATABLE = {}
 
 local function excludeFromCharmFreeze(value: { [unknown]: unknown })
 	setmetatable(value, LOADED_STORIES_METATABLE)
+end
+
+local function cloneOutsideCharmFreeze(value: StoryPackages): StoryPackages
+	local clone = table.clone(value)
+	excludeFromCharmFreeze(clone)
+	return clone
 end
 
 local StorytellerStore = {}
@@ -643,6 +650,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 
 		if success and storybook then
+			if storybook.packages then
+				-- Storybooks enter Charm state, but package modules can own mutable
+				-- state. Clone the author's map before stopping recursive freezing.
+				storybook.packages = cloneOutsideCharmFreeze(storybook.packages)
+			end
+
 			setLoadedStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
