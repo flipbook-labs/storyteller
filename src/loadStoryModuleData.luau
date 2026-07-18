@@ -111,10 +111,11 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	if Sift.Array.is(stories) then
 		for index, entry in stories :: { unknown } do
 			local raw = toRawStory(entry)
-			validateStoryDefinition(raw, storyModule, tostring(index))
 			local fallback = tostring(index)
-			local id = getOptionalString(raw, "id") or getOptionalString(raw, "name") or fallback
-			table.insert(normalized, inheritDefaults(raw, defaults, id, getOptionalString(raw, "name") or fallback))
+			local name = getOptionalString(raw, "name")
+			local id = getOptionalString(raw, "id") or name or fallback
+			validateStoryDefinition(raw, storyModule, id)
+			table.insert(normalized, inheritDefaults(raw, defaults, id, name or fallback))
 		end
 	else
 		local keys = Sift.Dictionary.keys(stories)

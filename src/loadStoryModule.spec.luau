@@ -364,7 +364,7 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow("`story` is required")
+		end).toThrow('Story "Missing" is malformed')
 	end)
 end)
 
