@@ -25,10 +25,11 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 		parent: Instance,
 		storyModule: ModuleScript,
 		storybook: Storybook,
+		storyId: string?,
 	})
 		local ref = useRef(nil :: Frame?)
 
-		local story = Storyteller.useStory(props.storyModule, props.storybook)
+		local story = Storyteller.useStory(props.storyModule, props.storybook, props.storyId)
 
 		useEffect(function()
 			if ref.current then
