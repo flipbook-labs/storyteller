@@ -3,4 +3,4 @@ bump: patch
 category: Changes
 ---
 
-Cache lazy story loads in StorytellerStore and release them when consumers stop requesting the module.
+Prioritize common Studio services during discovery and cache lazy story loads until consumers release each module.

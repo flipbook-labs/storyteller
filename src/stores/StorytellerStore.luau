@@ -81,6 +81,16 @@ type PendingPublication = {
 }
 
 local WORK_BUDGET_MS = 4
+local PRIORITY_SERVICE_NAMES = table.freeze({
+	"ReplicatedStorage",
+	"ServerStorage",
+	"Workspace",
+	"ServerScriptService",
+	"StarterPlayer",
+	"StarterGui",
+	"StarterPack",
+	"ReplicatedFirst",
+})
 local LOADED_STORIES_METATABLE = {}
 
 local function excludeFromCharmFreeze(value: { [unknown]: unknown })
@@ -292,6 +302,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		if loaderEntry and next(loaderEntry.targets) == nil then
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
+			loaderEntry.loader:clear()
 			table.clear(loaderEntry.targets)
 			loaderEntries[storybookSource] = nil
 		end
@@ -314,6 +325,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		if entry.reloadConnection then
 			entry.reloadConnection:Disconnect()
 			entry.reloadConnection = nil
+		end
+		if entry.reloadLoader then
+			entry.reloadLoader:clear()
 		end
 		entry.reloadLoader = nil
 
@@ -443,6 +457,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			entry.reloadConnection:Disconnect()
 			entry.reloadConnection = nil
 		end
+		if entry.reloadLoader then
+			entry.reloadLoader:clear()
+		end
 
 		local loader = ModuleLoader.new()
 		entry.reloadLoader = loader
@@ -567,6 +584,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					entry.reloadConnection:Disconnect()
 					entry.reloadConnection = nil
 				end
+				if entry.reloadLoader then
+					entry.reloadLoader:clear()
+				end
 				entry.reloadLoader = nil
 			end
 			table.clear(entriesForModule)
@@ -576,6 +596,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		for _, loaderEntry in loaderEntries do
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
+			loaderEntry.loader:clear()
 			table.clear(loaderEntry.targets)
 		end
 		table.clear(loaderEntries)
@@ -598,16 +619,19 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
+	local priorityRootNames = if root == game then PRIORITY_SERVICE_NAMES else nil
 	local storyModulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStoryModule,
+		priorityRootNames = priorityRootNames,
 	})
 
 	local storybookModulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
+		priorityRootNames = priorityRootNames,
 	})
 
 	local function loadStorybook(storybookModule: ModuleScript)
