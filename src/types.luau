@@ -83,7 +83,7 @@ export type Story<T> = {
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
 types.IStoryDefinition = t.interface({
 	story = t.any,
@@ -104,7 +104,7 @@ export type StoryGroup<T> = {
 	summary: string?,
 	controls: StoryControlsSchema?,
 	packages: StoryPackages?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
 types.IStoryGroup = t.interface({
 	stories = t.union(t.array(t.any), t.map(t.string, t.any)),
@@ -128,7 +128,7 @@ export type LoadedStory<T> = {
 
 	summary: string?,
 	controls: StoryControlsSchema?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
 
 export type StorySnapshot = {

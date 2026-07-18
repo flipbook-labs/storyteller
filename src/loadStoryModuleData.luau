@@ -10,6 +10,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type LoadedStorybook = types.LoadedStorybook
 type ModuleLoader = ModuleLoader.ModuleLoader
+type ExtraStoryProps = types.ExtraStoryProps
 type Story<T> = types.Story<T>
 type StoryControlsSchema = types.StoryControlsSchema
 type StoryPackages = types.StoryPackages
@@ -191,7 +192,7 @@ local function loadStoryModuleData<T>(
 			summary = raw.summary :: string?,
 			controls = raw.controls :: StoryControlsSchema?,
 			packages = raw.packages :: StoryPackages?,
-			props = raw.props :: StoryProps?,
+			props = raw.props :: ExtraStoryProps?,
 		}
 		if story.controls then
 			story.controls = migrateControlsSchema(story.controls)
