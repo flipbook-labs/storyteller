@@ -92,6 +92,11 @@ local PRIORITY_SERVICE_NAMES = table.freeze({
 	"StarterPack",
 	"ReplicatedFirst",
 })
+local LOADED_STORY_METATABLE = {}
+
+local function excludeFromCharmFreeze(value: { [unknown]: unknown })
+	setmetatable(value, LOADED_STORY_METATABLE)
+end
 
 local StorytellerStore = {}
 
@@ -298,6 +303,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		if loaderEntry and next(loaderEntry.targets) == nil then
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
+			loaderEntry.loader:clear()
 			table.clear(loaderEntry.targets)
 			loaderEntries[storybookSource] = nil
 		end
@@ -321,6 +327,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			entry.reloadConnection:Disconnect()
 			entry.reloadConnection = nil
 		end
+		if entry.reloadLoader then
+			entry.reloadLoader:clear()
+		end
 		entry.reloadLoader = nil
 
 		local loaderEntry = loaderEntries[entry.loaderSource]
@@ -343,6 +352,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		local success, result = pcall(function()
 			story = loadStoryModule(target.storyModule, target.storybook, loader)
 		end)
+
+		if success and story then
+			-- Charm deep-freezes signal values in Studio. Loaded packages can own
+			-- mutable state, so keep their object graphs outside that recursive freeze.
+			excludeFromCharmFreeze(story)
+		end
 
 		return if success
 			then {
@@ -422,6 +437,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		if entry.reloadConnection then
 			entry.reloadConnection:Disconnect()
 			entry.reloadConnection = nil
+		end
+		if entry.reloadLoader then
+			entry.reloadLoader:clear()
 		end
 
 		local loader = ModuleLoader.new()
@@ -547,6 +565,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					entry.reloadConnection:Disconnect()
 					entry.reloadConnection = nil
 				end
+				if entry.reloadLoader then
+					entry.reloadLoader:clear()
+				end
 				entry.reloadLoader = nil
 			end
 			table.clear(entriesForModule)
@@ -556,6 +577,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		for _, loaderEntry in loaderEntries do
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
+			loaderEntry.loader:clear()
 			table.clear(loaderEntry.targets)
 		end
 		table.clear(loaderEntries)

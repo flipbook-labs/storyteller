@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -17,9 +18,11 @@ type StoryModuleTarget = {
 }
 
 local store
+local wasCharmFrozen = Charm.flags.frozen
 
 afterEach(function()
 	store.destroy()
+	Charm.flags.frozen = wasCharmFrozen
 end)
 
 test("collects all relevant ModuleScripts under the root", function()
@@ -545,6 +548,35 @@ describe("requesting story modules", function()
 				source = target.storyModule,
 				storybook = target.storybook,
 			})
+		end)
+	end)
+
+	test("keeps loaded package state mutable", function()
+		store = StorytellerStore.new(new("Folder"))
+		local target = createTarget("Mutable")
+		target.storyModule.Source = [[
+			local state = {
+				value = 1,
+			}
+			return {
+				story = function() end,
+				packages = {
+					State = state,
+				},
+			}
+		]]
+		Charm.flags.frozen = true
+
+		store.requestStoryModules({ target })
+
+		waitFor(function()
+			local record = getRecord(target)
+			assert(record and record.story, "expected a loaded record for the requested story module")
+			local packages = record.story.packages
+			assert(packages, "expected the loaded story to retain its packages")
+			local state = packages.State :: { value: number }
+			state.value = 2
+			expect(state.value).toBe(2)
 		end)
 	end)
 
