@@ -1,5 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
+local loadStoriesFromModule = require("./loadStoriesFromModule")
 local loadStoryModule = require("./loadStoryModule")
 local types = require("@root/types")
 
@@ -72,6 +73,7 @@ test("load a story module as a table", function()
 	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
 	expect(story).toEqual({
+		id = "Sample",
 		name = "Sample",
 		source = expect.anything(),
 		story = expect.any("function"),
@@ -211,6 +213,172 @@ describe("legacy support", function()
 			},
 		})
 	end)
+end)
+
+describe("multiple stories", function()
+	test("loads an ordered array and inherits module defaults", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				name = "Buttons",
+				summary = "Shared summary",
+				props = {
+					size = "Medium",
+					variant = "Default",
+				},
+				stories = {
+					{
+						id = "primary",
+						name = "Primary",
+						story = function() end,
+					},
+					{
+						name = "Secondary",
+						props = {
+							variant = "Secondary",
+						},
+						story = function() end,
+					},
+				}
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(#stories).toBe(2)
+		expect(stories[1]).toMatchObject({
+			id = "primary",
+			name = "Primary",
+			summary = "Shared summary",
+			props = {
+				size = "Medium",
+				variant = "Default",
+			},
+		})
+		expect(stories[2]).toMatchObject({
+			id = "Secondary",
+			name = "Secondary",
+			summary = "Shared summary",
+			props = {
+				size = "Medium",
+				variant = "Secondary",
+			},
+		})
+	end)
+
+	test("sorts dictionary stories alphabetically by key", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					Zebra = function() end,
+					apple = function() end,
+					Banana = {
+						name = "Custom banana",
+						story = function() end,
+					},
+				}
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(stories[1]).toMatchObject({
+			id = "apple",
+			name = "apple",
+		})
+		expect(stories[2]).toMatchObject({
+			id = "Banana",
+			name = "Custom banana",
+		})
+		expect(stories[3]).toMatchObject({
+			id = "Zebra",
+			name = "Zebra",
+		})
+	end)
+
+	test("keeps loadStoryModule compatible by returning the first story", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ name = "First", story = function() end },
+					{ name = "Second", story = function() end },
+				}
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		expect(story.id).toBe("First")
+		expect(story.name).toBe("First")
+	end)
+
+	test("rejects duplicate story ids", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ id = "duplicate", story = function() end },
+					{ id = "duplicate", story = function() end },
+				}
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("duplicated")
+	end)
+
+	test("rejects modules that define both story and stories", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+				stories = {
+					{ story = function() end },
+				},
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("both `story` and `stories`")
+	end)
+
+	test("rejects empty story groups", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {},
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("at least one story")
+	end)
+
+	test("rejects story entries without content", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ name = "Missing" },
+				},
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("`story` is required")
+	end)
+end)
+
+test("rejects malformed props", function()
+	local storyModule = createMockStoryModule([[
+		return {
+			story = function() end,
+			props = "not a dictionary",
+		}
+	]])
+
+	expect(function()
+		loadStoryModule(storyModule, mockPlainStorybook)
+	end).toThrow("Story is malformed")
 end)
 
 describe("roblox internal", function()

@@ -2,11 +2,12 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
+local constants = require("@root/constants")
 local debounce = require("@root/debounce")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
-local loadStoryModule = require("@root/loadStoryModule")
+local loadStoryModuleData = require("@root/loadStoryModuleData")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
@@ -14,14 +15,12 @@ local types = require("@root/types")
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
-
-type StoryModuleTarget = {
-	storyModule: ModuleScript,
-	storybook: LoadedStorybook,
-}
+type StoryModuleSnapshot = types.StoryModuleSnapshot
+type StoryModuleTarget = types.StoryModuleTarget
 
 type StoryModuleRecord = {
-	story: LoadedStory<unknown>?,
+	snapshot: StoryModuleSnapshot,
+	stories: { LoadedStory<unknown> }?,
 	problem: string?,
 }
 
@@ -82,6 +81,11 @@ type PendingPublication = {
 }
 
 local WORK_BUDGET_MS = 4
+local LOADED_STORIES_METATABLE = {}
+
+local function excludeFromCharmFreeze(value: { [unknown]: unknown })
+	setmetatable(value, LOADED_STORIES_METATABLE)
+end
 
 local StorytellerStore = {}
 
@@ -329,18 +333,44 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		assert(loaderEntry, "Story module loader was cleaned up while a target was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
-		local story: LoadedStory<unknown>?
 		local success, result = pcall(function()
-			story = loadStoryModule(target.storyModule, target.storybook, loader)
+			return loadStoryModuleData(target.storyModule, target.storybook, loader)
 		end)
 
-		return if success
-			then {
-				story = story,
+		if not success then
+			local problem = tostring(result)
+			return {
+				snapshot = {
+					name = target.storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
+					source = target.storyModule,
+					stories = {},
+					problem = problem,
+				},
+				problem = problem,
 			}
-			else {
-				problem = tostring(result),
-			}
+		end
+
+		local stories = result.stories
+		-- Charm deep-freezes signal values in Studio. Loaded packages can own
+		-- mutable state, so keep their object graphs outside that recursive freeze.
+		excludeFromCharmFreeze(stories)
+		local storySnapshots = {}
+		for _, story in stories do
+			table.insert(storySnapshots, {
+				id = story.id,
+				name = story.name,
+				summary = story.summary,
+			})
+		end
+
+		return {
+			snapshot = {
+				name = result.name,
+				source = target.storyModule,
+				stories = storySnapshots,
+			},
+			stories = stories,
+		}
 	end
 
 	processPendingTargets = function()

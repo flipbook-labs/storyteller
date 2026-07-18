@@ -10,7 +10,7 @@ local useSignalState = ReactCharm.useSignalState
 local function useStoriesForModule(
 	module: ModuleScript,
 	storybook: types.LoadedStorybook
-): (types.LoadedStory<unknown>?, string?)
+): ({ types.LoadedStory<unknown> }?, string?)
 	local storytellerStore = useStorytellerStore()
 	local records = useSignalState(storytellerStore.getStoryModuleRecords)
 
@@ -25,7 +25,7 @@ local function useStoriesForModule(
 
 	local recordsForModule = records[module]
 	local record = if recordsForModule then recordsForModule[storybook.source] else nil
-	return if record then record.story else nil, if record then record.problem else nil
+	return if record then record.stories else nil, if record then record.problem else nil
 end
 
 return useStoriesForModule

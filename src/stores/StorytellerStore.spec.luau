@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -11,15 +12,14 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryModuleTarget = {
-	storyModule: ModuleScript,
-	storybook: types.LoadedStorybook,
-}
+type StoryModuleTarget = types.StoryModuleTarget
 
 local store
+local wasCharmFrozen = Charm.flags.frozen
 
 afterEach(function()
 	store.destroy()
+	Charm.flags.frozen = wasCharmFrozen
 end)
 
 test("collects all relevant ModuleScripts under the root", function()
@@ -537,14 +537,75 @@ describe("requesting story modules", function()
 
 		waitFor(function()
 			local record = getRecord(target)
-			assert(record and record.story, "expected a loaded record for the requested story module")
+			assert(record and record.stories, "expected a loaded record for the requested story module")
 			expect(record.problem).toBeUndefined()
-			expect(record.story).toMatchObject({
+			expect(record.stories[1]).toMatchObject({
+				id = "Button",
 				name = "Button",
 				summary = "Button summary",
 				source = target.storyModule,
 				storybook = target.storybook,
 			})
+			expect(record.snapshot.stories).toEqual({
+				{
+					id = "Button",
+					name = "Button",
+					summary = "Button summary",
+				},
+			})
+		end)
+	end)
+
+	test("loads every story from a requested module", function()
+		store = StorytellerStore.new(new("Folder"))
+		local target = createTarget("Buttons")
+		target.storyModule.Source = [[
+			return {
+				name = "Buttons",
+				stories = {
+					Primary = function() end,
+					Secondary = function() end,
+				},
+			}
+		]]
+
+		store.requestStoryModules({ target })
+
+		waitFor(function()
+			local record = getRecord(target)
+			assert(record and record.stories, "expected every story in the requested module")
+			expect(record.stories).toEqual({
+				expect.objectContaining({ id = "Primary", name = "Primary" }),
+				expect.objectContaining({ id = "Secondary", name = "Secondary" }),
+			})
+			expect(record.snapshot).toMatchObject({
+				name = "Buttons",
+				source = target.storyModule,
+				stories = {
+					{ id = "Primary", name = "Primary" },
+					{ id = "Secondary", name = "Secondary" },
+				},
+			})
+		end)
+	end)
+
+	test("keeps loaded package state mutable", function()
+		Charm.flags.frozen = true
+		store = StorytellerStore.new(new("Folder"))
+		local target = createTarget("Mutable")
+		local packageState = {}
+		target.storybook.packages = {
+			Package = {
+				state = packageState,
+			},
+		}
+
+		store.requestStoryModules({ target })
+
+		waitFor(function()
+			local record = getRecord(target)
+			assert(record and record.stories, "expected a loaded record for the requested story module")
+			expect(table.isfrozen(packageState)).toBe(false)
 		end)
 	end)
 
@@ -558,8 +619,9 @@ describe("requesting story modules", function()
 		waitFor(function()
 			local record = getRecord(target)
 			assert(record, "expected a record for the requested story module")
-			expect(record.story).toBeUndefined()
+			expect(record.stories).toBeUndefined()
 			expect(record.problem).toBeDefined()
+			expect(record.snapshot.problem).toBe(record.problem)
 		end)
 	end)
 
@@ -619,8 +681,8 @@ describe("requesting story modules", function()
 
 		waitFor(function()
 			local record = getRecord(first)
-			assert(record and record.story, "expected the changed story to reload")
-			expect(record.story.name).toBe("First updated")
+			assert(record and record.stories, "expected the changed story to reload")
+			expect(record.stories[1].name).toBe("First updated")
 		end)
 		-- ModuleLoader reports source changes asynchronously after the store's
 		-- direct Source connection has already published the replacement.

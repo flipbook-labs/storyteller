@@ -51,8 +51,26 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 	@tag Story
 	@within Storyteller
 ]=]
-local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	return useStoriesForModule(module, storybook)
+local function useStory(
+	module: ModuleScript,
+	storybook: types.LoadedStorybook,
+	storyId: string?
+): (types.LoadedStory<unknown>?, string?)
+	local stories, err = useStoriesForModule(module, storybook)
+	if not stories then
+		return nil, err
+	end
+
+	if storyId then
+		for _, story in stories do
+			if story.id == storyId then
+				return story, err
+			end
+		end
+		return nil, `Story "{storyId}" was not found in {module:GetFullName()}`
+	end
+
+	return stories[1], err
 end
 
 return useStory
