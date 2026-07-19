@@ -102,3 +102,24 @@ jobs:
         run: lute run test
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Non-blocking: benchmark numbers inform reviews but timing variance on
+    # shared runners should not gate merges.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+
+      - name: Install packages
+        run: lute run install
+
+      - name: Run benchmarks
+        run: lute run test --benchmarks
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
