@@ -500,3 +500,156 @@ test("invalidates every dependent story when a shared dependency changes", funct
 	root:Destroy()
 	storybook.source:Destroy()
 end, TIMEOUT_MS)
+
+-- Generates a module body with real compile weight (~40 lines of functions)
+-- so loadstring cost resembles actual library modules instead of stubs.
+local function heavyModuleSource(name: string, requiresLine: string?): string
+	local lines = {}
+	if requiresLine then
+		table.insert(lines, requiresLine)
+	end
+	table.insert(lines, `local {name} = \{}`)
+	for index = 1, 12 do
+		table.insert(
+			lines,
+			`function {name}.method{index}(value) local out = \{} for i = 1, 8 do out[i] = value + i * {index} end return out end`
+		)
+	end
+	table.insert(lines, `return {name}`)
+	table.insert(lines, "")
+	return table.concat(lines, "\n")
+end
+
+-- Builds a corpus shaped like real story collections: every story requires a
+-- private dependency chain plus a shared library, so loading a story means
+-- compiling its whole require graph the way React-style stories do.
+local function buildHeavyCorpus(storyCount: number, chainDepth: number, sharedCount: number): (Folder, { ModuleScript })
+	local root = Instance.new("Folder")
+	root.Name = "HeavyCorpus"
+
+	local sharedFolder = Instance.new("Folder")
+	sharedFolder.Name = "Shared"
+	sharedFolder.Parent = root
+	for index = 1, sharedCount do
+		local sharedModule = Instance.new("ModuleScript")
+		sharedModule.Name = `Shared{index}`
+		sharedModule.Source = heavyModuleSource(`Shared{index}`)
+		sharedModule.Parent = sharedFolder
+	end
+
+	local storyModules = {}
+	for storyIndex = 1, storyCount do
+		local storyFolder = Instance.new("Folder")
+		storyFolder.Name = `Story{storyIndex}`
+		storyFolder.Parent = root
+
+		local depsFolder = Instance.new("Folder")
+		depsFolder.Name = "Deps"
+		depsFolder.Parent = storyFolder
+
+		for depIndex = chainDepth, 1, -1 do
+			local depModule = Instance.new("ModuleScript")
+			depModule.Name = `Dep{depIndex}`
+			local requiresLine = if depIndex < chainDepth
+				then `local nextDep = require(script.Parent.Dep{depIndex + 1})`
+				else nil
+			depModule.Source = heavyModuleSource(`Dep{depIndex}`, requiresLine)
+			depModule.Parent = depsFolder
+		end
+
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `Heavy{storyIndex}.story`
+		storyModule.Source = ([[
+local corpus = script:FindFirstAncestor("HeavyCorpus")
+local dep = require(script.Parent.Deps.Dep1)
+local sharedA = require(corpus.Shared.Shared1)
+local sharedB = require(corpus.Shared.Shared%d)
+return {
+	story = function()
+		return { dep = dep, sharedA = sharedA, sharedB = sharedB }
+	end,
+}
+]]):format((storyIndex % 28) + 2)
+		storyModule.Parent = storyFolder
+		table.insert(storyModules, storyModule)
+	end
+
+	return root, storyModules
+end
+
+test("loads a heavy dependency corpus lazily with fast selection", function()
+	local root, storyModules = buildHeavyCorpus(200, 10, 30)
+	local storybook = createStorybook()
+
+	store = StorytellerStore.new(root)
+	store.start()
+	settle(60, function()
+		return #store.getStoryModules() >= #storyModules
+	end)
+
+	local targets: { StoryModuleTarget } = {}
+	for _, storyModule in storyModules do
+		table.insert(targets, {
+			storyModule = storyModule,
+			storybook = storybook,
+		})
+	end
+
+	local function getRecord(storyModule: ModuleScript)
+		local recordsForModule = store.getStoryModuleRecords()[storyModule]
+		return if recordsForModule then recordsForModule[storybook.source] else nil
+	end
+
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
+	end
+
+	-- Cold select-while-loading: the whole sidebar batch is queued background
+	-- and the user immediately clicks one story.
+	local selectedModule = storyModules[150]
+	local startTime = os.clock()
+	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
+	store.requestStoryModules({
+		{ storyModule = selectedModule, storybook = storybook },
+	}, StoryModuleRequestPriority.Interactive)
+
+	local selectElapsed, selectFrames = settle(60, function()
+		local record = getRecord(selectedModule)
+		return record ~= nil and record.problem == nil
+	end)
+	local recordsWhenSelected = countRecords()
+
+	local allElapsed, allFrames = settle(300, function()
+		return countRecords() >= #targets
+	end)
+
+	-- Warm re-select: a second consumer requests an already-loaded story.
+	local warmStart = os.clock()
+	local releaseWarm = store.requestStoryModules({
+		{ storyModule = selectedModule, storybook = storybook },
+	}, StoryModuleRequestPriority.Interactive)
+	local warmRecord = getRecord(selectedModule)
+	local warmMs = (os.clock() - warmStart) * 1000
+	releaseWarm()
+
+	report("heavy corpus 200 stories x (10-chain + shared lib): store", {
+		selectedStoryMs = selectElapsed * 1000,
+		selectedStoryFrames = selectFrames,
+		recordsWhenSelected = recordsWhenSelected,
+		backgroundAllMs = (os.clock() - startTime) * 1000,
+		backgroundAllFrames = selectFrames + allFrames,
+		warmReselectMs = warmMs,
+	})
+
+	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
+	expect(countRecords()).toBe(#targets)
+
+	root:Destroy()
+	storybook.source:Destroy()
+end, TIMEOUT_MS)
