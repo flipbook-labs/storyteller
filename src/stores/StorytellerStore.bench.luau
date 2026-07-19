@@ -565,9 +565,10 @@ local dep = require(script.Parent.Deps.Dep1)
 local sharedA = require(corpus.Shared.Shared1)
 local sharedB = require(corpus.Shared.Shared%d)
 return {
-	story = function()
-		return { dep = dep, sharedA = sharedA, sharedB = sharedB }
-	end,
+	stories = {
+		{ id = "primary", name = "Primary", story = function() return { dep = dep, sharedA = sharedA } end },
+		{ id = "secondary", name = "Secondary", story = function() return { dep = dep, sharedB = sharedB } end },
+	},
 }
 ]]):format((storyIndex % 28) + 2)
 		storyModule.Parent = storyFolder
@@ -648,6 +649,10 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	})
 
 	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
+	-- Loading a record parses every story in the group up front; the heavy
+	-- path must carry that cost, not defer it.
+	assert(warmRecord.stories, "expected loaded stories on the selected record")
+	expect(#warmRecord.stories).toBe(2)
 	expect(countRecords()).toBe(#targets)
 
 	root:Destroy()
