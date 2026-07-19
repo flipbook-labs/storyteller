@@ -23,7 +23,7 @@ export type ReservedStoryProps = {
 }
 
 export type StoryProps = {
-	[string]: any,
+	[string]: unknown,
 }
 
 export type RenderLifecycle = {

@@ -1,12 +1,16 @@
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
+type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 type Packages = {
 	Vide: any,
 }
+
+type VideSource = (unknown) -> unknown
+type VideSources = { [string]: VideSource }
 
 local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local Vide = packages.Vide
@@ -17,17 +21,20 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local function transformProps(props: StoryProps)
 		local transformed = table.clone(props)
 
-		transformed.controls = {}
+		local prevControls: VideSources? = if prevProps ~= nil then prevProps.controls :: VideSources? else nil
+		local sources: VideSources = {}
 
-		for key, control in props.controls do
-			local prevControl = if prevProps ~= nil and prevProps.controls ~= nil then prevProps.controls[key] else nil
+		for key, control in props.controls :: StoryControls do
+			local prevControl = if prevControls ~= nil then prevControls[key] else nil
 
 			if prevControl ~= nil then
-				transformed.controls[key] = prevControl
+				sources[key] = prevControl
 			else
-				transformed.controls[key] = Vide.source(control)
+				sources[key] = Vide.source(control)
 			end
 		end
+
+		transformed.controls = sources
 
 		return transformed
 	end
@@ -57,9 +64,11 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 
 	local function update(props: StoryProps)
 		if prevProps ~= nil then
+			local prevControls = prevProps.controls :: VideSources
+
 			Vide.batch(function()
-				for key, control in props.controls do
-					local prevControl = prevProps.controls[key]
+				for key, control in props.controls :: StoryControls do
+					local prevControl = prevControls[key]
 
 					if prevControl ~= nil then
 						prevControl(control)
