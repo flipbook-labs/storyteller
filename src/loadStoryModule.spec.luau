@@ -81,21 +81,40 @@ test("load a story module as a table", function()
 	})
 end)
 
-test("handle Hoarcekat stories", function()
+test("wraps Hoarcekat function stories to receive the container from props", function()
 	local storyModule = createMockStoryModule([[
 		return function(target)
-			local gui = Instance.new("TextLabel")
-			gui.Parent = target
-
-			return function()
-				gui:Destroy()
-			end
+			return { mountedTo = target }
 		end
 	]])
 
 	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
-	expect(story).toBeDefined()
+	expect(story.id).toBe("default")
+	expect(story.name).toBe("Foo")
+
+	local container = Instance.new("Folder")
+	local result = (story.story :: any)({ container = container })
+	expect(result.mountedTo).toBe(container)
+end)
+
+test("legacy function stories never inherit storybook packages", function()
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		storyRoots = {},
+		source = Instance.new("ModuleScript"),
+		packages = {
+			React = {},
+		},
+	}
+
+	local storyModule = createMockStoryModule([[
+		return function() end
+	]])
+
+	local story = loadStoryModule(storyModule, storybook)
+
+	expect(story.packages).toEqual({})
 end)
 
 test("use the name of the story module for the story name", function()
@@ -112,7 +131,7 @@ test("use the name of the story module for the story name", function()
 	expect(story.name).toEqual("SampleName")
 end)
 
-test("pass the storybook's renderer to the story", function()
+test("pass the storybook's renderer packages to the story", function()
 	local storyModule = createMockStoryModule([[
 		return {
 			story = function() end
@@ -121,11 +140,11 @@ test("pass the storybook's renderer to the story", function()
 
 	local story = loadStoryModule(storyModule, mockReactStorybook)
 
-	expect(story).toBeDefined()
+	expect(story.packages).toBe(mockReactStorybook.packages)
 
 	story = loadStoryModule(storyModule, mockRoactStorybook)
 
-	expect(story).toBeDefined()
+	expect(story.packages).toBe(mockRoactStorybook.packages)
 end)
 
 test("generic failures for stories", function()
@@ -365,6 +384,195 @@ describe("multiple stories", function()
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
 		end).toThrow('Story "Missing" is malformed')
+	end)
+
+	test("assigns index-based ids to bare function entries in an array", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					function() end,
+					function() end,
+				},
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(#stories).toBe(2)
+		expect(stories[1]).toMatchObject({
+			id = "1",
+			name = "1",
+			story = expect.any("function"),
+		})
+		expect(stories[2]).toMatchObject({
+			id = "2",
+			name = "2",
+			story = expect.any("function"),
+		})
+	end)
+
+	test("merges module-level controls into each story with per-story overrides", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				controls = {
+					isDisabled = false,
+					size = "Medium",
+				},
+				stories = {
+					{
+						name = "Inherits",
+						story = function() end,
+					},
+					{
+						name = "Overrides",
+						controls = {
+							size = "Large",
+						},
+						story = function() end,
+					},
+				},
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(stories[1].controls).toEqual({
+			isDisabled = false,
+			size = "Medium",
+		})
+		expect(stories[2].controls).toEqual({
+			isDisabled = false,
+			size = "Large",
+		})
+	end)
+
+	test("story packages merge with module defaults and fall back to the storybook's", function()
+		local storybook: types.LoadedStorybook = {
+			name = "Storybook",
+			storyRoots = {},
+			source = Instance.new("ModuleScript"),
+			packages = {
+				React = { fromStorybook = true },
+			},
+		}
+
+		local storyModule = createMockStoryModule([[
+			return {
+				packages = {
+					Shared = { fromModule = true },
+				},
+				stories = {
+					{
+						name = "MergesModuleDefaults",
+						packages = {
+							Extra = { fromStory = true },
+						},
+						story = function() end,
+					},
+				},
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, storybook)
+
+		expect(stories[1].packages).toEqual({
+			Shared = { fromModule = true },
+			Extra = { fromStory = true },
+		})
+
+		local plainModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ name = "UsesStorybook", story = function() end },
+				},
+			}
+		]])
+
+		local plainStories = loadStoriesFromModule(plainModule, storybook)
+
+		expect(plainStories[1].packages).toEqual({
+			React = { fromStorybook = true },
+		})
+	end)
+
+	test("rejects non-string story ids", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ id = 123, story = function() end },
+				},
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("`id` must be a string")
+	end)
+
+	test("rejects stories tables with non-string keys", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					[1] = function() end,
+					Named = function() end,
+				},
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow("`stories` must be an array or a dictionary with string keys")
+	end)
+end)
+
+describe("storybook freshness", function()
+	test("prefers the storybook reloaded from source over the provided copy", function()
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = "Fresh.storybook"
+		storybookModule.Source = [[
+			return {
+				name = "Fresh",
+				storyRoots = {},
+			}
+		]]
+
+		local staleStorybook: types.LoadedStorybook = {
+			name = "Stale",
+			storyRoots = {},
+			source = storybookModule,
+		}
+
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, staleStorybook)
+
+		expect(story.storybook.name).toBe("Fresh")
+	end)
+
+	test("falls back to the provided storybook when its source cannot load", function()
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = "Broken.storybook"
+		storybookModule.Source = "syntax error"
+
+		local staleStorybook: types.LoadedStorybook = {
+			name = "Stale",
+			storyRoots = {},
+			source = storybookModule,
+		}
+
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, staleStorybook)
+
+		expect(story.storybook).toBe(staleStorybook)
 	end)
 end)
 
