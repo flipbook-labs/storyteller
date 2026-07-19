@@ -1,6 +1,8 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local StorytellerStore = require("./StorytellerStore")
+local isStoryModule = require("@root/isStoryModule")
 local types = require("@root/types")
 
 local describe = JestGlobals.describe
@@ -55,10 +57,25 @@ return {
 }
 ]]
 
+local COUNTING_MULTI_STORY_SOURCE = [[
+script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
+return {
+	stories = {
+		{ id = "primary", name = "Primary", story = function() end },
+		{ id = "secondary", name = "Secondary", story = function() end },
+	},
+}
+]]
+
 -- Builds a service-like folder tree: `storyCount` multi-story modules spread
 -- across nested folders, padded with distractor Folders and plain
 -- ModuleScripts until the tree holds roughly `instanceCount` instances.
-local function buildSimulatedDataModel(instanceCount: number, storyCount: number): (Folder, { ModuleScript })
+local function buildSimulatedDataModel(
+	instanceCount: number,
+	storyCount: number,
+	storySource: string?
+): (Folder, { ModuleScript })
+	local source = storySource or MULTI_STORY_SOURCE
 	local root = Instance.new("Folder")
 	root.Name = "SimulatedDataModel"
 
@@ -97,7 +114,7 @@ local function buildSimulatedDataModel(instanceCount: number, storyCount: number
 					storiesPlaced += 1
 					local storyModule = Instance.new("ModuleScript")
 					storyModule.Name = `Bench{storiesPlaced}.story`
-					storyModule.Source = MULTI_STORY_SOURCE
+					storyModule.Source = source
 					storyModule.Parent = currentFolder
 					table.insert(storyModules, storyModule)
 					built += 1
@@ -116,7 +133,7 @@ local function buildSimulatedDataModel(instanceCount: number, storyCount: number
 		storiesPlaced += 1
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `Bench{storiesPlaced}.story`
-		storyModule.Source = MULTI_STORY_SOURCE
+		storyModule.Source = source
 		storyModule.Parent = root
 		table.insert(storyModules, storyModule)
 	end
@@ -285,6 +302,221 @@ test("interactive requests are serviced ahead of background backlog", function()
 	-- The interactive record must land well before the background backlog
 	-- drains: it should not wait behind the majority of the queue.
 	expect(backgroundDoneAt).toBeLessThan(#storyModules)
+
+	root:Destroy()
+	storybook.source:Destroy()
+end, TIMEOUT_MS)
+
+test("publishes creator-priority services before the rest of a real DataModel", function()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local ServerStorage = game:GetService("ServerStorage")
+	local SoundService = game:GetService("SoundService")
+
+	local priorityRootA = buildSimulatedDataModel(2000, 150)
+	priorityRootA.Name = "BenchPriorityA"
+	priorityRootA.Parent = ReplicatedStorage
+	local priorityRootB = buildSimulatedDataModel(2000, 150)
+	priorityRootB.Name = "BenchPriorityB"
+	priorityRootB.Parent = ServerStorage
+
+	local lateRoot, lateStories = buildSimulatedDataModel(2000, 150)
+	lateRoot.Name = "BenchLate"
+	lateRoot.Parent = SoundService
+
+	local lateStorySet = {} :: { [Instance]: boolean }
+	for _, storyModule in lateStories do
+		lateStorySet[storyModule] = true
+	end
+
+	-- The test place already contains story modules (Storyteller's own e2e
+	-- fixtures under Packages), so expectations are relative to a baseline
+	-- sweep rather than absolute counts.
+	local expectedTotal = 0
+	for _, descendant in game:GetDescendants() do
+		if descendant:IsA("ModuleScript") and isStoryModule(descendant) then
+			expectedTotal += 1
+		end
+	end
+
+	store = StorytellerStore.new(game)
+
+	local firstPublish: { ModuleScript }?
+	local unsubscribe = Charm.subscribe(store.getStoryModules, function(modules)
+		if not firstPublish and #modules > 0 then
+			firstPublish = modules
+		end
+	end)
+
+	local startTime = os.clock()
+	store.start()
+	local elapsed, frames = settle(120, function()
+		return #store.getStoryModules() >= expectedTotal
+	end)
+	unsubscribe()
+
+	report("game-root discovery 6000 fixture instances / 450 stories + place noise", {
+		totalMs = (os.clock() - startTime) * 1000,
+		settleMs = elapsed * 1000,
+		frames = frames,
+		expectedTotal = expectedTotal,
+	})
+
+	expect(#store.getStoryModules()).toBe(expectedTotal)
+
+	-- When discovery spans multiple publishes, the first batch must come from
+	-- the creator-priority services, never the non-priority backlog.
+	if frames > 0 and firstPublish and #firstPublish < expectedTotal then
+		for _, storyModule in firstPublish :: { ModuleScript } do
+			expect(lateStorySet[storyModule]).toBeUndefined()
+		end
+	end
+
+	priorityRootA:Destroy()
+	priorityRootB:Destroy()
+	lateRoot:Destroy()
+end, TIMEOUT_MS)
+
+test("republishes a single edited story at scale without reloading siblings", function()
+	local root, storyModules = buildSimulatedDataModel(10000, 500, COUNTING_MULTI_STORY_SOURCE)
+	local storybook = createStorybook()
+
+	store = StorytellerStore.new(root)
+	store.start()
+	settle(60, function()
+		return #store.getStoryModules() >= #storyModules
+	end)
+
+	local targets: { StoryModuleTarget } = {}
+	for _, storyModule in storyModules do
+		table.insert(targets, {
+			storyModule = storyModule,
+			storybook = storybook,
+		})
+	end
+
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
+	end
+
+	store.requestStoryModules(targets, "background")
+	settle(120, function()
+		return countRecords() >= #targets
+	end)
+
+	local editedModule = storyModules[1]
+	local recordBefore = store.getStoryModuleRecords()[editedModule][storybook.source]
+
+	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
+	-- trailing comment without a newline would swallow the closing tokens.
+	editedModule.Source = "-- edited\n" .. COUNTING_MULTI_STORY_SOURCE
+	local elapsed, frames = settle(60, function()
+		local record = store.getStoryModuleRecords()[editedModule][storybook.source]
+		return record ~= recordBefore and record.problem == nil
+	end)
+
+	-- ModuleLoader reports source changes asynchronously after the store's
+	-- direct Source connection has already published the replacement.
+	task.wait(0.2)
+
+	local totalLoads = 0
+	local minSibling, maxSibling = math.huge, 0
+	for index, storyModule in storyModules do
+		local count = (storyModule:GetAttribute("LoadCount") :: number?) or 0
+		totalLoads += count
+		if index > 1 then
+			minSibling = math.min(minSibling, count)
+			maxSibling = math.max(maxSibling, count)
+		end
+	end
+
+	report("single edit with 500 records live", {
+		republishMs = elapsed * 1000,
+		frames = frames,
+		editedLoads = (editedModule:GetAttribute("LoadCount") :: number?) or 0,
+		minSiblingLoads = minSibling,
+		maxSiblingLoads = maxSibling,
+	})
+	-- Every module loads exactly once up front; only the edited module loads
+	-- a second time. Any sibling reload inflates this sum.
+	expect(totalLoads).toBe(#storyModules + 1)
+
+	root:Destroy()
+	storybook.source:Destroy()
+end, TIMEOUT_MS)
+
+test("invalidates every dependent story when a shared dependency changes", function()
+	local DEPENDENT_COUNT = 50
+
+	local root = Instance.new("Folder")
+	root.Name = "SharedDepCluster"
+
+	local sharedDep = Instance.new("ModuleScript")
+	sharedDep.Name = "SharedDep"
+	sharedDep.Source = "return { value = 1 }"
+	sharedDep.Parent = root
+
+	local storyModules = {} :: { ModuleScript }
+	for index = 1, DEPENDENT_COUNT do
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `Dependent{index}.story`
+		storyModule.Source = [[
+			script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
+			local dep = require(script.Parent.SharedDep)
+			return { story = function() return dep.value end }
+		]]
+		storyModule.Parent = root
+		table.insert(storyModules, storyModule)
+	end
+
+	local storybook = createStorybook()
+
+	store = StorytellerStore.new(root)
+	store.start()
+	settle(60, function()
+		return #store.getStoryModules() >= DEPENDENT_COUNT
+	end)
+
+	local targets: { StoryModuleTarget } = {}
+	for _, storyModule in storyModules do
+		table.insert(targets, {
+			storyModule = storyModule,
+			storybook = storybook,
+		})
+	end
+
+	local function countLoads(): number
+		local total = 0
+		for _, storyModule in storyModules do
+			total += (storyModule:GetAttribute("LoadCount") :: number?) or 0
+		end
+		return total
+	end
+
+	store.requestStoryModules(targets, "background")
+	settle(120, function()
+		return countLoads() >= DEPENDENT_COUNT
+	end)
+
+	sharedDep.Source = "return { value = 2 }"
+	local elapsed, frames = settle(60, function()
+		return countLoads() >= DEPENDENT_COUNT * 2
+	end)
+
+	report(`shared dependency change across {DEPENDENT_COUNT} dependents`, {
+		reloadAllMs = elapsed * 1000,
+		frames = frames,
+	})
+
+	-- Every dependent must reload exactly once: a missed dependent means the
+	-- shared-loader invalidation dropped it, extra loads mean thrash.
+	task.wait(0.2)
+	expect(countLoads()).toBe(DEPENDENT_COUNT * 2)
 
 	root:Destroy()
 	storybook.source:Destroy()
