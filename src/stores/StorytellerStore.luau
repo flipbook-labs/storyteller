@@ -87,16 +87,6 @@ type PendingPublication = {
 }
 
 local WORK_BUDGET_MS = 4
-local PRIORITY_SERVICE_NAMES = table.freeze({
-	"ReplicatedStorage",
-	"ServerStorage",
-	"Workspace",
-	"ServerScriptService",
-	"StarterPlayer",
-	"StarterGui",
-	"StarterPack",
-	"ReplicatedFirst",
-})
 local LOADED_STORY_METATABLE = {}
 
 local function excludeFromCharmFreeze(value: { [unknown]: unknown })
@@ -618,19 +608,16 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
-	local priorityRootNames = if root == game then PRIORITY_SERVICE_NAMES else nil
 	local storyModulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStoryModule,
-		priorityRootNames = priorityRootNames,
 	})
 
 	local storybookModulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
 		matcher = isStorybookModule,
-		priorityRootNames = priorityRootNames,
 	})
 
 	local function loadStorybook(storybookModule: ModuleScript)
