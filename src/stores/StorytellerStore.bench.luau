@@ -1,6 +1,6 @@
-local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local isStoryModule = require("@root/isStoryModule")
 local types = require("@root/types")
@@ -208,7 +208,7 @@ describeEach({
 		end
 
 		local startTime = os.clock()
-		store.requestStoryModules(targets, "background")
+		store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
 
 		local firstElapsed, firstFrames = settle(60, function()
 			return countRecords() >= 1
@@ -279,8 +279,8 @@ test("interactive requests are serviced ahead of background backlog", function()
 		return count
 	end
 
-	store.requestStoryModules(backgroundTargets, "background")
-	store.requestStoryModules({ interactiveTarget }, "interactive")
+	store.requestStoryModules(backgroundTargets, StoryModuleRequestPriority.Background)
+	store.requestStoryModules({ interactiveTarget }, StoryModuleRequestPriority.Interactive)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
@@ -307,7 +307,7 @@ test("interactive requests are serviced ahead of background backlog", function()
 	storybook.source:Destroy()
 end, TIMEOUT_MS)
 
-test("publishes creator-priority services before the rest of a real DataModel", function()
+test("discovers a service-shaped DataModel with place noise", function()
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local ServerStorage = game:GetService("ServerStorage")
 	local SoundService = game:GetService("SoundService")
@@ -319,14 +319,9 @@ test("publishes creator-priority services before the rest of a real DataModel", 
 	priorityRootB.Name = "BenchPriorityB"
 	priorityRootB.Parent = ServerStorage
 
-	local lateRoot, lateStories = buildSimulatedDataModel(2000, 150)
+	local lateRoot = buildSimulatedDataModel(2000, 150)
 	lateRoot.Name = "BenchLate"
 	lateRoot.Parent = SoundService
-
-	local lateStorySet = {} :: { [Instance]: boolean }
-	for _, storyModule in lateStories do
-		lateStorySet[storyModule] = true
-	end
 
 	-- The test place already contains story modules (Storyteller's own e2e
 	-- fixtures under Packages), so expectations are relative to a baseline
@@ -340,19 +335,11 @@ test("publishes creator-priority services before the rest of a real DataModel", 
 
 	store = StorytellerStore.new(game)
 
-	local firstPublish: { ModuleScript }?
-	local unsubscribe = Charm.subscribe(store.getStoryModules, function(modules)
-		if not firstPublish and #modules > 0 then
-			firstPublish = modules
-		end
-	end)
-
 	local startTime = os.clock()
 	store.start()
 	local elapsed, frames = settle(120, function()
 		return #store.getStoryModules() >= expectedTotal
 	end)
-	unsubscribe()
 
 	report("game-root discovery 6000 fixture instances / 450 stories + place noise", {
 		totalMs = (os.clock() - startTime) * 1000,
@@ -362,14 +349,6 @@ test("publishes creator-priority services before the rest of a real DataModel", 
 	})
 
 	expect(#store.getStoryModules()).toBe(expectedTotal)
-
-	-- When discovery spans multiple publishes, the first batch must come from
-	-- the creator-priority services, never the non-priority backlog.
-	if frames > 0 and firstPublish and #firstPublish < expectedTotal then
-		for _, storyModule in firstPublish :: { ModuleScript } do
-			expect(lateStorySet[storyModule]).toBeUndefined()
-		end
-	end
 
 	priorityRootA:Destroy()
 	priorityRootB:Destroy()
@@ -404,7 +383,7 @@ test("republishes a single edited story at scale without reloading siblings", fu
 		return count
 	end
 
-	store.requestStoryModules(targets, "background")
+	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
 	settle(120, function()
 		return countRecords() >= #targets
 	end)
@@ -498,7 +477,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return total
 	end
 
-	store.requestStoryModules(targets, "background")
+	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
 	settle(120, function()
 		return countLoads() >= DEPENDENT_COUNT
 	end)

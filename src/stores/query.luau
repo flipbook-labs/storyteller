@@ -2,7 +2,6 @@ local Charm = require("@pkg/Charm")
 local Sift = require("@pkg/Sift")
 
 local QUERY_STEP_COOLDOWN_SEC = 0.2
-local QUERY_WORK_BUDGET_MS = 4
 
 export type QueryOptions = {
 	-- The root Instance that will have its descendants queried for matches.
@@ -15,10 +14,6 @@ export type QueryOptions = {
 	-- This function is used for crafting specialized queries that the engine's
 	-- selector pattern can't satisfy.
 	matcher: ((instance: Instance) -> boolean)?,
-
-	-- Direct children of root to query first, in order. Initial matches from
-	-- each priority root are published before the remaining roots are queried.
-	priorityRootNames: { string }?,
 }
 
 export type QueryResult = {
@@ -33,11 +28,11 @@ export type QueryResult = {
 }
 
 local function query(options: QueryOptions): QueryResult
-	local getMatches, setMatches = Charm.signal({} :: { Instance })
+	local initialMatches: { Instance } = {}
+	local getMatches, setMatches = Charm.signal(initialMatches)
 
 	local isDestroyed = false
 	local isRunning = false
-	local hasCompletedInitialQuery = false
 
 	local function setCurrentMatches(matches: { Instance })
 		setMatches(function(prev)
@@ -49,64 +44,21 @@ local function query(options: QueryOptions): QueryResult
 		end)
 	end
 
-	local function getQueryRoots(): ({ Instance }, number)
-		if not options.priorityRootNames then
-			return { options.root }, 0
-		end
-
-		local roots = {}
-		local seenRoots = {}
-
-		for _, name in options.priorityRootNames do
-			local priorityRoot = options.root:FindFirstChild(name)
-			if priorityRoot and not seenRoots[priorityRoot] then
-				seenRoots[priorityRoot] = true
-				table.insert(roots, priorityRoot)
-			end
-		end
-
-		local priorityRootCount = #roots
-		for _, child in options.root:GetChildren() do
-			if not seenRoots[child] then
-				table.insert(roots, child)
-			end
-		end
-
-		return roots, priorityRootCount
-	end
-
-	local function queryDescendantsAsync(): { Instance }?
+	local function queryDescendants(): { Instance }
 		local matches = {}
-		local roots, priorityRootCount = getQueryRoots()
-		local workStarted = os.clock()
+		local root = options.root
 
-		for index, root in roots do
-			if root:IsA(options.selector) then
-				local isMatch = if options.matcher then options.matcher(root) else true
-				if isMatch then
-					table.insert(matches, root)
-				end
+		if root:IsA(options.selector) then
+			local isMatch = if options.matcher then options.matcher(root) else true
+			if isMatch then
+				table.insert(matches, root)
 			end
+		end
 
-			for _, instance in root:QueryDescendants(options.selector) do
-				local isMatch = if options.matcher then options.matcher(instance) else true
-				if isMatch then
-					table.insert(matches, instance)
-				end
-			end
-
-			local isPriorityRoot = index <= priorityRootCount
-			if not hasCompletedInitialQuery and isPriorityRoot then
-				setCurrentMatches(table.clone(matches))
-			end
-
-			local hasExceededBudget = (os.clock() - workStarted) * 1000 >= QUERY_WORK_BUDGET_MS
-			if index < #roots and (isPriorityRoot or hasExceededBudget) then
-				task.wait()
-				if isDestroyed or not isRunning then
-					return nil
-				end
-				workStarted = os.clock()
+		for _, instance in root:QueryDescendants(options.selector) do
+			local isMatch = if options.matcher then options.matcher(instance) else true
+			if isMatch then
+				table.insert(matches, instance)
 			end
 		end
 
@@ -124,13 +76,7 @@ local function query(options: QueryOptions): QueryResult
 				return
 			end
 
-			local matches = queryDescendantsAsync()
-			if not matches then
-				return
-			end
-
-			setCurrentMatches(matches)
-			hasCompletedInitialQuery = true
+			setCurrentMatches(queryDescendants())
 			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)
 		end
 

@@ -1,9 +1,9 @@
-local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local types = require("@root/types")
 
@@ -15,11 +15,9 @@ local afterEach = JestGlobals.afterEach
 type StoryModuleTarget = types.StoryModuleTarget
 
 local store
-local wasCharmFrozen = Charm.flags.frozen
 
 afterEach(function()
 	store.destroy()
-	Charm.flags.frozen = wasCharmFrozen
 end)
 
 test("collects all relevant ModuleScripts under the root", function()
@@ -317,40 +315,6 @@ describe("user journeys", function()
 		end)
 	end)
 
-	test("keeps loaded Storybook package state mutable", function()
-		Charm.flags.frozen = true
-		local root = new("Folder")
-		local packageModule = new("ModuleScript", {
-			Name = "Package",
-			Source = "return { value = 1 }",
-		})
-		packageModule.Parent = root
-		local storybookModule = new("ModuleScript", {
-			Name = "Mutable.storybook",
-			Source = [[
-				return {
-					storyRoots = {
-						script.Parent
-					},
-					packages = {
-						Package = require(script.Parent.Package),
-					},
-				}
-			]],
-		})
-		storybookModule.Parent = root
-
-		store = StorytellerStore.new(root)
-		store.start()
-
-		waitFor(function()
-			local storybook = store.getLoadedStorybooks()[1]
-			assert(storybook and storybook.packages, "expected a loaded Storybook with packages")
-			local packageState = storybook.packages.Package :: { value: number }
-			packageState.value = 2
-			expect(packageState.value).toBe(2)
-		end)
-	end)
 end)
 
 describe("orphaned stories", function()
@@ -624,25 +588,6 @@ describe("requesting story modules", function()
 		end)
 	end)
 
-	test("keeps loaded package state mutable", function()
-		Charm.flags.frozen = true
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Mutable")
-		local packageState = {}
-		target.storybook.packages = {
-			Package = {
-				state = packageState,
-			},
-		}
-
-		store.requestStoryModules({ target })
-
-		waitFor(function()
-			local record = getRecord(target)
-			assert(record and record.stories, "expected a loaded record for the requested story module")
-			expect(table.isfrozen(packageState)).toBe(false)
-		end)
-	end)
 
 	test("reports a story module load problem", function()
 		store = StorytellerStore.new(new("Folder"))
@@ -664,7 +609,7 @@ describe("requesting story modules", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Shared")
 
-		store.requestStoryModules({ target }, "background")
+		store.requestStoryModules({ target }, StoryModuleRequestPriority.Background)
 
 		local cachedRecord
 		waitFor(function()
@@ -672,7 +617,7 @@ describe("requesting story modules", function()
 			expect(cachedRecord).toBeDefined()
 		end)
 
-		store.requestStoryModules({ target }, "interactive")
+		store.requestStoryModules({ target }, StoryModuleRequestPriority.Interactive)
 
 		expect(getRecord(target)).toBe(cachedRecord)
 	end)

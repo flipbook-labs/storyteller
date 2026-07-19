@@ -15,62 +15,6 @@ local test = JestGlobals.test
 type LoadedStorybook = types.LoadedStorybook
 
 describe("DataModel behavior", function()
-	test("publishes prioritized root matches before scanning remaining roots", function()
-		local root = Instance.new("Folder")
-		local remainingRoot = Instance.new("Folder")
-		remainingRoot.Name = "Other"
-		remainingRoot.Parent = root
-
-		local remainingStory = Instance.new("ModuleScript")
-		remainingStory.Name = "Remaining.story"
-		remainingStory.Parent = remainingRoot
-
-		local secondPriorityRoot = Instance.new("Folder")
-		secondPriorityRoot.Name = "Workspace"
-		secondPriorityRoot.Parent = root
-
-		local secondPriorityStory = Instance.new("ModuleScript")
-		secondPriorityStory.Name = "SecondPriority.story"
-		secondPriorityStory.Parent = secondPriorityRoot
-
-		local priorityRoot = Instance.new("Folder")
-		priorityRoot.Name = "ReplicatedStorage"
-		priorityRoot.Parent = root
-
-		local priorityStory = Instance.new("ModuleScript")
-		priorityStory.Name = "Priority.story"
-		priorityStory.Parent = priorityRoot
-
-		local directStory = Instance.new("ModuleScript")
-		directStory.Name = "Direct.story"
-		directStory.Parent = root
-
-		local storyModulesQuery = query({
-			root = root,
-			selector = "ModuleScript",
-			matcher = isStoryModule,
-			priorityRootNames = {
-				"ReplicatedStorage",
-				"Workspace",
-			},
-		})
-
-		storyModulesQuery.start()
-
-		expect(storyModulesQuery.get()).toEqual({
-			priorityStory,
-		})
-
-		waitFor(function()
-			expect(storyModulesQuery.get()).toEqual({
-				priorityStory,
-				secondPriorityStory,
-				remainingStory,
-				directStory,
-			})
-		end)
-	end)
-
 	test("updates when adding a matching Instance", function()
 		local root = Instance.new("Folder")
 		local moduleScript = Instance.new("ModuleScript")
