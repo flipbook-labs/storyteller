@@ -1,8 +1,8 @@
 local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 
-local types = require("@root/types")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
+local types = require("@root/types")
 local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useEffect = React.useEffect
