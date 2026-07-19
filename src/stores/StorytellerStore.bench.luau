@@ -626,7 +626,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end)
 	local recordsWhenSelected = countRecords()
 
-	local allElapsed, allFrames = settle(300, function()
+	local _, allFrames = settle(300, function()
 		return countRecords() >= #targets
 	end)
 
