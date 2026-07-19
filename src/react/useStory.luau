@@ -1,5 +1,11 @@
+local React = require("@pkg/React")
+local ReactCharm = require("@pkg/ReactCharm")
+
 local types = require("@root/types")
-local useStoriesForModule = require("@root/react/useStoriesForModule")
+local useStorytellerStore = require("@root/react/useStorytellerStore")
+
+local useEffect = React.useEffect
+local useSignalState = ReactCharm.useSignalState
 
 --[=[
 	This hook triggers a rerender when the Story module or any of its required
@@ -52,7 +58,21 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 	@within Storyteller
 ]=]
 local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	return useStoriesForModule(module, storybook)
+	local storytellerStore = useStorytellerStore()
+	local records = useSignalState(storytellerStore.getStoryModuleRecords)
+
+	useEffect(function()
+		return storytellerStore.requestStoryModules({
+			{
+				storyModule = module,
+				storybook = storybook,
+			},
+		}, "interactive")
+	end, { module, storytellerStore, storybook } :: { unknown })
+
+	local recordsForModule = records[module]
+	local record = if recordsForModule then recordsForModule[storybook.source] else nil
+	return if record then record.story else nil, if record then record.problem else nil
 end
 
 return useStory
