@@ -3,7 +3,6 @@ local JestGlobals = require("@pkg/JestGlobals")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
-local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local types = require("@root/types")
 
@@ -12,7 +11,10 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryModuleTarget = types.StoryModuleTarget
+type StoryModuleTarget = {
+	storyModule: ModuleScript,
+	storybook: types.LoadedStorybook,
+}
 
 local store
 
@@ -507,10 +509,13 @@ describe("orphaned stories", function()
 end)
 
 describe("requesting story modules", function()
+	-- Request lifecycle behavior (sharing, priority, invalidation, cleanup)
+	-- is covered by StoryModuleRecordStore.spec. These tests pin the
+	-- composition between the store and the record store it delegates to.
 	local function createTarget(name: string): StoryModuleTarget
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `{name}.story`
-		storyModule.Source = `return \{ name = "{name}", summary = "{name} summary", story = function() end \}`
+		storyModule.Source = `return \{ name = "{name}", story = function() end \}`
 
 		return {
 			storyModule = storyModule,
@@ -527,201 +532,16 @@ describe("requesting story modules", function()
 		return if recordsForModule then recordsForModule[target.storybook.source] else nil
 	end
 
-	test("loads a requested story module", function()
+	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Button")
+		local target = createTarget("Delegated")
 
 		store.requestStoryModules({ target })
 
 		waitFor(function()
 			local record = getRecord(target)
 			assert(record and record.stories, "expected a loaded record for the requested story module")
-			expect(record.problem).toBeUndefined()
-			expect(record.stories[1]).toMatchObject({
-				id = "Button",
-				name = "Button",
-				summary = "Button summary",
-				source = target.storyModule,
-				storybook = target.storybook,
-			})
-			expect(record.snapshot.stories).toEqual({
-				{
-					id = "Button",
-					name = "Button",
-					summary = "Button summary",
-				},
-			})
-		end)
-	end)
-
-	test("loads every story from a requested module", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Buttons")
-		target.storyModule.Source = [[
-			return {
-				name = "Buttons",
-				stories = {
-					Primary = function() end,
-					Secondary = function() end,
-				},
-			}
-		]]
-
-		store.requestStoryModules({ target })
-
-		waitFor(function()
-			local record = getRecord(target)
-			assert(record and record.stories, "expected every story in the requested module")
-			expect(record.stories).toEqual({
-				expect.objectContaining({ id = "Primary", name = "Primary" }),
-				expect.objectContaining({ id = "Secondary", name = "Secondary" }),
-			})
-			expect(record.snapshot).toMatchObject({
-				name = "Buttons",
-				source = target.storyModule,
-				stories = {
-					{ id = "Primary", name = "Primary" },
-					{ id = "Secondary", name = "Secondary" },
-				},
-			})
-		end)
-	end)
-
-	test("reports a story module load problem", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Broken")
-		target.storyModule.Source = "syntax error"
-
-		store.requestStoryModules({ target })
-
-		waitFor(function()
-			local record = getRecord(target)
-			assert(record, "expected a record for the requested story module")
-			expect(record.stories).toBeUndefined()
-			expect(record.problem).toBeDefined()
-			expect(record.snapshot.problem).toBe(record.problem)
-		end)
-	end)
-
-	test("reuses the cached record across overlapping requests", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Shared")
-
-		store.requestStoryModules({ target }, StoryModuleRequestPriority.Background)
-
-		local cachedRecord
-		waitFor(function()
-			cachedRecord = getRecord(target)
-			expect(cachedRecord).toBeDefined()
-		end)
-
-		store.requestStoryModules({ target }, StoryModuleRequestPriority.Interactive)
-
-		expect(getRecord(target)).toBe(cachedRecord)
-	end)
-
-	test("does not reload sibling stories when one story source changes", function()
-		local root = Instance.new("Folder")
-		local firstLoadCount = Instance.new("IntValue")
-		firstLoadCount.Name = "FirstLoadCount"
-		firstLoadCount.Parent = root
-		local secondLoadCount = Instance.new("IntValue")
-		secondLoadCount.Name = "SecondLoadCount"
-		secondLoadCount.Parent = root
-
-		local first = createTarget("First")
-		first.storyModule.Source = [[
-			script.Parent.FirstLoadCount.Value += 1
-			return { name = "First", story = function() end }
-		]]
-		first.storyModule.Parent = root
-
-		local second = createTarget("Second")
-		second.storyModule.Source = [[
-			script.Parent.SecondLoadCount.Value += 1
-			return { name = "Second", story = function() end }
-		]]
-		second.storyModule.Parent = root
-		second.storybook = first.storybook
-
-		store = StorytellerStore.new(root)
-		store.requestStoryModules({ first, second })
-
-		waitFor(function()
-			expect(firstLoadCount.Value).toBe(1)
-			expect(secondLoadCount.Value).toBe(1)
-		end)
-
-		first.storyModule.Source = [[
-			script.Parent.FirstLoadCount.Value += 1
-			return { name = "First updated", story = function() end }
-		]]
-
-		waitFor(function()
-			local record = getRecord(first)
-			assert(record and record.stories, "expected the changed story to reload")
-			expect(record.stories[1].name).toBe("First updated")
-		end)
-		-- ModuleLoader reports source changes asynchronously after the store's
-		-- direct Source connection has already published the replacement.
-		task.wait(0.2)
-		expect(firstLoadCount.Value).toBe(2)
-		expect(secondLoadCount.Value).toBe(1)
-	end)
-
-	test("drops the record once every request is released", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Disposable")
-
-		local releaseFirst = store.requestStoryModules({ target })
-		local releaseSecond = store.requestStoryModules({ target })
-
-		waitFor(function()
-			expect(getRecord(target)).toBeDefined()
-		end)
-
-		releaseFirst()
-		expect(getRecord(target)).toBeDefined()
-
-		releaseSecond()
-		expect(getRecord(target)).toBeUndefined()
-	end)
-
-	test("removes the record when the story module is destroyed", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Doomed")
-
-		store.requestStoryModules({ target })
-
-		waitFor(function()
-			expect(getRecord(target)).toBeDefined()
-		end)
-
-		target.storyModule:Destroy()
-
-		waitFor(function()
-			expect(getRecord(target)).toBeUndefined()
-		end)
-	end)
-
-	test("removes records when the storybook module is destroyed", function()
-		store = StorytellerStore.new(new("Folder"))
-		local first = createTarget("First")
-		local second = createTarget("Second")
-		second.storybook = first.storybook
-
-		store.requestStoryModules({ first, second })
-
-		waitFor(function()
-			expect(getRecord(first)).toBeDefined()
-			expect(getRecord(second)).toBeDefined()
-		end)
-
-		first.storybook.source:Destroy()
-
-		waitFor(function()
-			local firstKey = next(store.getStoryModuleRecords())
-			expect(firstKey).toBeUndefined()
+			expect(record.stories[1].name).toBe("Delegated")
 		end)
 	end)
 
