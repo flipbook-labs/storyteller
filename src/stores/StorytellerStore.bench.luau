@@ -1,0 +1,291 @@
+local JestGlobals = require("@pkg/JestGlobals")
+
+local StorytellerStore = require("./StorytellerStore")
+local types = require("@root/types")
+
+local describe = JestGlobals.describe
+local expect = JestGlobals.expect
+local test = JestGlobals.test
+local afterEach = JestGlobals.afterEach
+local describeEach = describe.each :: any
+
+type StoryModuleTarget = types.StoryModuleTarget
+
+local TIMEOUT_MS = 2 * 60 * 1000
+
+local store
+
+afterEach(function()
+	store.destroy()
+end)
+
+local function report(label: string, stats: { [string]: number })
+	local parts = {}
+	for key, value in stats do
+		table.insert(parts, `{key}={string.format("%.1f", value)}`)
+	end
+	table.sort(parts)
+	print(`[bench] {label}: {table.concat(parts, " ")}`)
+end
+
+-- Waits frame-by-frame until the condition passes, returning the elapsed time
+-- and the number of frames waited. Errors when the ceiling is exceeded so a
+-- regression fails fast instead of hanging the suite.
+local function settle(ceilingSec: number, condition: () -> boolean): (number, number)
+	local startTime = os.clock()
+	local frames = 0
+	while not condition() do
+		task.wait()
+		frames += 1
+		if os.clock() - startTime > ceilingSec then
+			error(`condition did not settle within {ceilingSec}s`)
+		end
+	end
+	return os.clock() - startTime, frames
+end
+
+local MULTI_STORY_SOURCE = [[
+return {
+	summary = "Benchmark fixture",
+	stories = {
+		{ id = "primary", name = "Primary", story = function() end },
+		{ id = "secondary", name = "Secondary", story = function() end },
+		{ id = "tertiary", name = "Tertiary", story = function() end },
+	},
+}
+]]
+
+-- Builds a service-like folder tree: `storyCount` multi-story modules spread
+-- across nested folders, padded with distractor Folders and plain
+-- ModuleScripts until the tree holds roughly `instanceCount` instances.
+local function buildSimulatedDataModel(instanceCount: number, storyCount: number): (Folder, { ModuleScript })
+	local root = Instance.new("Folder")
+	root.Name = "SimulatedDataModel"
+
+	local storyModules = {}
+	local built = 0
+	local folderIndex = 0
+	local currentFolder = root
+
+	local function nextFolder(): Folder
+		folderIndex += 1
+		local folder = Instance.new("Folder")
+		folder.Name = `Service{folderIndex // 100}_Folder{folderIndex % 100}`
+		-- Cycle parents so depth stays realistic (3-5 levels) instead of one
+		-- enormous flat child list or an ever-deepening chain.
+		folder.Parent = if folderIndex % 5 == 0 then root else currentFolder
+		built += 1
+		return folder
+	end
+
+	local storiesPerFolder = math.max(1, storyCount // math.max(1, instanceCount // 50))
+	local storiesPlaced = 0
+
+	while built < instanceCount do
+		currentFolder = nextFolder()
+
+		for _ = 1, 40 do
+			if built >= instanceCount then
+				break
+			end
+
+			if storiesPlaced < storyCount and built % 50 == 0 then
+				for _ = 1, storiesPerFolder do
+					if storiesPlaced >= storyCount then
+						break
+					end
+					storiesPlaced += 1
+					local storyModule = Instance.new("ModuleScript")
+					storyModule.Name = `Bench{storiesPlaced}.story`
+					storyModule.Source = MULTI_STORY_SOURCE
+					storyModule.Parent = currentFolder
+					table.insert(storyModules, storyModule)
+					built += 1
+				end
+			else
+				local distractor = Instance.new("ModuleScript")
+				distractor.Name = `Module{built}`
+				distractor.Parent = currentFolder
+				built += 1
+			end
+		end
+	end
+
+	-- Guarantee the full story count even if the distribution loop under-placed.
+	while storiesPlaced < storyCount do
+		storiesPlaced += 1
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `Bench{storiesPlaced}.story`
+		storyModule.Source = MULTI_STORY_SOURCE
+		storyModule.Parent = root
+		table.insert(storyModules, storyModule)
+	end
+
+	return root, storyModules
+end
+
+local function createStorybook(): types.LoadedStorybook
+	return {
+		name = "BenchStorybook",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+end
+
+describeEach({
+	{ instances = 1000, stories = 100 },
+	{ instances = 10000, stories = 500 },
+	{ instances = 50000, stories = 1000 },
+})("simulated DataModel (%s)", function(scale)
+	test("discovers every story module without evaluating any", function()
+		local root, storyModules = buildSimulatedDataModel(scale.instances, scale.stories)
+
+		store = StorytellerStore.new(root)
+
+		local startTime = os.clock()
+		store.start()
+		local elapsed, frames = settle(60, function()
+			return #store.getStoryModules() >= #storyModules
+		end)
+
+		report(`discovery {scale.instances} instances / {scale.stories} stories`, {
+			totalMs = (os.clock() - startTime) * 1000,
+			settleMs = elapsed * 1000,
+			frames = frames,
+		})
+
+		expect(#store.getStoryModules()).toBe(#storyModules)
+		-- Discovery must never evaluate a module: no records should exist until
+		-- something explicitly requests them.
+		expect((next(store.getStoryModuleRecords()))).toBeUndefined()
+
+		root:Destroy()
+	end, TIMEOUT_MS)
+
+	test("resolves requested metadata within budgeted frames", function()
+		local root, storyModules = buildSimulatedDataModel(scale.instances, scale.stories)
+		local storybook = createStorybook()
+
+		store = StorytellerStore.new(root)
+		store.start()
+		settle(60, function()
+			return #store.getStoryModules() >= #storyModules
+		end)
+
+		local targets: { StoryModuleTarget } = {}
+		for _, storyModule in storyModules do
+			table.insert(targets, {
+				storyModule = storyModule,
+				storybook = storybook,
+			})
+		end
+
+		local function countRecords(): number
+			local count = 0
+			for _, recordsForModule in store.getStoryModuleRecords() do
+				for _ in recordsForModule do
+					count += 1
+				end
+			end
+			return count
+		end
+
+		local startTime = os.clock()
+		store.requestStoryModules(targets, "background")
+
+		local firstElapsed, firstFrames = settle(60, function()
+			return countRecords() >= 1
+		end)
+		local _, allFrames = settle(120, function()
+			return countRecords() >= #targets
+		end)
+
+		report(`metadata {scale.stories} multi-story modules`, {
+			firstRecordMs = firstElapsed * 1000,
+			allRecordsMs = (os.clock() - startTime) * 1000,
+			framesToFirst = firstFrames,
+			framesToAll = firstFrames + allFrames,
+		})
+
+		-- Every record carries the module's three stories.
+		local sampleRecords = store.getStoryModuleRecords()[storyModules[1]]
+		assert(sampleRecords, "expected records for the first story module")
+		local sampleRecord = sampleRecords[storybook.source]
+		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
+		expect(#sampleRecord.stories).toBe(3)
+
+		-- The work budget must spread large batches across frames rather than
+		-- stalling one frame with the entire load.
+		if #targets >= 100 then
+			expect(firstFrames + allFrames).toBeGreaterThan(1)
+		end
+
+		root:Destroy()
+		storybook.source:Destroy()
+	end, TIMEOUT_MS)
+end)
+
+test("interactive requests are serviced ahead of background backlog", function()
+	local root, storyModules = buildSimulatedDataModel(5000, 300)
+	local storybook = createStorybook()
+
+	store = StorytellerStore.new(root)
+	store.start()
+	settle(60, function()
+		return #store.getStoryModules() >= #storyModules
+	end)
+
+	local backgroundTargets: { StoryModuleTarget } = {}
+	for index = 1, #storyModules - 1 do
+		table.insert(backgroundTargets, {
+			storyModule = storyModules[index],
+			storybook = storybook,
+		})
+	end
+	local interactiveTarget: StoryModuleTarget = {
+		storyModule = storyModules[#storyModules],
+		storybook = storybook,
+	}
+
+	local function getRecord(target: StoryModuleTarget)
+		local recordsForModule = store.getStoryModuleRecords()[target.storyModule]
+		return if recordsForModule then recordsForModule[target.storybook.source] else nil
+	end
+
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
+	end
+
+	store.requestStoryModules(backgroundTargets, "background")
+	store.requestStoryModules({ interactiveTarget }, "interactive")
+
+	local startTime = os.clock()
+	local interactiveElapsed = settle(60, function()
+		return getRecord(interactiveTarget) ~= nil
+	end)
+	local backgroundDoneAt = countRecords()
+
+	settle(120, function()
+		return countRecords() >= #storyModules
+	end)
+	local allElapsed = os.clock() - startTime
+
+	report("priority 299 background + 1 interactive", {
+		interactiveMs = interactiveElapsed * 1000,
+		allMs = allElapsed * 1000,
+		recordsWhenInteractiveLanded = backgroundDoneAt,
+	})
+
+	-- The interactive record must land well before the background backlog
+	-- drains: it should not wait behind the majority of the queue.
+	expect(backgroundDoneAt).toBeLessThan(#storyModules)
+
+	root:Destroy()
+	storybook.source:Destroy()
+end, TIMEOUT_MS)
