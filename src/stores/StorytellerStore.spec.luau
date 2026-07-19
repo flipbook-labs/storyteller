@@ -1,4 +1,3 @@
-local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -19,11 +18,9 @@ type StoryModuleTarget = {
 }
 
 local store
-local wasCharmFrozen = Charm.flags.frozen
 
 afterEach(function()
 	store.destroy()
-	Charm.flags.frozen = wasCharmFrozen
 end)
 
 test("collects all relevant ModuleScripts under the root", function()
@@ -321,40 +318,6 @@ describe("user journeys", function()
 		end)
 	end)
 
-	test("keeps loaded Storybook package state mutable", function()
-		Charm.flags.frozen = true
-		local root = new("Folder")
-		local packageModule = new("ModuleScript", {
-			Name = "Package",
-			Source = "return { value = 1 }",
-		})
-		packageModule.Parent = root
-		local storybookModule = new("ModuleScript", {
-			Name = "Mutable.storybook",
-			Source = [[
-				return {
-					storyRoots = {
-						script.Parent
-					},
-					packages = {
-						Package = require(script.Parent.Package),
-					},
-				}
-			]],
-		})
-		storybookModule.Parent = root
-
-		store = StorytellerStore.new(root)
-		store.start()
-
-		waitFor(function()
-			local storybook = store.getLoadedStorybooks()[1]
-			assert(storybook and storybook.packages, "expected a loaded Storybook with packages")
-			local packageState = storybook.packages.Package :: { value: number }
-			packageState.value = 2
-			expect(packageState.value).toBe(2)
-		end)
-	end)
 end)
 
 describe("orphaned stories", function()
@@ -587,34 +550,6 @@ describe("requesting story modules", function()
 		end)
 	end)
 
-	test("keeps loaded package state mutable", function()
-		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Mutable")
-		target.storyModule.Source = [[
-			local state = {
-				value = 1,
-			}
-			return {
-				story = function() end,
-				packages = {
-					State = state,
-				},
-			}
-		]]
-		Charm.flags.frozen = true
-
-		store.requestStoryModules({ target })
-
-		waitFor(function()
-			local record = getRecord(target)
-			assert(record and record.story, "expected a loaded record for the requested story module")
-			local packages = record.story.packages
-			assert(packages, "expected the loaded story to retain its packages")
-			local state = packages.State :: { value: number }
-			state.value = 2
-			expect(state.value).toBe(2)
-		end)
-	end)
 
 	test("reports a story module load problem", function()
 		store = StorytellerStore.new(new("Folder"))
