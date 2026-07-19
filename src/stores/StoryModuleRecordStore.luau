@@ -93,6 +93,17 @@ type PendingPublication = {
 
 local WORK_BUDGET_MS = 4
 
+-- Charm deep-freezes signal values in Studio but skips tables that carry a
+-- metatable. Loaded stories reference package modules (React and friends)
+-- that mutate internal state while rendering, so their object graphs must
+-- stay outside that recursive freeze. #132 moves this to the module-loading
+-- boundary; this exclusion is the record store's interim guard.
+local LOADED_STORY_METATABLE = {}
+
+local function excludeFromCharmFreeze(value: { [unknown]: unknown })
+	setmetatable(value, LOADED_STORY_METATABLE)
+end
+
 local StoryModuleRecordStore = {}
 
 function StoryModuleRecordStore.new(): StoryModuleRecordStore
@@ -333,6 +344,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		local success, result = pcall(function()
 			story = loadStoryModule(target.storyModule, target.storybook, loader)
 		end)
+
+		if success and story then
+			excludeFromCharmFreeze(story)
+		end
 
 		return if success
 			then {

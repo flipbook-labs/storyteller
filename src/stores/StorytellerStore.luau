@@ -106,6 +106,15 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 
 		if success and storybook then
+			if storybook.packages then
+				-- Storybooks enter Charm state, but package modules can own
+				-- mutable state. Clone the author's map before stopping the
+				-- recursive Studio freeze (see StoryModuleRecordStore).
+				local packages = table.clone(storybook.packages)
+				setmetatable(packages :: any, {})
+				storybook.packages = packages
+			end
+
 			setLoadedStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
