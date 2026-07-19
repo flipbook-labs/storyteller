@@ -13,7 +13,7 @@ local types = {}
 export type StudioTheme = "Light" | "Dark"
 
 export type ExtraStoryProps = {
-	[string]: any,
+	[string]: unknown,
 }
 
 export type ReservedStoryProps = {

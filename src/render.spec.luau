@@ -11,6 +11,7 @@ local expect = JestGlobals.expect
 local jest = JestGlobals.jest
 local test = JestGlobals.test
 
+type ExtraStoryProps = types.ExtraStoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 
@@ -222,9 +223,10 @@ test("extra props can be supplied for things like the UI theme", function()
 		mount = mockMount,
 	})
 
-	render(container, story, {
+	local extraProps: ExtraStoryProps = {
 		theme = "Light",
-	})
+	}
+	render(container, story, extraProps)
 
 	expect(mockMount).toHaveBeenCalledWith(
 		expect.anything(),
