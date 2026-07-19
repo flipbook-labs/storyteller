@@ -2,12 +2,12 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
+local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local debounce = require("@root/debounce")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
-local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
-local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
 local types = require("@root/types")
@@ -32,7 +32,10 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 
 	getStoryModuleRecords: () -> StoryModuleRecords,
-	requestStoryModules: (targets: { StoryModuleTarget }, priority: StoryModuleRequestPriority.StoryModuleRequestPriority?) -> () -> (),
+	requestStoryModules: (
+		targets: { StoryModuleTarget },
+		priority: StoryModuleRequestPriority.StoryModuleRequestPriority?
+	) -> () -> (),
 }
 
 local StorytellerStore = {}

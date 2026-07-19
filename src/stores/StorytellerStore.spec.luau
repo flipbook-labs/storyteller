@@ -314,7 +314,6 @@ describe("user journeys", function()
 			expect(#store.getUnavailableStorybooks()).toEqual(0)
 		end)
 	end)
-
 end)
 
 describe("orphaned stories", function()
@@ -587,7 +586,6 @@ describe("requesting story modules", function()
 			})
 		end)
 	end)
-
 
 	test("reports a story module load problem", function()
 		store = StorytellerStore.new(new("Folder"))
