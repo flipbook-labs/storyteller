@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local StoryModuleRecordStore = require("./StoryModuleRecordStore")
@@ -12,9 +13,11 @@ local afterEach = JestGlobals.afterEach
 type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
 
 local recordStore: StoryModuleRecordStore.StoryModuleRecordStore
+local wasCharmFrozen = Charm.flags.frozen
 
 afterEach(function()
 	recordStore.destroy()
+	Charm.flags.frozen = wasCharmFrozen
 end)
 
 local function createTarget(name: string): StoryModuleTarget
@@ -122,6 +125,87 @@ test("loads every story from a requested module", function()
 				{ id = "Secondary", name = "Secondary" },
 			},
 		})
+	end)
+end)
+
+test("keeps loaded story packages mutable under Charm's Studio freeze", function()
+	Charm.flags.frozen = true
+	recordStore = StoryModuleRecordStore.new()
+	local target = createTarget("Mutable")
+	local packageState = {}
+	target.storybook.packages = {
+		Package = {
+			state = packageState,
+		},
+	}
+
+	recordStore.request({ target })
+
+	waitFor(function()
+		local record = getRecord(target)
+		assert(record and record.stories, "expected a loaded record for the requested story module")
+		-- Records enter Charm state, which deep-freezes in Studio. Package
+		-- modules like React mutate internal state while rendering, so the
+		-- loaded story's object graph must stay outside that freeze.
+		expect(table.isfrozen(packageState)).toBe(false)
+	end)
+end)
+
+test("evaluates the storybook and story through the same loader", function()
+	recordStore = StoryModuleRecordStore.new()
+
+	local root = Instance.new("Folder")
+	local marker = Instance.new("ModuleScript")
+	marker.Name = "Marker"
+	marker.Source = "return {}"
+	marker.Parent = root
+
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Identity.storybook"
+	storybookModule.Source = [[
+		return {
+			storyRoots = {},
+			packages = {
+				Marker = require(script.Parent.Marker),
+			},
+		}
+	]]
+	storybookModule.Parent = root
+
+	local storyModule = Instance.new("ModuleScript")
+	storyModule.Name = "Identity.story"
+	storyModule.Source = [[
+		local marker = require(script.Parent.Marker)
+		return { story = function() return marker end }
+	]]
+	storyModule.Parent = root
+
+	-- The caller supplies a storybook whose packages were evaluated by some
+	-- other loader, the way discovery-side loading does.
+	local target: StoryModuleTarget = {
+		storyModule = storyModule,
+		storybook = {
+			name = "Stale",
+			source = storybookModule,
+			storyRoots = {},
+			packages = {
+				Marker = {},
+			},
+		},
+	}
+
+	recordStore.request({ target })
+
+	waitFor(function()
+		local record = getRecord(target)
+		assert(record and record.stories, "expected a loaded record for the requested story module")
+		-- A package instance the story requires must be identity-equal to the
+		-- one in its storybook's packages: libraries like React break when a
+		-- story renders against a different instance than it required.
+		local storyMarker = (record.stories[1].story :: () -> unknown)()
+		local packages = record.stories[1].packages
+		assert(packages, "expected the loaded story to carry its storybook's packages")
+		expect(packages.Marker).toBe(storyMarker)
 	end)
 end)
 
