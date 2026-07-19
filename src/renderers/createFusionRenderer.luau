@@ -45,13 +45,13 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<Instance>
 		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 
 		if mapStory then
-			handle = mapStory(story.story)(props)
+			handle = mapStory(story.story)(props) :: Instance?
 		elseif typeof(story.story) == "Instance" then
 			handle = story.story
 		elseif typeof(story.story) == "function" then

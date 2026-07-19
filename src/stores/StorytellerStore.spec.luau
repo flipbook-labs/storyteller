@@ -633,7 +633,7 @@ describe("requesting story modules", function()
 			Package = {
 				state = packageState,
 			},
-		}
+		} :: types.StoryPackages
 
 		store.requestStoryModules({ target })
 

@@ -40,11 +40,11 @@ export type StoryRenderer<T> = {
 }
 
 export type StoryPackages = {
-	[string]: any,
+	[string]: unknown,
 }
 
-type MapStoryFn = (story: any) -> (props: StoryProps) -> any
-type MapDefinitionFn = (story: any) -> any
+type MapStoryFn = (story: unknown) -> (props: StoryProps) -> unknown
+type MapDefinitionFn = (story: unknown) -> unknown
 
 export type Storybook = {
 	storyRoots: { Instance },

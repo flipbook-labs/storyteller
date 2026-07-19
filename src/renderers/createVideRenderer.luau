@@ -39,7 +39,7 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<Instance>
 		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil

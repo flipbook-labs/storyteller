@@ -32,7 +32,7 @@ beforeEach(function()
 				mount = jest.fn(),
 				unmount = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 
 	mockReactStorybook = {
@@ -46,7 +46,7 @@ beforeEach(function()
 			ReactRoblox = {
 				createRoot = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 end)
 
@@ -188,7 +188,7 @@ describe("legacy support", function()
 			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
-			},
+			} :: types.StoryPackages,
 		}
 
 		local storyModule = createMockStoryModule([[

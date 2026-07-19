@@ -45,7 +45,7 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<T>
 		end
 
 		root = ReactRoblox.createRoot(container)

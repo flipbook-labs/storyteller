@@ -42,7 +42,8 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		local packages = if story then story.packages else storybook.packages
 
 		if packages and packages.React and packages.ReactRoblox then
-			packages.ReactRoblox.act(function()
+			local reactRoblox = packages.ReactRoblox :: { act: (() -> ()) -> () }
+			reactRoblox.act(function()
 				task.wait()
 			end)
 		elseif packages and (packages.Fusion or packages.Vide or packages.Iris) then
