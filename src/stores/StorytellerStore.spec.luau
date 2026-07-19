@@ -4,6 +4,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local types = require("@root/types")
 
@@ -634,7 +635,7 @@ describe("requesting story modules", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Shared")
 
-		store.requestStoryModules({ target }, "background")
+		store.requestStoryModules({ target }, StoryModuleRequestPriority.Background)
 
 		local cachedRecord
 		waitFor(function()
@@ -642,7 +643,7 @@ describe("requesting story modules", function()
 			expect(cachedRecord).toBeDefined()
 		end)
 
-		store.requestStoryModules({ target }, "interactive")
+		store.requestStoryModules({ target }, StoryModuleRequestPriority.Interactive)
 
 		expect(getRecord(target)).toBe(cachedRecord)
 	end)

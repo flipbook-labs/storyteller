@@ -6,6 +6,7 @@ local debounce = require("@root/debounce")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local loadStoryModule = require("@root/loadStoryModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local query = require("@root/stores/query")
@@ -26,13 +27,16 @@ type StoryModuleRecord = {
 	problem: string?,
 }
 
+-- Records are keyed by (Story module, Storybook source) pair: the outer key is
+-- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
+-- was loaded through. The same Story module can be covered by multiple
+-- Storybooks, and each pairing loads independently because the Storybook
+-- supplies the loader environment (packages, mapStory, and friends).
 type StoryModuleRecords = {
 	[ModuleScript]: {
 		[ModuleScript]: StoryModuleRecord,
 	},
 }
-
-type StoryModuleRequestPriority = "background" | "interactive"
 
 export type StorytellerStore = {
 	start: () -> (),
@@ -47,7 +51,7 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 
 	getStoryModuleRecords: () -> StoryModuleRecords,
-	requestStoryModules: (targets: { StoryModuleTarget }, priority: StoryModuleRequestPriority?) -> () -> (),
+	requestStoryModules: (targets: { StoryModuleTarget }, priority: StoryModuleRequestPriority.StoryModuleRequestPriority?) -> () -> (),
 }
 
 type TargetEntry = {
@@ -57,7 +61,7 @@ type TargetEntry = {
 	interactiveRefCount: number,
 	generation: number,
 	isLoading: boolean,
-	queuedPriority: StoryModuleRequestPriority?,
+	queuedPriority: StoryModuleRequestPriority.StoryModuleRequestPriority?,
 	reloadLoader: ModuleLoader.ModuleLoader?,
 	reloadConnection: RBXScriptConnection?,
 	sourceConnection: RBXScriptConnection?,
@@ -119,23 +123,28 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isDestroyed = false
 	local isRunning = false
 
-	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
+	local initialStoryModules: { ModuleScript } = {}
+	local getStoryModules, setStoryModules = Charm.signal(initialStoryModules)
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
+	local initialStorybookModules: { ModuleScript } = {}
+	local getStorybookModules, setStorybookModules = Charm.signal(initialStorybookModules)
 	self.getStorybookModules = getStorybookModules
 
-	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
+	local initialLoadedStorybooks: { LoadedStorybook } = {}
+	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal(initialLoadedStorybooks)
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
+	local initialUnavailableStorybooks: { UnavailableStorybook } = {}
+	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal(initialUnavailableStorybooks)
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
-	local getStoryModuleRecords, setStoryModuleRecords = Charm.signal({} :: StoryModuleRecords)
+	local initialStoryModuleRecords: StoryModuleRecords = {}
+	local getStoryModuleRecords, setStoryModuleRecords = Charm.signal(initialStoryModuleRecords)
 	self.getStoryModuleRecords = getStoryModuleRecords
 
-	local targetEntries = {} :: { [ModuleScript]: { [ModuleScript]: TargetEntry } }
-	local loaderEntries = {} :: { [ModuleScript]: LoaderEntry }
+	local targetEntries: { [ModuleScript]: { [ModuleScript]: TargetEntry } } = {}
+	local loaderEntries: { [ModuleScript]: LoaderEntry } = {}
 	local backgroundQueue: TargetQueue = {
 		items = {},
 		head = 1,
@@ -149,8 +158,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isProcessingTargets = false
 
 	local processPendingTargets: () -> ()
-	local queueTarget: (TargetEntry, StoryModuleRequestPriority, boolean) -> ()
-	local invalidateTarget: (TargetEntry, StoryModuleRequestPriority) -> ()
+	local queueTarget: (TargetEntry, StoryModuleRequestPriority.StoryModuleRequestPriority, boolean) -> ()
+	local invalidateTarget: (TargetEntry, StoryModuleRequestPriority.StoryModuleRequestPriority) -> ()
 	local cleanupTargetEntry: (TargetEntry) -> ()
 
 	local function getTargetEntry(storyModule: ModuleScript, storybookSource: ModuleScript): TargetEntry?
@@ -241,7 +250,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		targetQueue.items[targetQueue.tail] = entry
 	end
 
-	local function popQueue(targetQueue: TargetQueue, priority: StoryModuleRequestPriority): TargetEntry?
+	local function popQueue(targetQueue: TargetQueue, priority: StoryModuleRequestPriority.StoryModuleRequestPriority): TargetEntry?
 		while targetQueue.head <= targetQueue.tail do
 			local index = targetQueue.head
 			local entry = targetQueue.items[index]
@@ -276,7 +285,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 					if not changedTarget.reloadLoader then
 						invalidateTarget(
 							changedTarget,
-							if changedTarget.interactiveRefCount > 0 then "interactive" else "background"
+							if changedTarget.interactiveRefCount > 0 then StoryModuleRequestPriority.Interactive else StoryModuleRequestPriority.Background
 						)
 					end
 					-- Story source changes have a dedicated connection. Only shared
@@ -286,7 +295,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 				for _, entry in loaderEntry.targets do
 					if not entry.reloadLoader then
-						invalidateTarget(entry, if entry.interactiveRefCount > 0 then "interactive" else "background")
+						invalidateTarget(entry, if entry.interactiveRefCount > 0 then StoryModuleRequestPriority.Interactive else StoryModuleRequestPriority.Background)
 					end
 				end
 			end),
@@ -386,7 +395,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			local workStarted = os.clock()
 
 			while not isDestroyed do
-				local entry = popQueue(interactiveQueue, "interactive") or popQueue(backgroundQueue, "background")
+				local entry = popQueue(interactiveQueue, StoryModuleRequestPriority.Interactive)
+					or popQueue(backgroundQueue, StoryModuleRequestPriority.Background)
 				if not entry then
 					break
 				end
@@ -414,7 +424,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	queueTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
+	queueTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority.StoryModuleRequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -423,12 +433,12 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			entry.generation += 1
 		end
 
-		if entry.queuedPriority == "interactive" or entry.queuedPriority == priority then
+		if entry.queuedPriority == StoryModuleRequestPriority.Interactive or entry.queuedPriority == priority then
 			return
 		end
 
 		entry.queuedPriority = priority
-		if priority == "interactive" then
+		if priority == StoryModuleRequestPriority.Interactive then
 			pushQueue(interactiveQueue, entry)
 		else
 			pushQueue(backgroundQueue, entry)
@@ -436,7 +446,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		processPendingTargets()
 	end
 
-	invalidateTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority)
+	invalidateTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority.StoryModuleRequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -452,17 +462,18 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		local loader = ModuleLoader.new()
 		entry.reloadLoader = loader
 		entry.reloadConnection = loader.loadedModuleChanged:Connect(function()
-			invalidateTarget(entry, if entry.interactiveRefCount > 0 then "interactive" else "background")
+			invalidateTarget(entry, if entry.interactiveRefCount > 0 then StoryModuleRequestPriority.Interactive else StoryModuleRequestPriority.Background)
 		end)
 		queueTarget(entry, priority, true)
 	end
 
-	local function requestStoryModules(targets: { StoryModuleTarget }, priority: StoryModuleRequestPriority?): () -> ()
+	local function requestStoryModules(targets: { StoryModuleTarget }, priority: StoryModuleRequestPriority.StoryModuleRequestPriority?): () -> ()
 		if isDestroyed then
 			return function() end
 		end
 
-		local requestPriority: StoryModuleRequestPriority = priority or "background"
+		local requestPriority: StoryModuleRequestPriority.StoryModuleRequestPriority = priority
+			or StoryModuleRequestPriority.Background
 		local acquiredEntries = {} :: { TargetEntry }
 		local acquiredByModule = {} :: { [ModuleScript]: { [ModuleScript]: boolean } }
 
@@ -507,7 +518,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				local loaderEntry = ensureLoaderEntry(storybookSource)
 				loaderEntry.targets[storyModule] = entry
 				entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
-					invalidateTarget(entry, if entry.interactiveRefCount > 0 then "interactive" else "background")
+					invalidateTarget(entry, if entry.interactiveRefCount > 0 then StoryModuleRequestPriority.Interactive else StoryModuleRequestPriority.Background)
 				end)
 				entry.destroyingConnection = storyModule.Destroying:Connect(function()
 					cleanupTargetEntry(entry)
@@ -515,7 +526,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end
 
 			entry.refCount += 1
-			if requestPriority == "interactive" then
+			if requestPriority == StoryModuleRequestPriority.Interactive then
 				entry.interactiveRefCount += 1
 			end
 			table.insert(acquiredEntries, entry)
@@ -526,8 +537,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				invalidateTarget(entry, requestPriority)
 			elseif not record and not entry.isLoading then
 				queueTarget(entry, requestPriority, false)
-			elseif entry.queuedPriority == "background" and requestPriority == "interactive" then
-				queueTarget(entry, "interactive", false)
+			elseif entry.queuedPriority == StoryModuleRequestPriority.Background and requestPriority == StoryModuleRequestPriority.Interactive then
+				queueTarget(entry, StoryModuleRequestPriority.Interactive, false)
 			end
 		end
 
@@ -539,7 +550,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			isReleased = true
 
 			for _, entry in acquiredEntries do
-				if requestPriority == "interactive" then
+				if requestPriority == StoryModuleRequestPriority.Interactive then
 					entry.interactiveRefCount = math.max(0, entry.interactiveRefCount - 1)
 				end
 				entry.refCount = math.max(0, entry.refCount - 1)
