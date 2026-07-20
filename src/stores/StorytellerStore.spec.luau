@@ -99,6 +99,13 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 	end)
 end)
 
+test("get() returns the same shared store on every call", function()
+	local first = StorytellerStore.get()
+	store = first
+
+	expect(StorytellerStore.get()).toBe(first)
+end)
+
 describe("recomputing Story and Storybook modules", function()
 	test("never recomputes when a non-matching ModuleScript is added or removed", function()
 		local root = new("Folder")
