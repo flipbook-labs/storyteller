@@ -15,15 +15,11 @@ export type StorytellerProviderProps = {
 	children: React.ReactNode,
 }
 
--- The context must not touch StorytellerStore.instance at module scope:
--- requiring this module happens transitively inside ModuleLoader sandboxes,
--- and eagerly resolving the shared instance would construct a game-wide store
--- per sandbox. The instance is resolved at render/hook time instead.
 local StorytellerContext = React.createContext(nil :: StorytellerContext?)
 StorytellerContext.displayName = "StorytellerContext"
 
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
-	local store = storytellerProviderProps.store or StorytellerStore.instance
+	local store = storytellerProviderProps.store or StorytellerStore.get()
 
 	local context = useMemo(function(): StorytellerContext
 		return {
@@ -52,7 +48,7 @@ local function useStorytellerContext(): StorytellerContext
 		return context
 	end
 	return {
-		store = StorytellerStore.instance,
+		store = StorytellerStore.get(),
 	}
 end
 

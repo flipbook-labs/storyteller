@@ -1,3 +1,11 @@
+-- Requiring this module must do no work. Storyteller gets required
+-- transitively inside ModuleLoader sandboxes when a Story module's dependency
+-- graph includes it (Flipbook's own stories do), and a sandboxed copy must
+-- stay inert: starting discovery there spawns loaders, re-evaluates React
+-- package graphs, and feeds foreign component instances into live trees. The
+-- shared instance is created on the first get() call rather than at require
+-- time.
+
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
@@ -38,15 +46,7 @@ export type StorytellerStore = {
 	) -> () -> (),
 }
 
--- Storyteller gets required transitively inside ModuleLoader sandboxes when a
--- Story module's dependency graph includes it (Flipbook's own stories do).
--- A sandboxed copy must stay inert: starting discovery there spawns loaders,
--- re-evaluates React package graphs, and feeds foreign component instances
--- into live trees. ModuleLoader hands its chunks a metatabled _G proxy while
--- native and test environments expose the bare global table, which makes for
--- a reliable sandbox probe.
--- selene: allow(global_usage)
-local IS_SANDBOXED = getmetatable(_G :: any) ~= nil
+local IS_SANDBOXED = ModuleLoader.isSandboxed()
 
 local StorytellerStore = {}
 
@@ -291,29 +291,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	return self
 end
 
--- Requiring this module must do no work: Story modules loaded in ModuleLoader
--- sandboxes require Storyteller transitively, and eagerly constructing a
--- game-wide store per sandbox multiplies discovery machinery. The shared
--- instance is created on first access instead.
-local lazyInstance: StorytellerStore?
+-- Caching relies on this computed staying dependency-free: a Charm signal
+-- read during new() would let it re-run and create a second store.
+StorytellerStore.get = Charm.computed(function(): StorytellerStore
+	return StorytellerStore.new(game)
+end)
 
-local exports = {
-	new = StorytellerStore.new,
-}
-
-setmetatable(exports, {
-	__index = function(_, key: string)
-		if key == "instance" then
-			if not lazyInstance then
-				lazyInstance = StorytellerStore.new(game)
-			end
-			return lazyInstance
-		end
-		return nil
-	end,
-})
-
-return (exports :: any) :: {
-	new: typeof(StorytellerStore.new),
-	instance: StorytellerStore,
-}
+return StorytellerStore
