@@ -257,29 +257,16 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	return self
 end
 
+local sharedInstance: StorytellerStore?
+
 -- Requiring this module must do no work: Story modules loaded in ModuleLoader
 -- sandboxes require Storyteller transitively, and eagerly constructing a
 -- game-wide store per sandbox multiplies discovery machinery. The shared
--- instance is created on first access instead.
-local lazyInstance: StorytellerStore?
+-- instance is created on the first get() call instead.
+function StorytellerStore.get(): StorytellerStore
+	local instance = sharedInstance or StorytellerStore.new(game)
+	sharedInstance = instance
+	return instance
+end
 
-local exports = {
-	new = StorytellerStore.new,
-}
-
-setmetatable(exports, {
-	__index = function(_, key: string)
-		if key == "instance" then
-			if not lazyInstance then
-				lazyInstance = StorytellerStore.new(game)
-			end
-			return lazyInstance
-		end
-		return nil
-	end,
-})
-
-return (exports :: any) :: {
-	new: typeof(StorytellerStore.new),
-	instance: StorytellerStore,
-}
+return StorytellerStore

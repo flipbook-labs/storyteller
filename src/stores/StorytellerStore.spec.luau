@@ -99,17 +99,11 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 	end)
 end)
 
-test("creates the shared game store lazily and caches it", function()
-	local StorytellerStoreModule = require(script.Parent.StorytellerStore) :: any
-
-	-- The instance must not exist as a plain field: requiring the module
-	-- cannot construct a store, only accessing the instance may.
-	expect(rawget(StorytellerStoreModule, "instance")).toBeUndefined()
-
-	local first = StorytellerStoreModule.instance
+test("get() returns the same shared store on every call", function()
+	local first = StorytellerStore.get()
 	store = first
-	expect(first).toBeDefined()
-	expect(StorytellerStoreModule.instance).toBe(first)
+
+	expect(StorytellerStore.get()).toBe(first)
 end)
 
 describe("recomputing Story and Storybook modules", function()
