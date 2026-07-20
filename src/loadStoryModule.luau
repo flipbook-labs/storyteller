@@ -122,7 +122,19 @@ local function loadStoryModule<T>(
 		packages = if isLegacyStory then {} else packages,
 	}
 
-	return Sift.Dictionary.merge(loadedStory, story)
+	local merged = Sift.Dictionary.merge(loadedStory, story) :: types.LoadedStory<T>
+
+	local mergedPackages = merged.packages
+	if mergedPackages and getmetatable(mergedPackages :: any) == nil then
+		-- Hosts keep loaded stories in Charm state, which deep-freezes
+		-- everything it can reach in Studio, but skips tables that have a
+		-- metatable. The story's packages are foreign module exports that
+		-- must stay mutable, so freezing has to stop here
+		-- (flipbook-labs/storyteller#100)
+		merged.packages = setmetatable(table.clone(mergedPackages), {}) :: any
+	end
+
+	return merged
 end
 
 return loadStoryModule

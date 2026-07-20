@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local loadStoryModule = require("./loadStoryModule")
@@ -236,5 +237,47 @@ describe("roblox internal", function()
 
 		expect(story.story).toBeDefined()
 		expect((story :: any).substories).toBeUndefined()
+	end)
+end)
+
+describe("frozen Charm state (Studio behavior)", function()
+	local prevFrozen
+
+	beforeEach(function()
+		-- Charm only freezes state below optimization level 2, so tests run
+		-- with freezing off. Force it on to reproduce what Studio does.
+		prevFrozen = Charm.flags.frozen
+		Charm.flags.frozen = true
+	end)
+
+	afterEach(function()
+		Charm.flags.frozen = prevFrozen
+	end)
+
+	test("a loaded story's packages survive being stored in Charm state", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+				packages = {
+					FakeUILibrary = {
+						internalState = {},
+					},
+				},
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		-- Hosts like Flipbook keep the loaded story in Charm state, which
+		-- deep-freezes everything it can reach. UI libraries mutate their
+		-- module-level state while rendering, so the story's packages must
+		-- stay mutable even after being stored.
+		local getStory, setStory = Charm.signal(nil :: any)
+		setStory(story)
+
+		local packages = getStory().packages
+		assert(packages, "loaded story has no packages")
+		expect(table.isfrozen(packages.FakeUILibrary)).toBe(false)
+		expect(table.isfrozen(packages.FakeUILibrary.internalState)).toBe(false)
 	end)
 end)
