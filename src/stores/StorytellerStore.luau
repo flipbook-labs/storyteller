@@ -62,6 +62,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isDestroyed = false
 	local isRunning = false
 
+	local pendingStorybookModules: { ModuleScript } = {}
+	local queuedStorybookModules: { [ModuleScript]: boolean } = {}
+	local isProcessingStorybookModules = false
+	local storybookLoadGeneration = 0
+
 	local initialStoryModules: { ModuleScript } = {}
 	local getStoryModules, setStoryModules = Charm.signal(initialStoryModules)
 	self.getStoryModules = getStoryModules
@@ -180,11 +185,46 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	local function reloadStorybook(storybookModule: ModuleScript)
-		Charm.batch(function()
-			unloadStorybook(storybookModule)
-			loadStorybook(storybookModule)
+	local function processPendingStorybookModules()
+		if isProcessingStorybookModules then
+			return
+		end
+		isProcessingStorybookModules = true
+
+		local generation = storybookLoadGeneration
+		task.defer(function()
+			while generation == storybookLoadGeneration and isRunning do
+				local storybookModule = table.remove(pendingStorybookModules, 1)
+				if not storybookModule then
+					break
+				end
+
+				if queuedStorybookModules[storybookModule] then
+					queuedStorybookModules[storybookModule] = nil
+					loadStorybook(storybookModule)
+					task.wait()
+				end
+			end
+
+			if generation == storybookLoadGeneration then
+				isProcessingStorybookModules = false
+			end
 		end)
+	end
+
+	local function queueStorybookModule(storybookModule: ModuleScript)
+		if queuedStorybookModules[storybookModule] then
+			return
+		end
+
+		queuedStorybookModules[storybookModule] = true
+		table.insert(pendingStorybookModules, storybookModule)
+		processPendingStorybookModules()
+	end
+
+	local function reloadStorybook(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+		queueStorybookModule(storybookModule)
 	end
 
 	local function stop()
@@ -196,6 +236,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return
 		end
 		isRunning = false
+		storybookLoadGeneration += 1
+		isProcessingStorybookModules = false
+		table.clear(pendingStorybookModules)
+		table.clear(queuedStorybookModules)
 
 		storyModulesQuery.stop()
 		storybookModulesQuery.stop()
@@ -247,13 +291,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
 			assert(storybookModule:IsA("ModuleScript"), "Luau")
 
-			loadStorybook(storybookModule)
+			queueStorybookModule(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
 				reloadStorybook(storybookModule)
 			end))
 
 			return function()
+				queuedStorybookModules[storybookModule] = nil
 				unloadStorybook(storybookModule)
 				changedConn:Disconnect()
 			end
