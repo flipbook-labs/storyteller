@@ -1,6 +1,7 @@
 local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local types = require("@root/types")
 local useStorytellerStore = require("@root/react/useStorytellerStore")
 
@@ -46,7 +47,7 @@ local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): StoryMod
 	local stableTargets = stableTargetsRef.current
 
 	useEffect(function()
-		return storytellerStore.requestStoryModules(stableTargets, "background")
+		return storytellerStore.requestStoryModules(stableTargets, StoryModuleRequestPriority.Background)
 	end, { storytellerStore, stableTargets } :: { unknown })
 
 	return useMemo(function()

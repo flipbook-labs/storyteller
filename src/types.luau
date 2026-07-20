@@ -107,7 +107,10 @@ export type StoryGroup<T> = {
 	props: ExtraStoryProps?,
 }
 types.IStoryGroup = t.interface({
-	stories = t.union(t.array(t.any), t.map(t.string, t.any)),
+	-- Key discipline (array or string-keyed dictionary) is enforced by
+	-- normalizeStoryModule so mixed keys surface an actionable error instead
+	-- of a generic union failure.
+	stories = t.table,
 	name = t.optional(t.string),
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),

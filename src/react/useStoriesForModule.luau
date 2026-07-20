@@ -1,6 +1,7 @@
 local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local types = require("@root/types")
 local useStorytellerStore = require("@root/react/useStorytellerStore")
 
@@ -20,7 +21,7 @@ local function useStoriesForModule(
 				storyModule = module,
 				storybook = storybook,
 			},
-		}, "interactive")
+		}, StoryModuleRequestPriority.Interactive)
 	end, { module, storytellerStore, storybook } :: { unknown })
 
 	local recordsForModule = records[module]
