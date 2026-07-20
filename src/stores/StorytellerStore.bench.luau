@@ -19,7 +19,9 @@ local TIMEOUT_MS = 2 * 60 * 1000
 local store
 
 afterEach(function()
-	store.destroy()
+	if store then
+		store.destroy()
+	end
 end)
 
 local function report(label: string, stats: { [string]: number })
@@ -28,7 +30,7 @@ local function report(label: string, stats: { [string]: number })
 		table.insert(parts, `{key}={string.format("%.1f", value)}`)
 	end
 	table.sort(parts)
-	print(`[bench] {label}: {table.concat(parts, " ")}`)
+	print(`{label}: {table.concat(parts, " ")}`)
 end
 
 -- Waits frame-by-frame until the condition passes, returning the elapsed time

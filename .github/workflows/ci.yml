@@ -106,9 +106,6 @@ jobs:
   benchmarks:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Non-blocking: benchmark numbers inform reviews but timing variance on
-    # shared runners should not gate merges.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
 
