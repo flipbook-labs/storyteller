@@ -1,9 +1,7 @@
 {
   "luau-lsp.sourcemap.rojoProjectFile": "tests.project.json",
-  "luau-lsp.ignoreGlobs": [
-    "**/LuauPackages/**",
-    "**/_Index/**",
-    "**/dist/**",
-    "**/.lute/typedefs/**"
-  ]
+  "luau-lsp.fflags.override": {
+    "LuauSolverV2": "true"
+  },
+  "luau-lsp.ignoreGlobs": ["**/_Index/**", "**/dist/**", "**/.lute/typedefs/**"]
 }
