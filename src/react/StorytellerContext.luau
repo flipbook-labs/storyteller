@@ -1,5 +1,4 @@
 local React = require("@pkg/React")
-local Sift = require("@pkg/Sift")
 
 local StorytellerStore = require("@root/stores/StorytellerStore")
 
@@ -12,47 +11,45 @@ export type StorytellerContext = {
 }
 
 export type StorytellerProviderProps = {
-	store: StorytellerStore.StorytellerStore,
+	store: StorytellerStore.StorytellerStore?,
 	children: React.ReactNode,
 }
 
-local defaultValue: StorytellerContext = {
-	store = StorytellerStore.instance,
-}
-
-local StorytellerContext = React.createContext(defaultValue)
+local StorytellerContext = React.createContext(nil :: StorytellerContext?)
 StorytellerContext.displayName = "StorytellerContext"
 
-local defaultProps = {
-	store = defaultValue.store,
-}
-
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
-	local props: StorytellerProviderProps = Sift.Dictionary.join(defaultProps, storytellerProviderProps)
+	local store = storytellerProviderProps.store or StorytellerStore.get()
 
 	local context = useMemo(function(): StorytellerContext
 		return {
-			store = props.store,
+			store = store,
 		}
-	end, { props.store })
+	end, { store })
 
 	useEffect(function()
 		task.spawn(function()
-			props.store.start()
+			store.start()
 		end)
 
 		return function()
-			props.store.stop()
+			store.stop()
 		end
-	end, { props.store })
+	end, { store })
 
 	return React.createElement(StorytellerContext.Provider, {
 		value = context,
-	}, props.children)
+	}, storytellerProviderProps.children)
 end
 
 local function useStorytellerContext(): StorytellerContext
-	return useContext(StorytellerContext)
+	local context = useContext(StorytellerContext)
+	if context then
+		return context
+	end
+	return {
+		store = StorytellerStore.get(),
+	}
 end
 
 return {
