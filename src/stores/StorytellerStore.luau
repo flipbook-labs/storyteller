@@ -35,11 +35,7 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 }
 
--- ModuleLoader hands its chunks a metatabled _G proxy while native and test
--- environments expose the bare global table, which makes for a reliable
--- sandbox probe.
--- selene: allow(global_usage)
-local IS_SANDBOXED = getmetatable(_G :: any) ~= nil
+local IS_SANDBOXED = ModuleLoader.isSandboxed()
 
 local StorytellerStore = {}
 
