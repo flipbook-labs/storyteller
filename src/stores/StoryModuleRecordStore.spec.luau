@@ -95,6 +95,29 @@ test("loads a requested story module", function()
 	end)
 end)
 
+test("processes requests made while publishing records", function()
+	recordStore = StoryModuleRecordStore.new()
+	local first = createTarget("First")
+	local second = createTarget("Second")
+	local requestedSecond = false
+
+	local dispose = Charm.listen(recordStore.getRecords, function()
+		if not requestedSecond and getRecord(first) then
+			requestedSecond = true
+			recordStore.request({ second })
+		end
+	end)
+
+	recordStore.request({ first })
+
+	waitFor(function()
+		local record = getRecord(second)
+		assert(record and record.stories, "expected the reentrant request to load")
+		expect(record.stories[1].id).toBe("Second")
+	end)
+	dispose()
+end)
+
 test("loads every story from a requested module", function()
 	recordStore = StoryModuleRecordStore.new()
 	local target = createTarget("Buttons")

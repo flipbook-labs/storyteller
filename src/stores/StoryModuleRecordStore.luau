@@ -414,6 +414,12 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 			publishRecords(publications)
 			isProcessingTargets = false
+			if
+				not isDestroyed
+				and (interactiveQueue.head <= interactiveQueue.tail or backgroundQueue.head <= backgroundQueue.tail)
+			then
+				processPendingTargets()
+			end
 		end)
 	end
 

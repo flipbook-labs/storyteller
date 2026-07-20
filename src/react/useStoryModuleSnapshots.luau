@@ -13,6 +13,17 @@ local useSignalState = ReactCharm.useSignalState
 type StoryModuleSnapshots = types.StoryModuleSnapshots
 type StoryModuleTarget = types.StoryModuleTarget
 
+type ActiveRequest = {
+	target: StoryModuleTarget,
+	release: () -> (),
+}
+
+type ActiveRequests = {
+	[ModuleScript]: {
+		[ModuleScript]: ActiveRequest,
+	},
+}
+
 local function areSameTargets(previous: { StoryModuleTarget }, current: { StoryModuleTarget }): boolean
 	if #previous ~= #current then
 		return false
@@ -26,6 +37,15 @@ local function areSameTargets(previous: { StoryModuleTarget }, current: { StoryM
 	end
 
 	return true
+end
+
+local function releaseActiveRequests(activeRequests: ActiveRequests)
+	for _, requestsByStorybookSource in activeRequests do
+		for _, activeRequest in requestsByStorybookSource do
+			activeRequest.release()
+		end
+	end
+	table.clear(activeRequests)
 end
 
 --[=[
@@ -46,8 +66,64 @@ local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): StoryMod
 	end
 	local stableTargets = stableTargetsRef.current
 
+	local activeRequestsRef = useRef({} :: ActiveRequests)
+	local requestStoreRef = useRef(storytellerStore)
 	useEffect(function()
-		return storytellerStore.requestStoryModules(stableTargets, StoryModuleRequestPriority.Background)
+		return function()
+			releaseActiveRequests(activeRequestsRef.current)
+		end
+	end, {})
+
+	useEffect(function()
+		local activeRequests = activeRequestsRef.current
+		if requestStoreRef.current ~= storytellerStore then
+			releaseActiveRequests(activeRequests)
+			requestStoreRef.current = storytellerStore
+		end
+
+		local currentTargets = {} :: { [ModuleScript]: { [ModuleScript]: boolean } }
+		for _, target in stableTargets do
+			local storyModule = target.storyModule
+			local storybookSource = target.storybook.source
+			local currentForModule = currentTargets[storyModule]
+			if not currentForModule then
+				currentForModule = {}
+				currentTargets[storyModule] = currentForModule
+			end
+			currentForModule[storybookSource] = true
+
+			local requestsForModule = activeRequests[storyModule]
+			if not requestsForModule then
+				requestsForModule = {}
+				activeRequests[storyModule] = requestsForModule
+			end
+
+			local activeRequest = requestsForModule[storybookSource]
+			if activeRequest and activeRequest.target.storybook == target.storybook then
+				continue
+			end
+			if activeRequest then
+				activeRequest.release()
+			end
+
+			requestsForModule[storybookSource] = {
+				target = target,
+				release = storytellerStore.requestStoryModules({ target }, StoryModuleRequestPriority.Background),
+			}
+		end
+
+		for storyModule, requestsForModule in activeRequests do
+			local currentForModule = currentTargets[storyModule]
+			for storybookSource, activeRequest in requestsForModule do
+				if not currentForModule or not currentForModule[storybookSource] then
+					activeRequest.release()
+					requestsForModule[storybookSource] = nil
+				end
+			end
+			if next(requestsForModule) == nil then
+				activeRequests[storyModule] = nil
+			end
+		end
 	end, { storytellerStore, stableTargets } :: { unknown })
 
 	return useMemo(function()
