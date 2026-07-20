@@ -154,6 +154,53 @@ test("mapStory middleware wraps the story", function()
 	lifecycle.unmount()
 end)
 
+test("mapStory continues to wrap the story on updates", function()
+	local story = createIrisStory(function(props)
+		Iris.Window({ "My Window" })
+		Iris.Text({ props.controls.value })
+		Iris.End()
+	end)
+
+	story.controls = {
+		value = "First",
+	} :: StoryControlsSchema
+
+	story.storybook.mapStory = function(originalStory)
+		return function(props)
+			originalStory(props)
+
+			Iris.Window({ "Middleware Window" })
+			Iris.Text({ "FromMiddleware" })
+			Iris.End()
+
+			return nil
+		end
+	end
+
+	local lifecycle = render(container, story)
+
+	local wrapper = container:FindFirstChildWhichIsA("Frame")
+	assert(wrapper, "no wrapper Frame was created")
+
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "First")).toBeDefined()
+		expect(findTextLabelWithText(wrapper, "FromMiddleware")).toBeDefined()
+	end)
+
+	lifecycle.update({
+		value = "Second",
+	} :: StoryControls)
+
+	-- The middleware wraps the story once at mount, but immediate-mode reads
+	-- controls every frame, so the wrapper must keep applying as controls change
+	waitFor(function()
+		expect(findTextLabelWithText(wrapper, "Second")).toBeDefined()
+		expect(findTextLabelWithText(wrapper, "FromMiddleware")).toBeDefined()
+	end)
+
+	lifecycle.unmount()
+end)
+
 test("update passes new controls to the story", function()
 	local rendered = {}
 
