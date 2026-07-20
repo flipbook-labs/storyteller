@@ -1,3 +1,11 @@
+-- Requiring this module must do no work. Storyteller gets required
+-- transitively inside ModuleLoader sandboxes when a Story module's dependency
+-- graph includes it (Flipbook's own stories do), and a sandboxed copy must
+-- stay inert: starting discovery there spawns loaders, re-evaluates React
+-- package graphs, and feeds foreign component instances into live trees. The
+-- shared instance is created on the first get() call rather than at require
+-- time.
+
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
@@ -27,13 +35,9 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 }
 
--- Storyteller gets required transitively inside ModuleLoader sandboxes when a
--- Story module's dependency graph includes it (Flipbook's own stories do).
--- A sandboxed copy must stay inert: starting discovery there spawns loaders,
--- re-evaluates React package graphs, and feeds foreign component instances
--- into live trees. ModuleLoader hands its chunks a metatabled _G proxy while
--- native and test environments expose the bare global table, which makes for
--- a reliable sandbox probe.
+-- ModuleLoader hands its chunks a metatabled _G proxy while native and test
+-- environments expose the bare global table, which makes for a reliable
+-- sandbox probe.
 -- selene: allow(global_usage)
 local IS_SANDBOXED = getmetatable(_G :: any) ~= nil
 
@@ -259,10 +263,6 @@ end
 
 local sharedInstance: StorytellerStore?
 
--- Requiring this module must do no work: Story modules loaded in ModuleLoader
--- sandboxes require Storyteller transitively, and eagerly constructing a
--- game-wide store per sandbox multiplies discovery machinery. The shared
--- instance is created on the first get() call instead.
 function StorytellerStore.get(): StorytellerStore
 	local instance = sharedInstance or StorytellerStore.new(game)
 	sharedInstance = instance

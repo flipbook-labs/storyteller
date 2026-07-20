@@ -15,9 +15,6 @@ export type StorytellerProviderProps = {
 	children: React.ReactNode,
 }
 
--- The default is nil instead of a context holding the shared store: calling
--- StorytellerStore.get() here would create the store whenever this module is
--- required. useStorytellerContext falls back to the shared store at hook time.
 local StorytellerContext = React.createContext(nil :: StorytellerContext?)
 StorytellerContext.displayName = "StorytellerContext"
 
