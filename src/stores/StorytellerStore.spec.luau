@@ -3,18 +3,16 @@ local JestGlobals = require("@pkg/JestGlobals")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
+local StoryModuleRecordStore = require("./StoryModuleRecordStore")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
-local types = require("@root/types")
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryModuleTarget = {
-	storyModule: ModuleScript,
-	storybook: types.LoadedStorybook,
-}
+type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
 
 local store
 
@@ -98,8 +96,7 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	local firstRecord = next(store.getStoryModuleRecords())
-	expect(firstRecord).toBeUndefined()
+	expect(store.getStoryModuleRecords(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -588,15 +585,14 @@ describe("requesting story modules", function()
 	end
 
 	local function getRecord(target: StoryModuleTarget)
-		local recordsForModule = store.getStoryModuleRecords()[target.storyModule]
-		return if recordsForModule then recordsForModule[target.storybook.source] else nil
+		return store.getStoryModuleRecords(target.storyModule)
 	end
 
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Delegated")
 
-		store.requestStoryModules({ target })
+		store.requestStoryModules(StoryModuleRequestPriority.Background, target)
 
 		waitFor(function()
 			local record = getRecord(target)
@@ -609,7 +605,7 @@ describe("requesting story modules", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Ephemeral")
 
-		store.requestStoryModules({ target })
+		store.requestStoryModules(StoryModuleRequestPriority.Background, target)
 
 		waitFor(function()
 			expect(getRecord(target)).toBeDefined()
@@ -617,7 +613,6 @@ describe("requesting story modules", function()
 
 		store.destroy()
 
-		local firstKey = next(store.getStoryModuleRecords())
-		expect(firstKey).toBeUndefined()
+		expect(getRecord(target)).toBeUndefined()
 	end)
 end)

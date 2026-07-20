@@ -13,6 +13,7 @@ local Sift = require("@pkg/Sift")
 local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local debounce = require("@root/debounce")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
@@ -22,10 +23,10 @@ local types = require("@root/types")
 
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
-type LoadedStory<T> = types.LoadedStory<T>
 
+type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
 type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
-type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
+type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StorytellerStore = {
 	start: () -> (),
@@ -39,11 +40,8 @@ export type StorytellerStore = {
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
 
-	getStoryModuleRecords: () -> StoryModuleRecords,
-	requestStoryModules: (
-		targets: { StoryModuleTarget },
-		priority: StoryModuleRequestPriority.StoryModuleRequestPriority?
-	) -> () -> (),
+	getStoryModuleRecords: (ModuleScript) -> StoryModuleRecord?,
+	requestStoryModules: (StoryModuleRequestPriority, StoryModuleTarget) -> () -> (),
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
@@ -67,20 +65,16 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isProcessingStorybookModules = false
 	local storybookLoadGeneration = 0
 
-	local initialStoryModules: { ModuleScript } = {}
-	local getStoryModules, setStoryModules = Charm.signal(initialStoryModules)
+	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
-	local initialStorybookModules: { ModuleScript } = {}
-	local getStorybookModules, setStorybookModules = Charm.signal(initialStorybookModules)
+	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
 	self.getStorybookModules = getStorybookModules
 
-	local initialLoadedStorybooks: { LoadedStorybook } = {}
-	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal(initialLoadedStorybooks)
+	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local initialUnavailableStorybooks: { UnavailableStorybook } = {}
-	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal(initialUnavailableStorybooks)
+	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
 	local recordStore = StoryModuleRecordStore.new()
@@ -122,11 +116,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		if success and storybook then
 			if storybook.packages then
-				-- Storybooks enter Charm state, but package modules can own
-				-- mutable state. Clone the author's map before stopping the
-				-- recursive Studio freeze (see StoryModuleRecordStore).
+				-- The Storybook owns this map, so attach the exclusion to a clone.
 				local packages = table.clone(storybook.packages)
-				setmetatable(packages :: any, {})
+				excludeFromCharmFreeze(packages)
 				storybook.packages = packages
 			end
 

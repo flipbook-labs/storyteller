@@ -13,6 +13,8 @@ local afterEach = JestGlobals.afterEach
 local describeEach = describe.each :: any
 
 type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
+type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
+type StorytellerStore = StorytellerStore.StorytellerStore
 
 local TIMEOUT_MS = 2 * 60 * 1000
 
@@ -145,6 +147,26 @@ local function createStorybook(): types.LoadedStorybook
 	}
 end
 
+local function countRecords(currentStore: StorytellerStore, storyModules: { ModuleScript }): number
+	local count = 0
+	for _, storyModule in storyModules do
+		if currentStore.getStoryModuleRecords(storyModule) then
+			count += 1
+		end
+	end
+	return count
+end
+
+local function requestTargets(
+	currentStore: StorytellerStore,
+	priority: StoryModuleRequestPriority,
+	targets: { StoryModuleTarget }
+)
+	for _, target in targets do
+		currentStore.requestStoryModules(priority, target)
+	end
+end
+
 describeEach({
 	{ instances = 1000, stories = 100 },
 	{ instances = 10000, stories = 500 },
@@ -170,7 +192,7 @@ describeEach({
 		expect(#store.getStoryModules()).toBe(#storyModules)
 		-- Discovery must never evaluate a module: no records should exist until
 		-- something explicitly requests them.
-		expect((next(store.getStoryModuleRecords()))).toBeUndefined()
+		expect(store.getStoryModuleRecords(storyModules[1])).toBeUndefined()
 
 		root:Destroy()
 	end, TIMEOUT_MS)
@@ -193,24 +215,14 @@ describeEach({
 			})
 		end
 
-		local function countRecords(): number
-			local count = 0
-			for _, recordsForModule in store.getStoryModuleRecords() do
-				for _ in recordsForModule do
-					count += 1
-				end
-			end
-			return count
-		end
-
 		local startTime = os.clock()
-		store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
+		requestTargets(store, StoryModuleRequestPriority.Background, targets)
 
 		local firstElapsed, firstFrames = settle(60, function()
-			return countRecords() >= 1
+			return countRecords(store, storyModules) >= 1
 		end)
 		local _, allFrames = settle(120, function()
-			return countRecords() >= #targets
+			return countRecords(store, storyModules) >= #targets
 		end)
 
 		report(`records {scale.stories} story modules`, {
@@ -220,9 +232,7 @@ describeEach({
 			framesToAll = firstFrames + allFrames,
 		})
 
-		local sampleRecords = store.getStoryModuleRecords()[storyModules[1]]
-		assert(sampleRecords, "expected records for the first story module")
-		local sampleRecord = sampleRecords[storybook.source]
+		local sampleRecord = store.getStoryModuleRecords(storyModules[1])
 		assert(sampleRecord and sampleRecord.story, "expected a loaded story for the first story module")
 
 		-- The work budget must spread large batches across frames rather than
@@ -262,31 +272,20 @@ test("interactive requests are serviced ahead of background backlog", function()
 	}
 
 	local function getRecord(target: StoryModuleTarget)
-		local recordsForModule = store.getStoryModuleRecords()[target.storyModule]
-		return if recordsForModule then recordsForModule[target.storybook.source] else nil
+		return store.getStoryModuleRecords(target.storyModule)
 	end
 
-	local function countRecords(): number
-		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
-				count += 1
-			end
-		end
-		return count
-	end
-
-	store.requestStoryModules(backgroundTargets, StoryModuleRequestPriority.Background)
-	store.requestStoryModules({ interactiveTarget }, StoryModuleRequestPriority.Interactive)
+	requestTargets(store, StoryModuleRequestPriority.Background, backgroundTargets)
+	store.requestStoryModules(StoryModuleRequestPriority.Interactive, interactiveTarget)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
 		return getRecord(interactiveTarget) ~= nil
 	end)
-	local backgroundDoneAt = countRecords()
+	local backgroundDoneAt = countRecords(store, storyModules)
 
 	settle(120, function()
-		return countRecords() >= #storyModules
+		return countRecords(store, storyModules) >= #storyModules
 	end)
 	local allElapsed = os.clock() - startTime
 
@@ -369,30 +368,20 @@ test("republishes a single edited story at scale without reloading siblings", fu
 		})
 	end
 
-	local function countRecords(): number
-		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
-				count += 1
-			end
-		end
-		return count
-	end
-
-	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
+	requestTargets(store, StoryModuleRequestPriority.Background, targets)
 	settle(120, function()
-		return countRecords() >= #targets
+		return countRecords(store, storyModules) >= #targets
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = store.getStoryModuleRecords()[editedModule][storybook.source]
+	local recordBefore = store.getStoryModuleRecords(editedModule)
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
 	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = store.getStoryModuleRecords()[editedModule][storybook.source]
-		return record ~= recordBefore and record.problem == nil
+		local record = store.getStoryModuleRecords(editedModule)
+		return record ~= nil and record ~= recordBefore and record.problem == nil
 	end)
 
 	-- ModuleLoader reports source changes asynchronously after the store's
@@ -474,7 +463,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return total
 	end
 
-	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
+	requestTargets(store, StoryModuleRequestPriority.Background, targets)
 	settle(120, function()
 		return countLoads() >= DEPENDENT_COUNT
 	end)
@@ -594,44 +583,35 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		local recordsForModule = store.getStoryModuleRecords()[storyModule]
-		return if recordsForModule then recordsForModule[storybook.source] else nil
-	end
-
-	local function countRecords(): number
-		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
-				count += 1
-			end
-		end
-		return count
+		return store.getStoryModuleRecords(storyModule)
 	end
 
 	-- Cold select-while-loading: the whole sidebar batch is queued background
 	-- and the user immediately clicks one story.
 	local selectedModule = storyModules[150]
 	local startTime = os.clock()
-	store.requestStoryModules(targets, StoryModuleRequestPriority.Background)
-	store.requestStoryModules({
-		{ storyModule = selectedModule, storybook = storybook },
-	}, StoryModuleRequestPriority.Interactive)
+	requestTargets(store, StoryModuleRequestPriority.Background, targets)
+	store.requestStoryModules(StoryModuleRequestPriority.Interactive, {
+		storyModule = selectedModule,
+		storybook = storybook,
+	})
 
 	local selectElapsed, selectFrames = settle(60, function()
 		local record = getRecord(selectedModule)
 		return record ~= nil and record.problem == nil
 	end)
-	local recordsWhenSelected = countRecords()
+	local recordsWhenSelected = countRecords(store, storyModules)
 
 	settle(300, function()
-		return countRecords() >= #targets
+		return countRecords(store, storyModules) >= #targets
 	end)
 
 	-- Warm re-select: a second consumer requests an already-loaded story.
 	local warmStart = os.clock()
-	local releaseWarm = store.requestStoryModules({
-		{ storyModule = selectedModule, storybook = storybook },
-	}, StoryModuleRequestPriority.Interactive)
+	local releaseWarm = store.requestStoryModules(StoryModuleRequestPriority.Interactive, {
+		storyModule = selectedModule,
+		storybook = storybook,
+	})
 	local warmRecord = getRecord(selectedModule)
 	local warmMs = (os.clock() - warmStart) * 1000
 	releaseWarm()
@@ -645,7 +625,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	})
 
 	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
-	expect(countRecords()).toBe(#targets)
+	expect(countRecords(store, storyModules)).toBe(#targets)
 
 	root:Destroy()
 	storybook.source:Destroy()
