@@ -264,14 +264,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
-
-		Charm.batch(function()
-			for _, storybookModule in storybookModulesQuery.get() do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-
-				loadStorybook(storybookModule)
-			end
-		end)
 	end
 	self.start = start
 
