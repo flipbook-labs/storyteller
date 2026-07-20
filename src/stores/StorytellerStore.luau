@@ -261,12 +261,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	return self
 end
 
-local sharedInstance: StorytellerStore?
-
-function StorytellerStore.get(): StorytellerStore
-	local instance = sharedInstance or StorytellerStore.new(game)
-	sharedInstance = instance
-	return instance
-end
+-- Caching relies on this computed staying dependency-free: a Charm signal
+-- read during new() would let it re-run and create a second store.
+StorytellerStore.get = Charm.computed(function(): StorytellerStore
+	return StorytellerStore.new(game)
+end)
 
 return StorytellerStore
