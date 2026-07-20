@@ -135,6 +135,31 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 	end)
 end)
 
+test("evaluates each Storybook once during initial discovery", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Counting.storybook"
+	storybookModule.Source = [[
+		script.Parent.LoadCount.Value += 1
+		return {
+			storyRoots = {},
+		}
+	]]
+	storybookModule.Parent = root
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	waitFor(function()
+		expect(#store.getLoadedStorybooks()).toBe(1)
+	end)
+	expect(loadCount.Value).toBe(1)
+end)
+
 test("get() returns the same shared store on every call", function()
 	local first = StorytellerStore.get()
 	store = first
