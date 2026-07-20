@@ -109,6 +109,8 @@ jobs:
     # Non-blocking: benchmark numbers inform reviews but timing variance on
     # shared runners should not gate merges.
     continue-on-error: true
+    permissions:
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
 
@@ -120,6 +122,41 @@ jobs:
         run: lute run install
 
       - name: Run benchmarks
-        run: lute run test --benchmarks
+        run: |
+          set -euo pipefail
+          lute run test --benchmarks | tee benchmark-output.txt
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+
+      - name: Report benchmarks on the PR
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- benchmark-report -->";
+
+            let output = "";
+            try {
+              output = fs.readFileSync("benchmark-output.txt", "utf8");
+            } catch {}
+
+            const rows = [...output.matchAll(/\[bench\] (.+?): (.+?)\s*$/gm)];
+            const table = rows.length
+              ? ["| Benchmark | Metrics |", "| --- | --- |"]
+                  .concat(rows.map(([, label, metrics]) => `| ${label} | \`${metrics.trim()}\` |`))
+                  .join("\n")
+              : "No `[bench]` output was captured for this run.";
+
+            const body = `${marker}\n## Benchmark report\n\n${table}\n\n<sub>Timing varies on shared runners; read these as a rough signal, not a gate.</sub>`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find((comment) => comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
