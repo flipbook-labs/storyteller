@@ -27,6 +27,10 @@ args:add("filter", "option", {
 	help = "Specify a filepath pattern to match for when running tests",
 })
 
+args:add("benchmarks", "flag", {
+	help = "Run longrunning benchmark tests",
+})
+
 args:parse({ ... })
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
@@ -48,6 +52,9 @@ local function createTestRunnerScript()
 
 	if filter then
 		findAndReplace(testRunnerPath, "_G.__JEST_TEST_PATH_PATTERN__", `"{filter}"`)
+	end
+	if args:has("benchmarks") then
+		findAndReplace(testRunnerPath, "_G.RUN_BENCHMARKS", "true")
 	end
 
 	return testRunnerPath

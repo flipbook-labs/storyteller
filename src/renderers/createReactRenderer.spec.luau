@@ -239,4 +239,65 @@ describe("middleware", function()
 		assert(element, "no TextLabel found")
 		expect(element.Text).toBe("Dark")
 	end)
+
+	test("mapDefinition is applied exactly once, at mount", function()
+		local applications = 0
+
+		local story = createReactStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = false,
+		} :: StoryControlsSchema
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			applications += 1
+			return table.clone(storyDefinition)
+		end
+
+		local lifecycle = render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		expect(applications).toBe(1)
+
+		lifecycle.update({
+			isDisabled = true,
+		} :: StoryControls)
+
+		act(function()
+			task.wait()
+		end)
+
+		expect(applications).toBe(1)
+
+		local button = container:FindFirstChildWhichIsA("TextButton")
+		assert(button, "no TextButton found")
+		expect(button.Text).toBe("Disabled")
+	end)
+
+	test("mapDefinition can replace the story's component", function()
+		local story = createReactStory(ButtonStory)
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			local mapped = table.clone(storyDefinition)
+			mapped.story = function()
+				return React.createElement("TextLabel", {
+					Text = "Replaced",
+				})
+			end
+			return mapped
+		end
+
+		render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Replaced")
+	end)
 end)
