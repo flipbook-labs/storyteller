@@ -1,18 +1,16 @@
-local Archivist = require("@luaupkg/Archivist@v0.2.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local cli = require("@batteries/cli")
 local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
 local findAndReplace = FlipbookBatteries.findAndReplace
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
-
-local logger = Archivist.createLogger("test")
 
 dotenv()
 
@@ -42,7 +40,14 @@ if not apiKey then
 end
 
 local filter = args:get("filter")
+if filter then
+	logger.debug(`filtering tests by "{filter}"`)
+end
+if args:has("benchmarks") then
+	logger.warn("running benchmarks; this run will take longer than usual")
+end
 
+logger.info("building the dev channel for testing")
 run("lute", { "run", "build", "--channel", "dev" })
 
 local function createTestRunnerScript()
@@ -60,6 +65,7 @@ local function createTestRunnerScript()
 	return testRunnerPath
 end
 
+logger.info("running tests")
 local success, err = pcall(function()
 	local testRunnerPath = createTestRunnerScript()
 
@@ -86,3 +92,5 @@ if not success then
 	logger.err(err)
 	process.exit(1)
 end
+
+logger.info("tests passed")

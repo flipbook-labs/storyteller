@@ -4,16 +4,15 @@
 	path/git dependencies, so we have to make our own shim.
 ]]
 
-local Archivist = require("@luaupkg/Archivist@v0.2.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local fs = require("@std/fs")
 local path = require("@std/path")
 
+local logger = require("@repo/.lute/lib/logger")
+
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
 local find = FlipbookBatteries.find
-
-local logger = Archivist.createLogger("try-in-flipbook")
 
 local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
 local BUNDLE_DIR_NAME = "dist"
@@ -73,10 +72,12 @@ end
 
 local dest = path.join(packageInstallation, BUNDLE_DIR_NAME)
 
+logger.debug(`removing the existing install at {dest}`)
 fs.removeDirectory(dest, {
 	recursive = true,
 })
 
+logger.info("building Storyteller")
 run("lute", { "run", "build" })
 copyInto(src, dest)
 

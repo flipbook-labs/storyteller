@@ -6,7 +6,6 @@
 -- shared instance is created on the first get() call rather than at require
 -- time.
 
-local Archivist = require("@pkg/Archivist")
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
@@ -16,6 +15,7 @@ local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
+local logger = require("@root/logger")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
@@ -37,7 +37,6 @@ export type StorytellerStore = {
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
-local logger = Archivist.getLogger("StorytellerStore")
 
 local StorytellerStore = {}
 
