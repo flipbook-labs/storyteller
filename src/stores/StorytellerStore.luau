@@ -1,3 +1,11 @@
+-- Requiring this module must do no work. Storyteller gets required
+-- transitively inside ModuleLoader sandboxes when a Story module's dependency
+-- graph includes it (Flipbook's own stories do), and a sandboxed copy must
+-- stay inert: starting discovery there spawns loaders, re-evaluates React
+-- package graphs, and feeds foreign component instances into live trees. The
+-- shared instance is created on the first get() call rather than at require
+-- time.
+
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
@@ -26,6 +34,8 @@ export type StorytellerStore = {
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
 }
+
+local IS_SANDBOXED = ModuleLoader.isSandboxed()
 
 local StorytellerStore = {}
 
@@ -171,6 +181,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.stop = stop
 
 	local function start()
+		if IS_SANDBOXED then
+			return
+		end
 		if isDestroyed or isRunning then
 			return
 		end
@@ -244,7 +257,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	return self
 end
 
-return {
-	new = StorytellerStore.new,
-	instance = StorytellerStore.new(game),
-}
+-- Caching relies on this computed staying dependency-free: a Charm signal
+-- read during new() would let it re-run and create a second store.
+StorytellerStore.get = Charm.computed(function(): StorytellerStore
+	return StorytellerStore.new(game)
+end)
+
+return StorytellerStore
