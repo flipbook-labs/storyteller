@@ -25,7 +25,7 @@ type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 
 type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
-type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
+type StoryRequest = StoryModuleRecordStore.StoryRequest
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StorytellerStore = {
@@ -41,7 +41,7 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 
 	getStoryModuleRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
-	requestStoryModule: (priority: StoryModuleRequestPriority, target: StoryModuleTarget) -> () -> (),
+	requestStoryModule: (priority: StoryModuleRequestPriority, request: StoryRequest) -> () -> (),
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()

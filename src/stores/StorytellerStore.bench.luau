@@ -12,7 +12,7 @@ local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 local describeEach = describe.each :: any
 
-type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
+type StoryRequest = StoryModuleRecordStore.StoryRequest
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 type StorytellerStore = StorytellerStore.StorytellerStore
 
@@ -157,13 +157,13 @@ local function countRecords(currentStore: StorytellerStore, storyModules: { Modu
 	return count
 end
 
-local function requestTargets(
+local function requestStories(
 	currentStore: StorytellerStore,
 	priority: StoryModuleRequestPriority,
-	targets: { StoryModuleTarget }
+	requests: { StoryRequest }
 )
-	for _, target in targets do
-		currentStore.requestStoryModule(priority, target)
+	for _, request in requests do
+		currentStore.requestStoryModule(priority, request)
 	end
 end
 
@@ -207,22 +207,22 @@ describeEach({
 			return #store.getStoryModules() >= #storyModules
 		end)
 
-		local targets: { StoryModuleTarget } = {}
+		local requests: { StoryRequest } = {}
 		for _, storyModule in storyModules do
-			table.insert(targets, {
+			table.insert(requests, {
 				storyModule = storyModule,
 				storybook = storybook,
 			})
 		end
 
 		local startTime = os.clock()
-		requestTargets(store, StoryModuleRequestPriority.Background, targets)
+		requestStories(store, StoryModuleRequestPriority.Background, requests)
 
 		local firstElapsed, firstFrames = settle(60, function()
 			return countRecords(store, storyModules) >= 1
 		end)
 		local _, allFrames = settle(120, function()
-			return countRecords(store, storyModules) >= #targets
+			return countRecords(store, storyModules) >= #requests
 		end)
 
 		report(`records {scale.stories} story modules`, {
@@ -240,7 +240,7 @@ describeEach({
 		-- small batch inside a single budget window, so only assert spreading
 		-- when the batch demonstrably outlasted one.
 		local totalMs = (os.clock() - startTime) * 1000
-		if #targets >= 100 and totalMs >= 50 then
+		if #requests >= 100 and totalMs >= 50 then
 			expect(firstFrames + allFrames).toBeGreaterThan(1)
 		end
 
@@ -259,28 +259,28 @@ test("interactive requests are serviced ahead of background backlog", function()
 		return #store.getStoryModules() >= #storyModules
 	end)
 
-	local backgroundTargets: { StoryModuleTarget } = {}
+	local backgroundRequests: { StoryRequest } = {}
 	for index = 1, #storyModules - 1 do
-		table.insert(backgroundTargets, {
+		table.insert(backgroundRequests, {
 			storyModule = storyModules[index],
 			storybook = storybook,
 		})
 	end
-	local interactiveTarget: StoryModuleTarget = {
+	local interactiveRequest: StoryRequest = {
 		storyModule = storyModules[#storyModules],
 		storybook = storybook,
 	}
 
-	local function getRecord(target: StoryModuleTarget)
-		return store.getStoryModuleRecord(target.storyModule)
+	local function getRecord(request: StoryRequest)
+		return store.getStoryModuleRecord(request.storyModule)
 	end
 
-	requestTargets(store, StoryModuleRequestPriority.Background, backgroundTargets)
-	store.requestStoryModule(StoryModuleRequestPriority.Interactive, interactiveTarget)
+	requestStories(store, StoryModuleRequestPriority.Background, backgroundRequests)
+	store.requestStoryModule(StoryModuleRequestPriority.Interactive, interactiveRequest)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
-		return getRecord(interactiveTarget) ~= nil
+		return getRecord(interactiveRequest) ~= nil
 	end)
 	local backgroundDoneAt = countRecords(store, storyModules)
 
@@ -360,17 +360,17 @@ test("republishes a single edited story at scale without reloading siblings", fu
 		return #store.getStoryModules() >= #storyModules
 	end)
 
-	local targets: { StoryModuleTarget } = {}
+	local requests: { StoryRequest } = {}
 	for _, storyModule in storyModules do
-		table.insert(targets, {
+		table.insert(requests, {
 			storyModule = storyModule,
 			storybook = storybook,
 		})
 	end
 
-	requestTargets(store, StoryModuleRequestPriority.Background, targets)
+	requestStories(store, StoryModuleRequestPriority.Background, requests)
 	settle(120, function()
-		return countRecords(store, storyModules) >= #targets
+		return countRecords(store, storyModules) >= #requests
 	end)
 
 	local editedModule = storyModules[1]
@@ -426,7 +426,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 	sharedDep.Source = "return { value = 1 }"
 	sharedDep.Parent = root
 
-	local storyModules = {} :: { ModuleScript }
+	local storyModules: { ModuleScript } = {}
 	for index = 1, DEPENDENT_COUNT do
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `Dependent{index}.story`
@@ -447,9 +447,9 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return #store.getStoryModules() >= DEPENDENT_COUNT
 	end)
 
-	local targets: { StoryModuleTarget } = {}
+	local requests: { StoryRequest } = {}
 	for _, storyModule in storyModules do
-		table.insert(targets, {
+		table.insert(requests, {
 			storyModule = storyModule,
 			storybook = storybook,
 		})
@@ -463,7 +463,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return total
 	end
 
-	requestTargets(store, StoryModuleRequestPriority.Background, targets)
+	requestStories(store, StoryModuleRequestPriority.Background, requests)
 	settle(120, function()
 		return countLoads() >= DEPENDENT_COUNT
 	end)
@@ -574,9 +574,9 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 		return #store.getStoryModules() >= #storyModules
 	end)
 
-	local targets: { StoryModuleTarget } = {}
+	local requests: { StoryRequest } = {}
 	for _, storyModule in storyModules do
-		table.insert(targets, {
+		table.insert(requests, {
 			storyModule = storyModule,
 			storybook = storybook,
 		})
@@ -590,7 +590,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	-- and the user immediately clicks one story.
 	local selectedModule = storyModules[150]
 	local startTime = os.clock()
-	requestTargets(store, StoryModuleRequestPriority.Background, targets)
+	requestStories(store, StoryModuleRequestPriority.Background, requests)
 	store.requestStoryModule(StoryModuleRequestPriority.Interactive, {
 		storyModule = selectedModule,
 		storybook = storybook,
@@ -603,7 +603,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	local recordsWhenSelected = countRecords(store, storyModules)
 
 	settle(300, function()
-		return countRecords(store, storyModules) >= #targets
+		return countRecords(store, storyModules) >= #requests
 	end)
 
 	-- Warm re-select: a second consumer requests an already-loaded story.
@@ -625,7 +625,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	})
 
 	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
-	expect(countRecords(store, storyModules)).toBe(#targets)
+	expect(countRecords(store, storyModules)).toBe(#requests)
 
 	root:Destroy()
 	storybook.source:Destroy()

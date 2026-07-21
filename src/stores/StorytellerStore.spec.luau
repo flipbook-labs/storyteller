@@ -12,7 +12,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
+type StoryRequest = StoryModuleRecordStore.StoryRequest
 
 local store
 
@@ -569,7 +569,7 @@ describe("requesting story modules", function()
 	-- Request lifecycle behavior (sharing, priority, invalidation, cleanup)
 	-- is covered by StoryModuleRecordStore.spec. These tests pin the
 	-- composition between the store and the record store it delegates to.
-	local function createTarget(name: string): StoryModuleTarget
+	local function createRequest(name: string): StoryRequest
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `{name}.story`
 		storyModule.Source = `return \{ name = "{name}", story = function() end \}`
@@ -586,12 +586,12 @@ describe("requesting story modules", function()
 
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Delegated")
+		local request = createRequest("Delegated")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, target)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			local record = store.getStoryModuleRecord(target.storyModule)
+			local record = store.getStoryModuleRecord(request.storyModule)
 			assert(record and record.story, "expected a loaded record for the requested story module")
 			expect(record.story.name).toBe("Delegated")
 		end)
@@ -599,16 +599,16 @@ describe("requesting story modules", function()
 
 	test("clears records when the store is destroyed", function()
 		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Ephemeral")
+		local request = createRequest("Ephemeral")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, target)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			expect(store.getStoryModuleRecord(target.storyModule)).toBeDefined()
+			expect(store.getStoryModuleRecord(request.storyModule)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		expect(store.getStoryModuleRecord(target.storyModule)).toBeUndefined()
+		expect(store.getStoryModuleRecord(request.storyModule)).toBeUndefined()
 	end)
 end)
