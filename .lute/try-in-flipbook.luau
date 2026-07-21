@@ -4,7 +4,7 @@
 	path/git dependencies, so we have to make our own shim.
 ]]
 
-local Archivist = require("@luaupkg/Archivist@v0.1.0")
+local Archivist = require("@luaupkg/Archivist@v0.2.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local fs = require("@std/fs")
 local path = require("@std/path")

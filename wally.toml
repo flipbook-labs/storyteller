@@ -15,7 +15,7 @@ include = [
 exclude = ["*"]
 
 [dependencies]
-Archivist = "flipbook-labs/archivist@0.1.0"
+Archivist = "flipbook-labs/archivist@0.2.0"
 Charm = "littensy/charm@0.11.0-rc.4"
 GreenTea = "corecii/greentea@0.4.11"
 ModuleLoader = "flipbook-labs/module-loader@0.11.0"

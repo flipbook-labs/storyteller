@@ -1,4 +1,4 @@
-local Archivist = require("@luaupkg/Archivist@v0.1.0")
+local Archivist = require("@luaupkg/Archivist@v0.2.0")
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local fs = require("@std/fs")
 local process = require("@std/process")

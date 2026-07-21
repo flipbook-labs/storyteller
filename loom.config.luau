@@ -4,7 +4,7 @@ return {
 		version = "1.12.0",
 		dependencies = {
 			Archivist = {
-				rev = "v0.1.0",
+				rev = "v0.2.0",
 				sourceKind = "github",
 				source = "https://github.com/flipbook-labs/archivist",
 			},
