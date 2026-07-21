@@ -15,6 +15,7 @@ local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
+local logger = require("@root/logger")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
@@ -97,6 +98,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 
 		if success and storybook then
+			logger.info("loaded storybook", storybookModule:GetFullName())
 			setLoadedStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
@@ -111,6 +113,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				return new
 			end)
 		else
+			logger.warn("failed to load storybook", storybookModule:GetFullName(), result)
 			setUnavailableStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
@@ -137,6 +140,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function unloadStorybook(storybookModule: ModuleScript)
+		logger.debug("unloading storybook", storybookModule:GetFullName())
 		Charm.batch(function()
 			setLoadedStorybooks(function(prev)
 				return Sift.List.filter(prev, function(storybook)
@@ -153,6 +157,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function reloadStorybook(storybookModule: ModuleScript)
+		logger.debug("reloading storybook", storybookModule:GetFullName())
 		Charm.batch(function()
 			unloadStorybook(storybookModule)
 			loadStorybook(storybookModule)
@@ -164,6 +169,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return
 		end
 		isRunning = false
+
+		logger.info("stopped")
 
 		storyModulesQuery.stop()
 		storybookModulesQuery.stop()
@@ -239,6 +246,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				loadStorybook(storybookModule)
 			end
 		end)
+
+		logger.info("started", { storybooks = #storybookModulesQuery.get(), storyModules = #storyModulesQuery.get() })
 	end
 	self.start = start
 
@@ -248,6 +257,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 
 		isDestroyed = true
+		logger.debug("destroyed")
 		stop()
 		storyModulesQuery.destroy()
 		storybookModulesQuery.destroy()

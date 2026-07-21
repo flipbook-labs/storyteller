@@ -4,6 +4,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
@@ -32,14 +33,21 @@ args:parse({ ... })
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
 if not apiKey then
-	print(
-		"err: A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
+	logger.err(
+		"A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
 	)
 	process.exit(1)
 end
 
 local filter = args:get("filter")
+if filter then
+	logger.debug(`filtering tests by "{filter}"`)
+end
+if args:has("benchmarks") then
+	logger.warn("running benchmarks; this run will take longer than usual")
+end
 
+logger.info("building the dev channel for testing")
 run("lute", { "run", "build", "--channel", "dev" })
 
 local function createTestRunnerScript()
@@ -57,6 +65,7 @@ local function createTestRunnerScript()
 	return testRunnerPath
 end
 
+logger.info("running tests")
 local success, err = pcall(function()
 	local testRunnerPath = createTestRunnerScript()
 
@@ -80,6 +89,8 @@ local success, err = pcall(function()
 end)
 
 if not success then
-	print(err)
+	logger.err(err)
 	process.exit(1)
 end
+
+logger.info("tests passed")
