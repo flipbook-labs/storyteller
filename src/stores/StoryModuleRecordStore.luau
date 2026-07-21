@@ -25,8 +25,8 @@ type StoryModuleRecords = {
 }
 
 export type StoryModuleRecordStore = {
-	getRecords: (ModuleScript) -> StoryModuleRecord?,
-	request: (StoryModuleRequestPriority, StoryModuleTarget) -> () -> (),
+	getRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
+	request: (priority: StoryModuleRequestPriority, target: StoryModuleTarget) -> () -> (),
 	clear: () -> (),
 	destroy: () -> (),
 }
@@ -87,11 +87,11 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local isProcessingTargets = false
 
 	local processPendingTargets: () -> ()
-	local queueTarget: (TargetEntry, StoryModuleRequestPriority, boolean) -> ()
-	local invalidateTarget: (TargetEntry, StoryModuleRequestPriority) -> ()
-	local cleanupTargetEntry: (TargetEntry) -> ()
+	local queueTarget: (entry: TargetEntry, priority: StoryModuleRequestPriority, invalidate: boolean) -> ()
+	local invalidateTarget: (entry: TargetEntry, priority: StoryModuleRequestPriority) -> ()
+	local cleanupTargetEntry: (entry: TargetEntry) -> ()
 
-	local function getRecords(storyModule: ModuleScript): StoryModuleRecord?
+	local function getRecord(storyModule: ModuleScript): StoryModuleRecord?
 		return getRecordMap()[storyModule]
 	end
 
@@ -239,7 +239,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end
 	end
 
-	cleanupTargetEntry = function(entry: TargetEntry)
+	function cleanupTargetEntry(entry: TargetEntry)
 		entry.refCount = 0
 		entry.interactiveRefCount = 0
 		entry.generation += 1
@@ -296,7 +296,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			}
 	end
 
-	processPendingTargets = function()
+	function processPendingTargets()
 		if isProcessingTargets or isDestroyed then
 			return
 		end
@@ -336,7 +336,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	queueTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
+	function queueTarget(entry: TargetEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -358,7 +358,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		processPendingTargets()
 	end
 
-	invalidateTarget = function(entry: TargetEntry, priority: StoryModuleRequestPriority)
+	function invalidateTarget(entry: TargetEntry, priority: StoryModuleRequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -441,7 +441,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			entry.interactiveRefCount += 1
 		end
 
-		local record = getRecords(storyModule)
+		local record = getRecord(storyModule)
 		if hasTargetChanged then
 			invalidateTarget(entry, priority)
 		elseif not record and not entry.isLoading then
@@ -520,7 +520,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	return {
-		getRecords = getRecords,
+		getRecord = getRecord,
 		request = request,
 		clear = clear,
 		destroy = destroy,

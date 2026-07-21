@@ -36,7 +36,7 @@ local function createTarget(name: string): StoryModuleTarget
 end
 
 local function getRecord(target: StoryModuleTarget)
-	return recordStore.getRecords(target.storyModule)
+	return recordStore.getRecord(target.storyModule)
 end
 
 -- Builds a batch of story modules that stamp the order they were evaluated in,

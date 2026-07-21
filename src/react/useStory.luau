@@ -61,11 +61,11 @@ local useSignalState = ReactCharm.useSignalState
 local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
 	local storytellerStore = useStorytellerStore()
 	local record = useSignalState(function()
-		return storytellerStore.getStoryModuleRecords(module)
+		return storytellerStore.getStoryModuleRecord(module)
 	end, { module, storytellerStore } :: { unknown })
 
 	useEffect(function()
-		return storytellerStore.requestStoryModules(StoryModuleRequestPriority.Interactive, {
+		return storytellerStore.requestStoryModule(StoryModuleRequestPriority.Interactive, {
 			storyModule = module,
 			storybook = storybook,
 		})

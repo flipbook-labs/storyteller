@@ -96,7 +96,7 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	expect(store.getStoryModuleRecords(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
+	expect(store.getStoryModuleRecord(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -584,18 +584,14 @@ describe("requesting story modules", function()
 		}
 	end
 
-	local function getRecord(target: StoryModuleTarget)
-		return store.getStoryModuleRecords(target.storyModule)
-	end
-
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Delegated")
 
-		store.requestStoryModules(StoryModuleRequestPriority.Background, target)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, target)
 
 		waitFor(function()
-			local record = getRecord(target)
+			local record = store.getStoryModuleRecord(target.storyModule)
 			assert(record and record.story, "expected a loaded record for the requested story module")
 			expect(record.story.name).toBe("Delegated")
 		end)
@@ -605,14 +601,14 @@ describe("requesting story modules", function()
 		store = StorytellerStore.new(new("Folder"))
 		local target = createTarget("Ephemeral")
 
-		store.requestStoryModules(StoryModuleRequestPriority.Background, target)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, target)
 
 		waitFor(function()
-			expect(getRecord(target)).toBeDefined()
+			expect(store.getStoryModuleRecord(target.storyModule)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		expect(getRecord(target)).toBeUndefined()
+		expect(store.getStoryModuleRecord(target.storyModule)).toBeUndefined()
 	end)
 end)

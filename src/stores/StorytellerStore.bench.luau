@@ -150,7 +150,7 @@ end
 local function countRecords(currentStore: StorytellerStore, storyModules: { ModuleScript }): number
 	local count = 0
 	for _, storyModule in storyModules do
-		if currentStore.getStoryModuleRecords(storyModule) then
+		if currentStore.getStoryModuleRecord(storyModule) then
 			count += 1
 		end
 	end
@@ -163,7 +163,7 @@ local function requestTargets(
 	targets: { StoryModuleTarget }
 )
 	for _, target in targets do
-		currentStore.requestStoryModules(priority, target)
+		currentStore.requestStoryModule(priority, target)
 	end
 end
 
@@ -192,7 +192,7 @@ describeEach({
 		expect(#store.getStoryModules()).toBe(#storyModules)
 		-- Discovery must never evaluate a module: no records should exist until
 		-- something explicitly requests them.
-		expect(store.getStoryModuleRecords(storyModules[1])).toBeUndefined()
+		expect(store.getStoryModuleRecord(storyModules[1])).toBeUndefined()
 
 		root:Destroy()
 	end, TIMEOUT_MS)
@@ -232,7 +232,7 @@ describeEach({
 			framesToAll = firstFrames + allFrames,
 		})
 
-		local sampleRecord = store.getStoryModuleRecords(storyModules[1])
+		local sampleRecord = store.getStoryModuleRecord(storyModules[1])
 		assert(sampleRecord and sampleRecord.story, "expected a loaded story for the first story module")
 
 		-- The work budget must spread large batches across frames rather than
@@ -272,11 +272,11 @@ test("interactive requests are serviced ahead of background backlog", function()
 	}
 
 	local function getRecord(target: StoryModuleTarget)
-		return store.getStoryModuleRecords(target.storyModule)
+		return store.getStoryModuleRecord(target.storyModule)
 	end
 
 	requestTargets(store, StoryModuleRequestPriority.Background, backgroundTargets)
-	store.requestStoryModules(StoryModuleRequestPriority.Interactive, interactiveTarget)
+	store.requestStoryModule(StoryModuleRequestPriority.Interactive, interactiveTarget)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
@@ -374,13 +374,13 @@ test("republishes a single edited story at scale without reloading siblings", fu
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = store.getStoryModuleRecords(editedModule)
+	local recordBefore = store.getStoryModuleRecord(editedModule)
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
 	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = store.getStoryModuleRecords(editedModule)
+		local record = store.getStoryModuleRecord(editedModule)
 		return record ~= nil and record ~= recordBefore and record.problem == nil
 	end)
 
@@ -583,7 +583,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		return store.getStoryModuleRecords(storyModule)
+		return store.getStoryModuleRecord(storyModule)
 	end
 
 	-- Cold select-while-loading: the whole sidebar batch is queued background
@@ -591,7 +591,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	local selectedModule = storyModules[150]
 	local startTime = os.clock()
 	requestTargets(store, StoryModuleRequestPriority.Background, targets)
-	store.requestStoryModules(StoryModuleRequestPriority.Interactive, {
+	store.requestStoryModule(StoryModuleRequestPriority.Interactive, {
 		storyModule = selectedModule,
 		storybook = storybook,
 	})
@@ -608,7 +608,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 
 	-- Warm re-select: a second consumer requests an already-loaded story.
 	local warmStart = os.clock()
-	local releaseWarm = store.requestStoryModules(StoryModuleRequestPriority.Interactive, {
+	local releaseWarm = store.requestStoryModule(StoryModuleRequestPriority.Interactive, {
 		storyModule = selectedModule,
 		storybook = storybook,
 	})
