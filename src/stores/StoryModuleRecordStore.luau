@@ -26,7 +26,7 @@ type StoryModuleRecords = {
 
 export type StoryModuleRecordStore = {
 	getRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
-	request: (priority: StoryModuleRequestPriority, request: StoryRequest) -> () -> (),
+	request: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> () -> (),
 	clear: () -> (),
 	destroy: () -> (),
 }
@@ -275,14 +275,13 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	local function createRecord(entry: RequestEntry): StoryModuleRecord
-		local request = entry.request
 		local loaderEntry = loaderEntries[entry.loaderSource]
 		assert(loaderEntry, "Story module loader was cleaned up while a story module was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
 		local story: LoadedStory<unknown>?
 		local success, result = pcall(function()
-			story = loadStoryModule(request.storyModule, request.storybook, loader)
+			story = loadStoryModule(entry.request.storyModule, entry.request.storybook, loader)
 		end)
 
 		if success and story then

@@ -271,16 +271,12 @@ test("interactive requests are serviced ahead of background backlog", function()
 		storybook = storybook,
 	}
 
-	local function getRecord(request: StoryRequest)
-		return store.getStoryModuleRecord(request.storyModule)
-	end
-
 	requestStories(store, StoryModuleRequestPriority.Background, backgroundRequests)
 	store.requestStoryModule(StoryModuleRequestPriority.Interactive, interactiveRequest)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
-		return getRecord(interactiveRequest) ~= nil
+		return store.getStoryModuleRecord(interactiveRequest.storyModule) ~= nil
 	end)
 	local backgroundDoneAt = countRecords(store, storyModules)
 

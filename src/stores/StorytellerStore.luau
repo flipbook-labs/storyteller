@@ -41,7 +41,7 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 
 	getStoryModuleRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
-	requestStoryModule: (priority: StoryModuleRequestPriority, request: StoryRequest) -> () -> (),
+	requestStoryModule: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> () -> (),
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
