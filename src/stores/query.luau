@@ -28,7 +28,8 @@ export type QueryResult = {
 }
 
 local function query(options: QueryOptions): QueryResult
-	local getMatches, setMatches = Charm.signal({} :: { Instance })
+	local initialMatches: { Instance } = {}
+	local getMatches, setMatches = Charm.signal(initialMatches)
 
 	local isDestroyed = false
 	local isRunning = false
@@ -45,15 +46,16 @@ local function query(options: QueryOptions): QueryResult
 
 	local function queryDescendants(): { Instance }
 		local matches = {}
+		local root = options.root
 
-		if options.root:IsA(options.selector) then
-			local isMatch = if options.matcher then options.matcher(options.root) else true
+		if root:IsA(options.selector) then
+			local isMatch = if options.matcher then options.matcher(root) else true
 			if isMatch then
-				table.insert(matches, options.root)
+				table.insert(matches, root)
 			end
 		end
 
-		for _, instance in options.root:QueryDescendants(options.selector) do
+		for _, instance in root:QueryDescendants(options.selector) do
 			local isMatch = if options.matcher then options.matcher(instance) else true
 			if isMatch then
 				table.insert(matches, instance)

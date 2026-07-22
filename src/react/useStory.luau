@@ -1,12 +1,5 @@
-local React = require("@pkg/React")
-local ReactCharm = require("@pkg/ReactCharm")
-
-local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local types = require("@root/types")
-local useStorytellerStore = require("@root/react/useStorytellerStore")
-
-local useEffect = React.useEffect
-local useSignalState = ReactCharm.useSignalState
+local useStoriesForModule = require("@root/react/useStoriesForModule")
 
 --[=[
 	This hook triggers a rerender when the Story module or any of its required
@@ -32,10 +25,11 @@ local useSignalState = ReactCharm.useSignalState
 		parent: Instance,
 		storyModule: ModuleScript,
 		storybook: Storybook,
+		storyId: string?,
 	})
 		local ref = useRef(nil :: Frame?)
 
-		local story = Storyteller.useStory(props.storyModule, props.storybook)
+		local story = Storyteller.useStory(props.storyModule, props.storybook, props.storyId)
 
 		useEffect(function()
 			if ref.current then
@@ -58,20 +52,26 @@ local useSignalState = ReactCharm.useSignalState
 	@tag Story
 	@within Storyteller
 ]=]
-local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	local storytellerStore = useStorytellerStore()
-	local record = useSignalState(function()
-		return storytellerStore.getStoryModuleRecord(module)
-	end, { module, storytellerStore } :: { unknown })
+local function useStory(
+	module: ModuleScript,
+	storybook: types.LoadedStorybook,
+	storyId: string?
+): (types.LoadedStory<unknown>?, string?)
+	local stories, err = useStoriesForModule(module, storybook)
+	if not stories then
+		return nil, err
+	end
 
-	useEffect(function()
-		return storytellerStore.requestStoryModule(StoryModuleRequestPriority.Interactive, {
-			storyModule = module,
-			storybook = storybook,
-		})
-	end, { module, storytellerStore, storybook } :: { unknown })
+	if storyId then
+		for _, story in stories do
+			if story.id == storyId then
+				return story, err
+			end
+		end
+		return nil, `Story "{storyId}" was not found in {module:GetFullName()}`
+	end
 
-	return if record then record.story else nil, if record then record.problem else nil
+	return stories[1], err
 end
 
 return useStory

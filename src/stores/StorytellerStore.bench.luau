@@ -1,6 +1,6 @@
 local JestGlobals = require("@pkg/JestGlobals")
 
-local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
+local StoryModuleRecordStore = require("./StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local isStoryModule = require("@root/isStoryModule")
@@ -13,8 +13,6 @@ local afterEach = JestGlobals.afterEach
 local describeEach = describe.each :: any
 
 type StoryRequest = StoryModuleRecordStore.StoryRequest
-type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
-type StorytellerStore = StorytellerStore.StorytellerStore
 
 local TIMEOUT_MS = 2 * 60 * 1000
 
@@ -51,29 +49,36 @@ local function settle(ceilingSec: number, condition: () -> boolean): (number, nu
 	return os.clock() - startTime, frames
 end
 
-local SINGLE_STORY_SOURCE = [[
+local MULTI_STORY_SOURCE = [[
 return {
 	summary = "Benchmark fixture",
-	story = function() end,
+	stories = {
+		{ id = "primary", name = "Primary", story = function() end },
+		{ id = "secondary", name = "Secondary", story = function() end },
+		{ id = "tertiary", name = "Tertiary", story = function() end },
+	},
 }
 ]]
 
-local COUNTING_STORY_SOURCE = [[
+local COUNTING_MULTI_STORY_SOURCE = [[
 script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
 return {
-	story = function() end,
+	stories = {
+		{ id = "primary", name = "Primary", story = function() end },
+		{ id = "secondary", name = "Secondary", story = function() end },
+	},
 }
 ]]
 
--- Builds a service-like folder tree: `storyCount` story modules spread across
--- nested folders, padded with distractor Folders and plain ModuleScripts until
--- the tree holds roughly `instanceCount` instances.
+-- Builds a service-like folder tree: `storyCount` multi-story modules spread
+-- across nested folders, padded with distractor Folders and plain
+-- ModuleScripts until the tree holds roughly `instanceCount` instances.
 local function buildSimulatedDataModel(
 	instanceCount: number,
 	storyCount: number,
 	storySource: string?
 ): (Folder, { ModuleScript })
-	local source = storySource or SINGLE_STORY_SOURCE
+	local source = storySource or MULTI_STORY_SOURCE
 	local root = Instance.new("Folder")
 	root.Name = "SimulatedDataModel"
 
@@ -147,26 +152,6 @@ local function createStorybook(): types.LoadedStorybook
 	}
 end
 
-local function countRecords(currentStore: StorytellerStore, storyModules: { ModuleScript }): number
-	local count = 0
-	for _, storyModule in storyModules do
-		if currentStore.getStoryModuleRecord(storyModule) then
-			count += 1
-		end
-	end
-	return count
-end
-
-local function requestStories(
-	currentStore: StorytellerStore,
-	priority: StoryModuleRequestPriority,
-	requests: { StoryRequest }
-)
-	for _, request in requests do
-		currentStore.requestStoryModule(priority, request)
-	end
-end
-
 describeEach({
 	{ instances = 1000, stories = 100 },
 	{ instances = 10000, stories = 500 },
@@ -192,12 +177,12 @@ describeEach({
 		expect(#store.getStoryModules()).toBe(#storyModules)
 		-- Discovery must never evaluate a module: no records should exist until
 		-- something explicitly requests them.
-		expect(store.getStoryModuleRecord(storyModules[1])).toBeUndefined()
+		expect((next(store.getStoryModuleRecords()))).toBeUndefined()
 
 		root:Destroy()
 	end, TIMEOUT_MS)
 
-	test("resolves requested records within budgeted frames", function()
+	test("resolves requested metadata within budgeted frames", function()
 		local root, storyModules = buildSimulatedDataModel(scale.instances, scale.stories)
 		local storybook = createStorybook()
 
@@ -215,25 +200,41 @@ describeEach({
 			})
 		end
 
+		local function countRecords(): number
+			local count = 0
+			for _, recordsForModule in store.getStoryModuleRecords() do
+				for _ in recordsForModule do
+					count += 1
+				end
+			end
+			return count
+		end
+
 		local startTime = os.clock()
-		requestStories(store, StoryModuleRequestPriority.Background, requests)
+		for _, storyRequest in requests do
+			store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+		end
 
 		local firstElapsed, firstFrames = settle(60, function()
-			return countRecords(store, storyModules) >= 1
+			return countRecords() >= 1
 		end)
 		local _, allFrames = settle(120, function()
-			return countRecords(store, storyModules) >= #requests
+			return countRecords() >= #requests
 		end)
 
-		report(`records {scale.stories} story modules`, {
+		report(`metadata {scale.stories} multi-story modules`, {
 			firstRecordMs = firstElapsed * 1000,
 			allRecordsMs = (os.clock() - startTime) * 1000,
 			framesToFirst = firstFrames,
 			framesToAll = firstFrames + allFrames,
 		})
 
-		local sampleRecord = store.getStoryModuleRecord(storyModules[1])
-		assert(sampleRecord and sampleRecord.story, "expected a loaded story for the first story module")
+		-- Every record carries the module's three stories.
+		local sampleRecords = store.getStoryModuleRecords()[storyModules[1]]
+		assert(sampleRecords, "expected records for the first story module")
+		local sampleRecord = sampleRecords[storybook.source]
+		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
+		expect(#sampleRecord.stories).toBe(3)
 
 		-- The work budget must spread large batches across frames rather than
 		-- stalling one frame with the entire load. Fast hardware can finish a
@@ -271,17 +272,34 @@ test("interactive requests are serviced ahead of background backlog", function()
 		storybook = storybook,
 	}
 
-	requestStories(store, StoryModuleRequestPriority.Background, backgroundRequests)
+	local function getRecord(storyRequest: StoryRequest)
+		local recordsForModule = store.getStoryModuleRecords()[storyRequest.storyModule]
+		return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
+	end
+
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
+	end
+
+	for _, storyRequest in backgroundRequests do
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+	end
 	store.requestStoryModule(StoryModuleRequestPriority.Interactive, interactiveRequest)
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
-		return store.getStoryModuleRecord(interactiveRequest.storyModule) ~= nil
+		return getRecord(interactiveRequest) ~= nil
 	end)
-	local backgroundDoneAt = countRecords(store, storyModules)
+	local backgroundDoneAt = countRecords()
 
 	settle(120, function()
-		return countRecords(store, storyModules) >= #storyModules
+		return countRecords() >= #storyModules
 	end)
 	local allElapsed = os.clock() - startTime
 
@@ -304,15 +322,16 @@ test("discovers a service-shaped DataModel with place noise", function()
 	local ServerStorage = game:GetService("ServerStorage")
 	local SoundService = game:GetService("SoundService")
 
-	local rootA = buildSimulatedDataModel(2000, 150)
-	rootA.Name = "BenchServiceA"
-	rootA.Parent = ReplicatedStorage
-	local rootB = buildSimulatedDataModel(2000, 150)
-	rootB.Name = "BenchServiceB"
-	rootB.Parent = ServerStorage
-	local rootC = buildSimulatedDataModel(2000, 150)
-	rootC.Name = "BenchServiceC"
-	rootC.Parent = SoundService
+	local priorityRootA = buildSimulatedDataModel(2000, 150)
+	priorityRootA.Name = "BenchPriorityA"
+	priorityRootA.Parent = ReplicatedStorage
+	local priorityRootB = buildSimulatedDataModel(2000, 150)
+	priorityRootB.Name = "BenchPriorityB"
+	priorityRootB.Parent = ServerStorage
+
+	local lateRoot = buildSimulatedDataModel(2000, 150)
+	lateRoot.Name = "BenchLate"
+	lateRoot.Parent = SoundService
 
 	-- The test place already contains story modules (Storyteller's own e2e
 	-- fixtures under Packages), so expectations are relative to a baseline
@@ -341,13 +360,13 @@ test("discovers a service-shaped DataModel with place noise", function()
 
 	expect(#store.getStoryModules()).toBe(expectedTotal)
 
-	rootA:Destroy()
-	rootB:Destroy()
-	rootC:Destroy()
+	priorityRootA:Destroy()
+	priorityRootB:Destroy()
+	lateRoot:Destroy()
 end, TIMEOUT_MS)
 
 test("republishes a single edited story at scale without reloading siblings", function()
-	local root, storyModules = buildSimulatedDataModel(10000, 500, COUNTING_STORY_SOURCE)
+	local root, storyModules = buildSimulatedDataModel(10000, 500, COUNTING_MULTI_STORY_SOURCE)
 	local storybook = createStorybook()
 
 	store = StorytellerStore.new(root)
@@ -364,20 +383,32 @@ test("republishes a single edited story at scale without reloading siblings", fu
 		})
 	end
 
-	requestStories(store, StoryModuleRequestPriority.Background, requests)
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
+	end
+
+	for _, storyRequest in requests do
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+	end
 	settle(120, function()
-		return countRecords(store, storyModules) >= #requests
+		return countRecords() >= #requests
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = store.getStoryModuleRecord(editedModule)
+	local recordBefore = store.getStoryModuleRecords()[editedModule][storybook.source]
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
-	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
+	editedModule.Source = "-- edited\n" .. COUNTING_MULTI_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = store.getStoryModuleRecord(editedModule)
-		return record ~= nil and record ~= recordBefore and record.problem == nil
+		local record = store.getStoryModuleRecords()[editedModule][storybook.source]
+		return record ~= recordBefore and record.problem == nil
 	end)
 
 	-- ModuleLoader reports source changes asynchronously after the store's
@@ -402,7 +433,6 @@ test("republishes a single edited story at scale without reloading siblings", fu
 		minSiblingLoads = minSibling,
 		maxSiblingLoads = maxSibling,
 	})
-
 	-- Every module loads exactly once up front; only the edited module loads
 	-- a second time. Any sibling reload inflates this sum.
 	expect(totalLoads).toBe(#storyModules + 1)
@@ -422,7 +452,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 	sharedDep.Source = "return { value = 1 }"
 	sharedDep.Parent = root
 
-	local storyModules: { ModuleScript } = {}
+	local storyModules = {} :: { ModuleScript }
 	for index = 1, DEPENDENT_COUNT do
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `Dependent{index}.story`
@@ -459,14 +489,15 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return total
 	end
 
-	requestStories(store, StoryModuleRequestPriority.Background, requests)
+	for _, storyRequest in requests do
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+	end
 	settle(120, function()
 		return countLoads() >= DEPENDENT_COUNT
 	end)
 
-	local elapsed, frames
 	sharedDep.Source = "return { value = 2 }"
-	elapsed, frames = settle(60, function()
+	local elapsed, frames = settle(60, function()
 		return countLoads() >= DEPENDENT_COUNT * 2
 	end)
 
@@ -548,9 +579,10 @@ local dep = require(script.Parent.Deps.Dep1)
 local sharedA = require(corpus.Shared.Shared1)
 local sharedB = require(corpus.Shared.Shared%d)
 return {
-	story = function()
-		return { dep = dep, sharedA = sharedA, sharedB = sharedB }
-	end,
+	stories = {
+		{ id = "primary", name = "Primary", story = function() return { dep = dep, sharedA = sharedA } end },
+		{ id = "secondary", name = "Secondary", story = function() return { dep = dep, sharedB = sharedB } end },
+	},
 }
 ]]):format((storyIndex % 28) + 2)
 		storyModule.Parent = storyFolder
@@ -579,14 +611,27 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		return store.getStoryModuleRecord(storyModule)
+		local recordsForModule = store.getStoryModuleRecords()[storyModule]
+		return if recordsForModule then recordsForModule[storybook.source] else nil
+	end
+
+	local function countRecords(): number
+		local count = 0
+		for _, recordsForModule in store.getStoryModuleRecords() do
+			for _ in recordsForModule do
+				count += 1
+			end
+		end
+		return count
 	end
 
 	-- Cold select-while-loading: the whole sidebar batch is queued background
 	-- and the user immediately clicks one story.
 	local selectedModule = storyModules[150]
 	local startTime = os.clock()
-	requestStories(store, StoryModuleRequestPriority.Background, requests)
+	for _, storyRequest in requests do
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+	end
 	store.requestStoryModule(StoryModuleRequestPriority.Interactive, {
 		storyModule = selectedModule,
 		storybook = storybook,
@@ -596,10 +641,10 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 		local record = getRecord(selectedModule)
 		return record ~= nil and record.problem == nil
 	end)
-	local recordsWhenSelected = countRecords(store, storyModules)
+	local recordsWhenSelected = countRecords()
 
-	settle(300, function()
-		return countRecords(store, storyModules) >= #requests
+	local _, allFrames = settle(300, function()
+		return countRecords() >= #requests
 	end)
 
 	-- Warm re-select: a second consumer requests an already-loaded story.
@@ -617,11 +662,16 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 		selectedStoryFrames = selectFrames,
 		recordsWhenSelected = recordsWhenSelected,
 		backgroundAllMs = (os.clock() - startTime) * 1000,
+		backgroundAllFrames = selectFrames + allFrames,
 		warmReselectMs = warmMs,
 	})
 
 	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
-	expect(countRecords(store, storyModules)).toBe(#requests)
+	-- Loading a record parses every story in the group up front; the heavy
+	-- path must carry that cost, not defer it.
+	assert(warmRecord.stories, "expected loaded stories on the selected record")
+	expect(#warmRecord.stories).toBe(2)
+	expect(countRecords()).toBe(#requests)
 
 	root:Destroy()
 	storybook.source:Destroy()

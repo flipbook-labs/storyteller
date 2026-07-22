@@ -3,16 +3,19 @@ local JestGlobals = require("@pkg/JestGlobals")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
-local StoryModuleRecordStore = require("./StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
+local types = require("@root/types")
 
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryRequest = StoryModuleRecordStore.StoryRequest
+type StoryRequest = {
+	storyModule: ModuleScript,
+	storybook: types.LoadedStorybook,
+}
 
 local store
 
@@ -96,7 +99,8 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	expect(store.getStoryModuleRecord(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
+	local firstRecord = next(store.getStoryModuleRecords())
+	expect(firstRecord).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -584,31 +588,37 @@ describe("requesting story modules", function()
 		}
 	end
 
+	local function getRecord(storyRequest: StoryRequest)
+		local recordsForModule = store.getStoryModuleRecords()[storyRequest.storyModule]
+		return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
+	end
+
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local request = createRequest("Delegated")
+		local storyRequest = createRequest("Delegated")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
 
 		waitFor(function()
-			local record = store.getStoryModuleRecord(request.storyModule)
-			assert(record and record.story, "expected a loaded record for the requested story module")
-			expect(record.story.name).toBe("Delegated")
+			local record = getRecord(storyRequest)
+			assert(record and record.stories, "expected a loaded record for the requested story module")
+			expect(record.stories[1].name).toBe("Delegated")
 		end)
 	end)
 
 	test("clears records when the store is destroyed", function()
 		store = StorytellerStore.new(new("Folder"))
-		local request = createRequest("Ephemeral")
+		local storyRequest = createRequest("Ephemeral")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
 
 		waitFor(function()
-			expect(store.getStoryModuleRecord(request.storyModule)).toBeDefined()
+			expect(getRecord(storyRequest)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		expect(store.getStoryModuleRecord(request.storyModule)).toBeUndefined()
+		local firstKey = next(store.getStoryModuleRecords())
+		expect(firstKey).toBeUndefined()
 	end)
 end)

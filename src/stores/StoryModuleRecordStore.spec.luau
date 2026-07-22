@@ -35,8 +35,9 @@ local function createRequest(name: string): StoryRequest
 	}
 end
 
-local function getRecord(request: StoryRequest)
-	return recordStore.getRecord(request.storyModule)
+local function getRecord(storyRequest: StoryRequest)
+	local recordsForModule = recordStore.getRecords()[storyRequest.storyModule]
+	return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
 end
 
 -- Builds a batch of story modules that stamp the order they were evaluated in,
@@ -69,39 +70,110 @@ end
 
 test("loads a requested story module", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Button")
+	local storyRequest = createRequest("Button")
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		local record = getRecord(request)
-		assert(record and record.story, "expected a loaded record for the requested story module")
+		local record = getRecord(storyRequest)
+		assert(record and record.stories, "expected a loaded record for the requested story module")
 		expect(record.problem).toBeUndefined()
-		expect(record.story).toMatchObject({
+		expect(record.stories[1]).toMatchObject({
+			id = "Button",
 			name = "Button",
 			summary = "Button summary",
-			source = request.storyModule,
-			storybook = request.storybook,
+			source = storyRequest.storyModule,
+			storybook = storyRequest.storybook,
 		})
+	end)
+end)
+
+test("processes requests made while publishing records", function()
+	recordStore = StoryModuleRecordStore.new()
+	local first = createRequest("First")
+	local second = createRequest("Second")
+	local requestedSecond = false
+
+	local dispose = Charm.listen(recordStore.getRecords, function()
+		if not requestedSecond and getRecord(first) then
+			requestedSecond = true
+			recordStore.request(StoryModuleRequestPriority.Background, second)
+		end
+	end)
+
+	recordStore.request(StoryModuleRequestPriority.Background, first)
+
+	waitFor(function()
+		local record = getRecord(second)
+		assert(record and record.stories, "expected the reentrant request to load")
+		expect(record.stories[1].id).toBe("Second")
+	end)
+	dispose()
+end)
+
+test("loads every story from a requested module", function()
+	recordStore = StoryModuleRecordStore.new()
+	local storyRequest = createRequest("Buttons")
+	storyRequest.storyModule.Source = [[
+		return {
+			name = "Buttons",
+			stories = {
+				Primary = function() end,
+				Secondary = function() end,
+			},
+		}
+	]]
+
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
+
+	waitFor(function()
+		local record = getRecord(storyRequest)
+		assert(record and record.stories, "expected every story in the requested module")
+		expect(record.stories).toEqual({
+			expect.objectContaining({ id = "Primary", name = "Primary" }),
+			expect.objectContaining({ id = "Secondary", name = "Secondary" }),
+		})
+	end)
+end)
+
+test("publishes the module's group name", function()
+	recordStore = StoryModuleRecordStore.new()
+	local storyRequest = createRequest("Widgets")
+	storyRequest.storyModule.Source = [[
+		return {
+			name = "Widget Gallery",
+			stories = {
+				Primary = function() end,
+				Secondary = function() end,
+			},
+		}
+	]]
+
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
+
+	waitFor(function()
+		local record = getRecord(storyRequest)
+		assert(record, "expected a record for the requested story module")
+		expect(record.name).toBe("Widget Gallery")
 	end)
 end)
 
 test("keeps loaded story packages mutable under Charm's Studio freeze", function()
 	Charm.flags.frozen = true
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Mutable")
+	local storyRequest = createRequest("Mutable")
 	local packageState = {}
-	request.storybook.packages = {
+	storyRequest.storybook.packages = {
 		Package = {
 			state = packageState,
 		},
 	}
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		local record = getRecord(request)
-		assert(record and record.story, "expected a loaded record for the requested story module")
+		local record = getRecord(storyRequest)
+		assert(record and record.stories, "expected a loaded record for the requested story module")
 		-- Records enter Charm state, which deep-freezes in Studio. Package
 		-- modules like React mutate internal state while rendering, so the
 		-- loaded story's object graph must stay outside that freeze.
@@ -140,7 +212,7 @@ test("evaluates the storybook and story through the same loader", function()
 
 	-- The caller supplies a storybook whose packages were evaluated by some
 	-- other loader, the way discovery-side loading does.
-	local request: StoryRequest = {
+	local storyRequest: StoryRequest = {
 		storyModule = storyModule,
 		storybook = {
 			name = "Stale",
@@ -152,16 +224,16 @@ test("evaluates the storybook and story through the same loader", function()
 		},
 	}
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		local record = getRecord(request)
-		assert(record and record.story, "expected a loaded record for the requested story module")
+		local record = getRecord(storyRequest)
+		assert(record and record.stories, "expected a loaded record for the requested story module")
 		-- A package instance the story requires must be identity-equal to the
 		-- one in its storybook's packages: libraries like React break when a
 		-- story renders against a different instance than it required.
-		local storyMarker = (record.story.story :: () -> unknown)()
-		local packages = record.story.packages
+		local storyMarker = (record.stories[1].story :: () -> unknown)()
+		local packages = record.stories[1].packages
 		assert(packages, "expected the loaded story to carry its storybook's packages")
 		expect(packages.Marker).toBe(storyMarker)
 	end)
@@ -169,37 +241,37 @@ end)
 
 test("reports a story module load problem", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Broken")
-	request.storyModule.Source = "syntax error"
+	local storyRequest = createRequest("Broken")
+	storyRequest.storyModule.Source = "syntax error"
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		local record = getRecord(request)
+		local record = getRecord(storyRequest)
 		assert(record, "expected a record for the requested story module")
-		expect(record.story).toBeUndefined()
+		expect(record.stories).toBeUndefined()
 		expect(record.problem).toBeDefined()
 	end)
 end)
 
 test("reuses the cached record across overlapping requests", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Shared")
+	local storyRequest = createRequest("Shared")
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	local cachedRecord
 	waitFor(function()
-		cachedRecord = getRecord(request)
+		cachedRecord = getRecord(storyRequest)
 		expect(cachedRecord).toBeDefined()
 	end)
 
-	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+	recordStore.request(StoryModuleRequestPriority.Interactive, storyRequest)
 
 	-- Give a queued reload the chance to (incorrectly) publish before
 	-- asserting the record identity survived the overlapping request.
 	task.wait(0.1)
-	expect(getRecord(request)).toBe(cachedRecord)
+	expect(getRecord(storyRequest)).toBe(cachedRecord)
 end)
 
 test("does not reload sibling stories when one story source changes", function()
@@ -242,8 +314,8 @@ test("does not reload sibling stories when one story source changes", function()
 
 	waitFor(function()
 		local record = getRecord(first)
-		assert(record and record.story, "expected the changed story to reload")
-		expect(record.story.name).toBe("First updated")
+		assert(record and record.stories, "expected the changed story to reload")
+		expect(record.stories[1].name).toBe("First updated")
 	end)
 	-- ModuleLoader reports source changes asynchronously after the store's
 	-- direct Source connection has already published the replacement.
@@ -254,40 +326,40 @@ end)
 
 test("drops the record once every request is released", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Disposable")
+	local storyRequest = createRequest("Disposable")
 
-	local releaseFirst = recordStore.request(StoryModuleRequestPriority.Background, request)
-	local releaseSecond = recordStore.request(StoryModuleRequestPriority.Background, request)
+	local releaseFirst = recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
+	local releaseSecond = recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 
 	releaseFirst()
-	expect(getRecord(request)).toBeDefined()
+	expect(getRecord(storyRequest)).toBeDefined()
 
 	releaseSecond()
-	expect(getRecord(request)).toBeUndefined()
+	expect(getRecord(storyRequest)).toBeUndefined()
 end)
 
 test("releasing the same request twice does not steal another consumer's hold", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("HeldTwice")
+	local storyRequest = createRequest("HeldTwice")
 
-	local releaseFirst = recordStore.request(StoryModuleRequestPriority.Background, request)
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	local releaseFirst = recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 
 	releaseFirst()
 	releaseFirst()
 
-	expect(getRecord(request)).toBeDefined()
+	expect(getRecord(storyRequest)).toBeDefined()
 end)
 
-test("loads the same story module through a replacement Storybook", function()
+test("keeps one record per Storybook covering the same module", function()
 	recordStore = StoryModuleRecordStore.new()
 	local first = createRequest("Shared")
 	local second: StoryRequest = {
@@ -299,21 +371,14 @@ test("loads the same story module through a replacement Storybook", function()
 		},
 	}
 
-	local release = recordStore.request(StoryModuleRequestPriority.Background, first)
-
-	waitFor(function()
-		local record = getRecord(first)
-		assert(record and record.story, "expected the first Storybook to load the shared story module")
-		expect(record.story.storybook).toBe(first.storybook)
-	end)
-
-	release()
+	recordStore.request(StoryModuleRequestPriority.Background, first)
 	recordStore.request(StoryModuleRequestPriority.Background, second)
 
 	waitFor(function()
-		local record = getRecord(second)
-		assert(record and record.story, "expected the replacement Storybook to load the shared story module")
-		expect(record.story.storybook).toBe(second.storybook)
+		local recordsForModule = recordStore.getRecords()[first.storyModule]
+		assert(recordsForModule, "expected records for the shared story module")
+		expect(recordsForModule[first.storybook.source]).toBeDefined()
+		expect(recordsForModule[second.storybook.source]).toBeDefined()
 	end)
 end)
 
@@ -327,14 +392,14 @@ test("services an interactive request before queued background requests", functi
 	local requests = createOrderedRequests(5, storybook)
 	local selected = requests[5]
 
-	for _, request in requests do
-		recordStore.request(StoryModuleRequestPriority.Background, request)
+	for _, storyRequest in requests do
+		recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 	end
 	recordStore.request(StoryModuleRequestPriority.Interactive, selected)
 
 	waitFor(function()
-		for _, request in requests do
-			expect(getRecord(request)).toBeDefined()
+		for _, storyRequest in requests do
+			expect(getRecord(storyRequest)).toBeDefined()
 		end
 	end)
 
@@ -352,14 +417,14 @@ test("upgrades a queued background request when re-requested interactively", fun
 	local requests = createOrderedRequests(5, storybook)
 	local upgraded = requests[4]
 
-	for _, request in requests do
-		recordStore.request(StoryModuleRequestPriority.Background, request)
+	for _, storyRequest in requests do
+		recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 	end
 	recordStore.request(StoryModuleRequestPriority.Interactive, upgraded)
 
 	waitFor(function()
-		for _, request in requests do
-			expect(getRecord(request)).toBeDefined()
+		for _, storyRequest in requests do
+			expect(getRecord(storyRequest)).toBeDefined()
 		end
 	end)
 
@@ -370,46 +435,46 @@ end)
 
 test("reloads with the replacement storybook when the request's storybook changes", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Refreshed")
+	local storyRequest = createRequest("Refreshed")
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 
 	local replacementStorybook: types.LoadedStorybook = {
 		name = "Replacement",
-		source = request.storybook.source,
+		source = storyRequest.storybook.source,
 		storyRoots = {},
 	}
 
 	recordStore.request(StoryModuleRequestPriority.Background, {
-		storyModule = request.storyModule,
+		storyModule = storyRequest.storyModule,
 		storybook = replacementStorybook,
 	})
 
 	waitFor(function()
-		local record = getRecord(request)
-		assert(record and record.story, "expected the record to reload with the replacement storybook")
-		expect(record.story.storybook).toBe(replacementStorybook)
+		local record = getRecord(storyRequest)
+		assert(record and record.stories, "expected the record to reload with the replacement storybook")
+		expect(record.stories[1].storybook).toBe(replacementStorybook)
 	end)
 end)
 
 test("removes the record when the story module is destroyed", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Doomed")
+	local storyRequest = createRequest("Doomed")
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 
-	request.storyModule:Destroy()
+	storyRequest.storyModule:Destroy()
 
 	waitFor(function()
-		expect(getRecord(request)).toBeUndefined()
+		expect(getRecord(storyRequest)).toBeUndefined()
 	end)
 end)
 
@@ -430,29 +495,29 @@ test("removes records when the storybook module is destroyed", function()
 	first.storybook.source:Destroy()
 
 	waitFor(function()
-		expect(getRecord(first)).toBeUndefined()
-		expect(getRecord(second)).toBeUndefined()
+		local firstKey = next(recordStore.getRecords())
+		expect(firstKey).toBeUndefined()
 	end)
 end)
 
 test("clear drops every record and outstanding request", function()
 	recordStore = StoryModuleRecordStore.new()
-	local request = createRequest("Cleared")
+	local storyRequest = createRequest("Cleared")
 
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 
 	recordStore.clear()
 
-	expect(getRecord(request)).toBeUndefined()
+	expect((next(recordStore.getRecords()))).toBeUndefined()
 
 	-- The store must accept fresh requests after a clear.
-	recordStore.request(StoryModuleRequestPriority.Background, request)
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 	waitFor(function()
-		expect(getRecord(request)).toBeDefined()
+		expect(getRecord(storyRequest)).toBeDefined()
 	end)
 end)
 
@@ -460,10 +525,10 @@ test("requests after destroy are no-ops", function()
 	recordStore = StoryModuleRecordStore.new()
 	recordStore.destroy()
 
-	local request = createRequest("TooLate")
-	local release = recordStore.request(StoryModuleRequestPriority.Background, request)
+	local storyRequest = createRequest("TooLate")
+	local release = recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
 	release()
 
 	task.wait()
-	expect(getRecord(request)).toBeUndefined()
+	expect((next(recordStore.getRecords()))).toBeUndefined()
 end)

@@ -104,12 +104,52 @@ The only required member of a Story definition is the `story` property.
 | **Property** | **Type**                        | **Description**                                                                                                                                                                                                                             |
 | ------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `story`      | `<T>((props: StoryProps) -> T)` |                                                                                                                                                                                                                                             |
+| `id`         | `string?`                       | A stable identifier used to select the Story when its module contains multiple Stories.                                                                                                                                                    |
 | `name`       | `string?`                       | The name of the Story as it appears in Flipbook. Defaults to the name of the Story module. i.e. `Sample.story` becomes `Sample`                                                                                                             |
 | `summary`    | `string?`                       | A description of the Story that will appear above the rendered preview in Flipbook.                                                                                                                                                         |
 | `controls`   | `{ [string]: any }?`            | Controls allow for on-the-fly configuration of your rendered UI. Read more about how to define and use controls [here](https://flipbook-labs.github.io/flipbook/docs/creating-stories/controls).                                            |
 | `packages`   | `{ [string]: any }?`            | An optional dictionary used for supplying the Story with the packages to use when rendering. The Story inherits the packages defined by the Storybook, so this is mostly used in cases where Story needs to deviate from the usual renderer |
+| `props`      | `{ [string]: any }?`            | Static properties merged into `StoryProps` when the Story renders.                                                                                                                                                                         |
 
 The type of the `story` property is dependent on what kind of Story is being rendered. Storyteller does not prescribe one particular way of writing Stories, or even a particular UI library that must be used.
+
+### Multiple Stories in One Module
+
+Use `stories` in place of `story` when several variants share one module. An array preserves its declared order. A dictionary sorts Stories alphabetically by key.
+
+```lua title="StatusLabels.story.luau"
+local function createLabel(text, color)
+    return function()
+        local label = Instance.new("TextLabel")
+        label.Text = text
+        label.TextColor3 = color
+        return label
+    end
+end
+
+return {
+    name = "Status Labels",
+    summary = "Labels for common request states.",
+    stories = {
+        {
+            id = "success",
+            name = "Success",
+            story = createLabel("Ready", Color3.fromRGB(70, 180, 90)),
+        },
+        {
+            id = "failure",
+            name = "Failure",
+            story = createLabel("Try again", Color3.fromRGB(220, 70, 70)),
+        },
+    },
+}
+```
+
+Module-level `summary`, `controls`, `packages`, and `props` values become defaults for each Story. A Story can override individual values, and dictionary fields are merged with the module defaults.
+
+Each Story should declare a stable `id`. When it is omitted, Storyteller uses the Story name, the dictionary key, or the array position. Duplicate IDs and modules that define both `story` and `stories` are rejected.
+
+Use `loadStoriesFromModule` to load every Story. `loadStoryModule` continues to return the first Story, and `useStory` accepts an optional Story ID as its third argument. When that ID does not exist, `useStory` returns a problem instead of rendering another Story.
 
 ## StoryProps
 

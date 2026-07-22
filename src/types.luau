@@ -13,7 +13,7 @@ local types = {}
 export type StudioTheme = "Light" | "Dark"
 
 export type ExtraStoryProps = {
-	[string]: any,
+	[string]: unknown,
 }
 
 export type ReservedStoryProps = {
@@ -78,21 +78,51 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
+	id: string?,
 	controls: StoryControlsSchema?,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
-types.IStory = t.interface({
+types.IStoryDefinition = t.interface({
 	story = t.any,
+	id = t.optional(t.string),
 	name = t.optional(t.string),
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
 })
 
+export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
+
+export type StoryGroup<T> = {
+	stories: { StoryEntry<T> } | { [string]: StoryEntry<T> },
+
+	name: string?,
+	summary: string?,
+	controls: StoryControlsSchema?,
+	packages: StoryPackages?,
+	props: ExtraStoryProps?,
+}
+types.IStoryGroup = t.interface({
+	-- Key discipline (array or string-keyed dictionary) is enforced by
+	-- normalizeStoryModule so mixed keys surface an actionable error instead
+	-- of a generic union failure.
+	stories = t.table,
+	name = t.optional(t.string),
+	summary = t.optional(t.string),
+	controls = t.optional(t.map(t.string, t.any)),
+	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
+})
+
+export type StoryModule<T> = Story<T> | StoryGroup<T>
+types.IStory = t.union(types.IStoryDefinition, types.IStoryGroup)
+
 export type LoadedStory<T> = {
+	id: string,
 	name: string,
 	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
@@ -101,7 +131,29 @@ export type LoadedStory<T> = {
 
 	summary: string?,
 	controls: StoryControlsSchema?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
+}
+
+export type StoryRequest = {
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+}
+
+export type StoryModuleRecord = {
+	name: string?,
+	stories: { LoadedStory<unknown> }?,
+	problem: string?,
+}
+
+-- Records are keyed by (Story module, Storybook source) pair: the outer key is
+-- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
+-- was loaded through. The same Story module can be covered by multiple
+-- Storybooks, and each pairing loads independently because the Storybook
+-- supplies the loader environment (packages, mapStory, and friends).
+export type StoryModuleRecords = {
+	[ModuleScript]: {
+		[ModuleScript]: StoryModuleRecord,
+	},
 }
 
 return types

@@ -10,6 +10,7 @@ local StoryContainer = require("./StoryContainer")
 
 type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type ExtraStoryProps = types.ExtraStoryProps
 type LoadedStory<T> = types.LoadedStory<T>
 
 local act = ReactRoblox.act
@@ -169,7 +170,7 @@ describe("extraProps", function()
 			end,
 		})
 
-		local extraProps = {
+		local extraProps: ExtraStoryProps = {
 			theme = "Dark",
 			locale = "en-us",
 		}
@@ -205,7 +206,7 @@ describe("extraProps", function()
 
 		-- These are props that Storyteller specifically manages and cannot be
 		-- overridden by the consumer
-		local extraProps = {
+		local extraProps: ExtraStoryProps = {
 			container = { foo = true },
 			story = false,
 		}
@@ -241,7 +242,7 @@ describe("extraProps", function()
 			extraProps, setExtraProps = React.useState({
 				theme = "Dark",
 				locale = "en-us",
-			})
+			} :: ExtraStoryProps)
 
 			return React.createElement(StoryContainer, {
 				story = story,
@@ -259,7 +260,7 @@ describe("extraProps", function()
 			setExtraProps({
 				theme = "Light",
 				locale = "en-us",
-			})
+			} :: ExtraStoryProps)
 		end)
 
 		expect(storyProps).never.toBe(snapshot)
@@ -325,7 +326,7 @@ describe("story props", function()
 			end,
 		})
 
-		local extraProps = {
+		local extraProps: ExtraStoryProps = {
 			theme = "Dark",
 			locale = "en-us",
 		}
@@ -361,7 +362,7 @@ describe("story props", function()
 			end,
 		})
 
-		local extraProps = {
+		local extraProps: ExtraStoryProps = {
 			theme = "Dark",
 			locale = "en-us",
 		}
