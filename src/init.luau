@@ -1,5 +1,4 @@
 local ControlTypes = require("@self/controls/ControlTypes")
-local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StorytellerContext = require("@root/react/StorytellerContext")
 local types = require("@self/types")
 
@@ -30,9 +29,9 @@ export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-export type StoryRequest = StoryModuleRecordStore.StoryRequest
-export type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
-export type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
+export type StoryRequest = types.StoryRequest
+export type StoryModuleRecord = types.StoryModuleRecord
+export type StoryModuleRecords = types.StoryModuleRecords
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl

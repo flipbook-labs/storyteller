@@ -6,32 +6,13 @@ local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local types = require("@root/types")
 
-type LoadedStorybook = types.LoadedStorybook
-type LoadedStory<T> = types.LoadedStory<T>
 type RequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
-export type StoryRequest = {
-	storyModule: ModuleScript,
-	storybook: LoadedStorybook,
-}
-
-export type StoryModuleRecord = {
-	stories: { LoadedStory<unknown> }?,
-	problem: string?,
-}
+export type StoryRequest = types.StoryRequest
+export type StoryModuleRecord = types.StoryModuleRecord
+export type StoryModuleRecords = types.StoryModuleRecords
 
 export type CleanupFn = () -> ()
-
--- Records are keyed by (Story module, Storybook source) pair: the outer key is
--- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
--- was loaded through. The same Story module can be covered by multiple
--- Storybooks, and each pairing loads independently because the Storybook
--- supplies the loader environment (packages, mapStory, and friends).
-export type StoryModuleRecords = {
-	[ModuleScript]: {
-		[ModuleScript]: StoryModuleRecord,
-	},
-}
 
 export type StoryModuleRecordStore = {
 	getRecords: () -> StoryModuleRecords,
@@ -345,6 +326,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		local stories = result.stories
 		excludeFromCharmFreeze(stories)
 		return {
+			name = result.name,
 			stories = stories,
 		}
 	end

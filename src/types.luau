@@ -134,4 +134,26 @@ export type LoadedStory<T> = {
 	props: ExtraStoryProps?,
 }
 
+export type StoryRequest = {
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+}
+
+export type StoryModuleRecord = {
+	name: string?,
+	stories: { LoadedStory<unknown> }?,
+	problem: string?,
+}
+
+-- Records are keyed by (Story module, Storybook source) pair: the outer key is
+-- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
+-- was loaded through. The same Story module can be covered by multiple
+-- Storybooks, and each pairing loads independently because the Storybook
+-- supplies the loader environment (packages, mapStory, and friends).
+export type StoryModuleRecords = {
+	[ModuleScript]: {
+		[ModuleScript]: StoryModuleRecord,
+	},
+}
+
 return types

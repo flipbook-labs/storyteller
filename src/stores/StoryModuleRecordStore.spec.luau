@@ -136,6 +136,28 @@ test("loads every story from a requested module", function()
 	end)
 end)
 
+test("publishes the module's group name", function()
+	recordStore = StoryModuleRecordStore.new()
+	local storyRequest = createRequest("Widgets")
+	storyRequest.storyModule.Source = [[
+		return {
+			name = "Widget Gallery",
+			stories = {
+				Primary = function() end,
+				Secondary = function() end,
+			},
+		}
+	]]
+
+	recordStore.request(StoryModuleRequestPriority.Background, storyRequest)
+
+	waitFor(function()
+		local record = getRecord(storyRequest)
+		assert(record, "expected a record for the requested story module")
+		expect(record.name).toBe("Widget Gallery")
+	end)
+end)
+
 test("keeps loaded story packages mutable under Charm's Studio freeze", function()
 	Charm.flags.frozen = true
 	recordStore = StoryModuleRecordStore.new()
