@@ -33,8 +33,25 @@ local function query(options: QueryOptions): QueryResult
 	local isDestroyed = false
 	local isRunning = false
 
-	local function queryDescendantsAsync()
+	local function setCurrentMatches(matches: { Instance })
+		setMatches(function(prev)
+			if #matches == #prev and #Sift.List.differenceSymmetric(matches, prev) == 0 then
+				return prev
+			end
+
+			return matches
+		end)
+	end
+
+	local function queryDescendants(): { Instance }
 		local matches = {}
+
+		if options.root:IsA(options.selector) then
+			local isMatch = if options.matcher then options.matcher(options.root) else true
+			if isMatch then
+				table.insert(matches, options.root)
+			end
+		end
 
 		for _, instance in options.root:QueryDescendants(options.selector) do
 			local isMatch = if options.matcher then options.matcher(instance) else true
@@ -57,16 +74,7 @@ local function query(options: QueryOptions): QueryResult
 				return
 			end
 
-			local matches = queryDescendantsAsync()
-
-			setMatches(function(prev)
-				if #matches == #prev and #Sift.List.differenceSymmetric(matches, prev) == 0 then
-					return prev
-				end
-
-				return matches
-			end)
-
+			setCurrentMatches(queryDescendants())
 			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)
 		end
 

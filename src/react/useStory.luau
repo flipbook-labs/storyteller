@@ -1,11 +1,12 @@
-local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
+local ReactCharm = require("@pkg/ReactCharm")
 
-local loadStoryModule = require("@root/loadStoryModule")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local types = require("@root/types")
+local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useEffect = React.useEffect
-local useState = React.useState
+local useSignalState = ReactCharm.useSignalState
 
 --[=[
 	This hook triggers a rerender when the Story module or any of its required
@@ -58,37 +59,19 @@ local useState = React.useState
 	@within Storyteller
 ]=]
 local function useStory(module: ModuleScript, storybook: types.LoadedStorybook): (types.LoadedStory<unknown>?, string?)
-	local story, setStory = useState(nil :: types.LoadedStory<unknown>?)
-	local err, setErr = useState(nil :: string?)
+	local storytellerStore = useStorytellerStore()
+	local record = useSignalState(function()
+		return storytellerStore.getStoryModuleRecord(module)
+	end, { module, storytellerStore } :: { unknown })
 
 	useEffect(function()
-		local changedConn: RBXScriptConnection
+		return storytellerStore.requestStoryModule(StoryModuleRequestPriority.Interactive, {
+			storyModule = module,
+			storybook = storybook,
+		})
+	end, { module, storytellerStore, storybook } :: { unknown })
 
-		local function loadStory()
-			local loader = ModuleLoader.new()
-
-			local newStory
-			local success, result = pcall(function()
-				newStory = loadStoryModule(module, storybook, loader)
-			end)
-
-			setStory(if success then newStory else nil)
-			setErr(if success then nil else result)
-
-			changedConn = loader.loadedModuleChanged:Connect(function()
-				loadStory()
-				changedConn:Disconnect()
-			end)
-		end
-
-		loadStory()
-
-		return function()
-			changedConn:Disconnect()
-		end
-	end, { module, storybook } :: { unknown })
-
-	return story, err
+	return if record then record.story else nil, if record then record.problem else nil
 end
 
 return useStory

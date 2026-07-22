@@ -10,7 +10,10 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
+local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local debounce = require("@root/debounce")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
@@ -20,7 +23,11 @@ local types = require("@root/types")
 
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
-type LoadedStory<T> = types.LoadedStory<T>
+
+type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
+type StoryRequest = StoryModuleRecordStore.StoryRequest
+type CleanupFn = StoryModuleRecordStore.CleanupFn
+type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StorytellerStore = {
 	start: () -> (),
@@ -33,6 +40,9 @@ export type StorytellerStore = {
 	getStorybookModules: () -> { ModuleScript },
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
+
+	getStoryModuleRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
+	requestStoryModule: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
@@ -51,6 +61,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isDestroyed = false
 	local isRunning = false
 
+	local pendingStorybookModules: { ModuleScript } = {}
+	local queuedStorybookModules: { [ModuleScript]: boolean } = {}
+	local isProcessingStorybookModules = false
+	local storybookLoadGeneration = 0
+
 	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
 	self.getStoryModules = getStoryModules
 
@@ -62,6 +77,10 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
 	self.getUnavailableStorybooks = getUnavailableStorybooks
+
+	local recordStore = StoryModuleRecordStore.new()
+	self.getStoryModuleRecord = recordStore.getRecord
+	self.requestStoryModule = recordStore.request
 
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
 		local orphans = {}
@@ -97,6 +116,13 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 
 		if success and storybook then
+			if storybook.packages then
+				-- The Storybook owns this map, so attach the exclusion to a clone.
+				local packages = table.clone(storybook.packages)
+				excludeFromCharmFreeze(packages)
+				storybook.packages = packages
+			end
+
 			setLoadedStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
@@ -152,18 +178,61 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 	end
 
-	local function reloadStorybook(storybookModule: ModuleScript)
-		Charm.batch(function()
-			unloadStorybook(storybookModule)
-			loadStorybook(storybookModule)
+	local function processPendingStorybookModules()
+		if isProcessingStorybookModules then
+			return
+		end
+		isProcessingStorybookModules = true
+
+		local generation = storybookLoadGeneration
+		task.defer(function()
+			while generation == storybookLoadGeneration and isRunning do
+				local storybookModule = table.remove(pendingStorybookModules, 1)
+				if not storybookModule then
+					break
+				end
+
+				if queuedStorybookModules[storybookModule] then
+					queuedStorybookModules[storybookModule] = nil
+					loadStorybook(storybookModule)
+					task.wait()
+				end
+			end
+
+			if generation == storybookLoadGeneration then
+				isProcessingStorybookModules = false
+			end
 		end)
 	end
 
+	local function queueStorybookModule(storybookModule: ModuleScript)
+		if queuedStorybookModules[storybookModule] then
+			return
+		end
+
+		queuedStorybookModules[storybookModule] = true
+		table.insert(pendingStorybookModules, storybookModule)
+		processPendingStorybookModules()
+	end
+
+	local function reloadStorybook(storybookModule: ModuleScript)
+		unloadStorybook(storybookModule)
+		queueStorybookModule(storybookModule)
+	end
+
 	local function stop()
-		if isDestroyed or not isRunning then
+		if isDestroyed then
+			return
+		end
+		if not isRunning then
+			recordStore.clear()
 			return
 		end
 		isRunning = false
+		storybookLoadGeneration += 1
+		isProcessingStorybookModules = false
+		table.clear(pendingStorybookModules)
+		table.clear(queuedStorybookModules)
 
 		storyModulesQuery.stop()
 		storybookModulesQuery.stop()
@@ -177,6 +246,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		disposeStorybookModulesSubscription()
 		disposeStoryModuleObserver()
 		disposeStoryModulesSubscription()
+		recordStore.clear()
 	end
 	self.stop = stop
 
@@ -214,13 +284,14 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
 			assert(storybookModule:IsA("ModuleScript"), "Luau")
 
-			loadStorybook(storybookModule)
+			queueStorybookModule(storybookModule)
 
 			local changedConn = storybookModule.Changed:Connect(debounce(function()
 				reloadStorybook(storybookModule)
 			end))
 
 			return function()
+				queuedStorybookModules[storybookModule] = nil
 				unloadStorybook(storybookModule)
 				changedConn:Disconnect()
 			end
@@ -231,14 +302,6 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
-
-		Charm.batch(function()
-			for _, storybookModule in storybookModulesQuery.get() do
-				assert(storybookModule:IsA("ModuleScript"), "Luau")
-
-				loadStorybook(storybookModule)
-			end
-		end)
 	end
 	self.start = start
 
@@ -247,8 +310,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			return
 		end
 
-		isDestroyed = true
 		stop()
+		isDestroyed = true
+		recordStore.destroy()
 		storyModulesQuery.destroy()
 		storybookModulesQuery.destroy()
 	end
