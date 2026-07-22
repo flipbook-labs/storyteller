@@ -4,6 +4,7 @@ local Roact = require("@pkg/Roact")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
@@ -12,6 +13,7 @@ local test = JestGlobals.test
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
+type LoadedStory<T> = types.LoadedStory<T>
 
 local function createRoactStory(element)
 	return createStory({
@@ -209,7 +211,7 @@ describe("middleware", function()
 
 		story.storybook.mapDefinition = function(storyDefinition)
 			applications += 1
-			return table.clone(storyDefinition)
+			return table.clone(storyDefinition :: LoadedStory<unknown>)
 		end
 
 		local lifecycle = render(container, story)
@@ -231,7 +233,7 @@ describe("middleware", function()
 		local story = createRoactStory(ButtonStory)
 
 		story.storybook.mapDefinition = function(storyDefinition)
-			local mapped = table.clone(storyDefinition)
+			local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 			mapped.story = function()
 				return Roact.createElement("TextLabel", {
 					Text = "Replaced",

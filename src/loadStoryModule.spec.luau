@@ -32,7 +32,7 @@ beforeEach(function()
 				mount = jest.fn(),
 				unmount = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 
 	mockReactStorybook = {
@@ -46,7 +46,7 @@ beforeEach(function()
 			ReactRoblox = {
 				createRoot = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 end)
 
@@ -105,7 +105,7 @@ test("legacy function stories never inherit storybook packages", function()
 		source = Instance.new("ModuleScript"),
 		packages = {
 			React = {},
-		},
+		} :: types.StoryPackages,
 	}
 
 	local storyModule = createMockStoryModule([[
@@ -207,7 +207,7 @@ describe("legacy support", function()
 			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
-			},
+			} :: types.StoryPackages,
 		}
 
 		local storyModule = createMockStoryModule([[
@@ -453,7 +453,7 @@ describe("multiple stories", function()
 			source = Instance.new("ModuleScript"),
 			packages = {
 				React = { fromStorybook = true },
-			},
+			} :: types.StoryPackages,
 		}
 
 		local storyModule = createMockStoryModule([[
