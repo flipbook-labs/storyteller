@@ -3,6 +3,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local constants = require("@root/constants")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local types = require("@root/types")
 
@@ -91,17 +92,6 @@ type PendingPublication = {
 }
 
 local WORK_BUDGET_MS = 4
-
--- Charm deep-freezes signal values in Studio but skips tables that carry a
--- metatable. Loaded stories reference package modules (React and friends)
--- that mutate internal state while rendering, so their object graphs must
--- stay outside that recursive freeze. #132 moves this to the module-loading
--- boundary; this exclusion is the record store's interim guard.
-local LOADED_STORY_METATABLE = {}
-
-local function excludeFromCharmFreeze(value: { [unknown]: unknown })
-	setmetatable(value, LOADED_STORY_METATABLE)
-end
 
 local StoryModuleRecordStore = {}
 

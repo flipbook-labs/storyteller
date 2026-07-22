@@ -13,6 +13,7 @@ local Sift = require("@pkg/Sift")
 local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local debounce = require("@root/debounce")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
@@ -122,11 +123,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		if success and storybook then
 			if storybook.packages then
-				-- Storybooks enter Charm state, but package modules can own
-				-- mutable state. Clone the author's map before stopping the
-				-- recursive Studio freeze (see StoryModuleRecordStore).
+				-- The Storybook owns this map, so attach the exclusion to a clone.
 				local packages = table.clone(storybook.packages)
-				setmetatable(packages :: any, {})
+				excludeFromCharmFreeze(packages)
 				storybook.packages = packages
 			end
 
