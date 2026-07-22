@@ -20,13 +20,15 @@ export type StoryModuleRecord = {
 	problem: string?,
 }
 
+export type CleanupFn = () -> ()
+
 type StoryModuleRecords = {
 	[ModuleScript]: StoryModuleRecord,
 }
 
 export type StoryModuleRecordStore = {
 	getRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
-	request: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> () -> (),
+	request: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 	clear: () -> (),
 	destroy: () -> (),
 }
@@ -385,7 +387,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		queueRequest(entry, priority, true)
 	end
 
-	local function request(priority: StoryModuleRequestPriority, storyRequest: StoryRequest): () -> ()
+	local function request(priority: StoryModuleRequestPriority, storyRequest: StoryRequest): CleanupFn
 		if isDestroyed then
 			return function() end
 		end
