@@ -3,6 +3,51 @@
 All notable changes to this project will be documented in this file.
 
 
+## v1.13.0
+
+### Changes
+
+- Add a StorytellerStore benchmark suite behind a --benchmarks flag (`lute run test --benchmarks`) with a non-blocking CI job. Bench files use the .bench suffix and never run in the regular spec pass.
+
+- Update the story-renderers contributing doc to match the real `StoryRenderer` contract: the `transformProps` and `shouldUpdate` hooks, the current `mount`, `update`, and `unmount` signatures, and Vide listed among the supported renderers.
+
+- Load Stories through shared, prioritized requests while spreading Storybook evaluation across frames.
+
+### Dependencies
+
+- Add AgentSkills `v0.4.0` as a dev dependency so agents can bootstrap the shared skills library.
+
+- Update the docs site's dependencies to resolve all open Dependabot alerts.
+
+- Update AgentSkills to `v0.5.0` for the durable-writing workflow.
+
+- Upgrade FlipbookBatteries `v0.11.0` → `v0.12.0` and Lute `v1.0.1-nightly.20260612` → `v1.0.1-nightly.20260701`, and align the toolchain (luau-lsp `1.68.1`, selene `0.31.0`, StyLua `2.5.2`, rocale-cli `0.1.3`, wally-package-types `1.6.2`).
+
+### Features
+
+- Honor a storybook's `mapDefinition` middleware in the Iris renderer, matching the other renderers. The definition is transformed exactly once when a story mounts.
+
+- Add an [Iris](https://github.com/SirMallard/Iris) renderer so stories written with it can be previewed in a storybook.
+
+- Honor a storybook's `mapDefinition` middleware in the Fusion, Vide, and Manual renderers, matching the existing behavior in React and Roact. The definition is now transformed exactly once when a story mounts, regardless of which renderer is used.
+
+- Add a Vide renderer so stories written with [Vide](https://github.com/centau/vide) can be previewed in a storybook. `createVideRenderer` implements the standard `StoryRenderer` interface (`mount`/`update`/`unmount`) and is selected automatically by `createRendererForStory` whenever a story's packages expose `Vide`.
+
+### Fixed
+
+- Apply a storybook's `mapStory` middleware in the Fusion, Vide, and Manual renderers, matching the existing behavior in React and Roact.
+
+### Fixes
+
+- Apply a storybook's `mapDefinition` middleware exactly once when the React renderer mounts a story, matching the other renderers. Control changes now re-render the already-mapped story rather than re-applying the middleware, so a non-idempotent `mapDefinition` no longer stacks transformations on every update.
+
+- Loading a story that requires Storyteller no longer starts discovery or creates the shared store inside the story's sandbox.
+
+### Internal
+
+- Upgrade the Changewrite release action to `v0.7.0` and adopt its `publish-lock` check.
+
+
 ## v1.12.0
 
 ### Changes
@@ -384,4 +429,3 @@ All notable changes to this project will be documented in this file.
 - Fix path to render() ([abd500f](https://github.com/flipbook-labs/storyteller/commit/abd500f5cf821a128eddb17d989e043c85f54194))
 
 - Initial commit ([e3d84ad](https://github.com/flipbook-labs/storyteller/commit/e3d84ad464468015855acb126038c0424aa61467))
-
