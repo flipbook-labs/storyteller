@@ -134,9 +134,4 @@ export type LoadedStory<T> = {
 	props: ExtraStoryProps?,
 }
 
-export type StoryModuleTarget = {
-	storyModule: ModuleScript,
-	storybook: LoadedStorybook,
-}
-
 return types

@@ -3,7 +3,6 @@ local ReactCharm = require("@pkg/ReactCharm")
 
 local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
-local types = require("@root/types")
 local useStorytellerStore = require("@root/react/useStorytellerStore")
 
 local useEffect = React.useEffect
@@ -12,10 +11,10 @@ local useRef = React.useRef
 local useSignalState = ReactCharm.useSignalState
 
 type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
-type StoryModuleTarget = types.StoryModuleTarget
+type StoryRequest = StoryModuleRecordStore.StoryRequest
 
 type ActiveRequest = {
-	target: StoryModuleTarget,
+	request: StoryRequest,
 	release: () -> (),
 }
 
@@ -25,14 +24,14 @@ type ActiveRequests = {
 	},
 }
 
-local function areSameTargets(previous: { StoryModuleTarget }, current: { StoryModuleTarget }): boolean
+local function areSameRequests(previous: { StoryRequest }, current: { StoryRequest }): boolean
 	if #previous ~= #current then
 		return false
 	end
 
-	for index, target in previous do
-		local nextTarget = current[index]
-		if target.storyModule ~= nextTarget.storyModule or target.storybook ~= nextTarget.storybook then
+	for index, request in previous do
+		local nextRequest = current[index]
+		if request.storyModule ~= nextRequest.storyModule or request.storybook ~= nextRequest.storybook then
 			return false
 		end
 	end
@@ -59,14 +58,14 @@ end
 	@tag Story
 	@within Storyteller
 ]=]
-local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModuleRecords
+local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRecords
 	local storytellerStore = useStorytellerStore()
 	local records = useSignalState(storytellerStore.getStoryModuleRecords)
-	local stableTargetsRef = useRef(targets)
-	if not areSameTargets(stableTargetsRef.current, targets) then
-		stableTargetsRef.current = targets
+	local stableRequestsRef = useRef(requests)
+	if not areSameRequests(stableRequestsRef.current, requests) then
+		stableRequestsRef.current = requests
 	end
-	local stableTargets = stableTargetsRef.current
+	local stableRequests = stableRequestsRef.current
 
 	local activeRequestsRef = useRef({} :: ActiveRequests)
 	local requestStoreRef = useRef(storytellerStore)
@@ -83,14 +82,14 @@ local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModul
 			requestStoreRef.current = storytellerStore
 		end
 
-		local currentTargets = {} :: { [ModuleScript]: { [ModuleScript]: boolean } }
-		for _, target in stableTargets do
-			local storyModule = target.storyModule
-			local storybookSource = target.storybook.source
-			local currentForModule = currentTargets[storyModule]
+		local currentRequests = {} :: { [ModuleScript]: { [ModuleScript]: boolean } }
+		for _, request in stableRequests do
+			local storyModule = request.storyModule
+			local storybookSource = request.storybook.source
+			local currentForModule = currentRequests[storyModule]
 			if not currentForModule then
 				currentForModule = {}
-				currentTargets[storyModule] = currentForModule
+				currentRequests[storyModule] = currentForModule
 			end
 			currentForModule[storybookSource] = true
 
@@ -101,7 +100,7 @@ local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModul
 			end
 
 			local activeRequest = requestsForModule[storybookSource]
-			if activeRequest and activeRequest.target.storybook == target.storybook then
+			if activeRequest and activeRequest.request.storybook == request.storybook then
 				continue
 			end
 			if activeRequest then
@@ -109,13 +108,13 @@ local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModul
 			end
 
 			requestsForModule[storybookSource] = {
-				target = target,
-				release = storytellerStore.requestStoryModules({ target }, StoryModuleRequestPriority.Background),
+				request = request,
+				release = storytellerStore.requestStoryModule(StoryModuleRequestPriority.Background, request),
 			}
 		end
 
 		for storyModule, requestsForModule in activeRequests do
-			local currentForModule = currentTargets[storyModule]
+			local currentForModule = currentRequests[storyModule]
 			for storybookSource, activeRequest in requestsForModule do
 				if not currentForModule or not currentForModule[storybookSource] then
 					activeRequest.release()
@@ -126,24 +125,24 @@ local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModul
 				activeRequests[storyModule] = nil
 			end
 		end
-	end, { storytellerStore, stableTargets } :: { unknown })
+	end, { storytellerStore, stableRequests } :: { unknown })
 
 	return useMemo(function()
 		local result = {} :: StoryModuleRecords
-		for _, target in stableTargets do
-			local recordsForModule = records[target.storyModule]
-			local record = if recordsForModule then recordsForModule[target.storybook.source] else nil
+		for _, request in stableRequests do
+			local recordsForModule = records[request.storyModule]
+			local record = if recordsForModule then recordsForModule[request.storybook.source] else nil
 			if record then
-				local resultForModule = result[target.storyModule]
+				local resultForModule = result[request.storyModule]
 				if not resultForModule then
 					resultForModule = {}
-					result[target.storyModule] = resultForModule
+					result[request.storyModule] = resultForModule
 				end
-				resultForModule[target.storybook.source] = record
+				resultForModule[request.storybook.source] = record
 			end
 		end
 		return result
-	end, { records, stableTargets } :: { unknown })
+	end, { records, stableRequests } :: { unknown })
 end
 
 return useStoryModuleRecords

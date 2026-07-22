@@ -3,6 +3,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 local types = require("@root/types")
 
@@ -11,7 +12,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryModuleTarget = {
+type StoryRequest = {
 	storyModule: ModuleScript,
 	storybook: types.LoadedStorybook,
 }
@@ -572,7 +573,7 @@ describe("requesting story modules", function()
 	-- Request lifecycle behavior (sharing, priority, invalidation, cleanup)
 	-- is covered by StoryModuleRecordStore.spec. These tests pin the
 	-- composition between the store and the record store it delegates to.
-	local function createTarget(name: string): StoryModuleTarget
+	local function createRequest(name: string): StoryRequest
 		local storyModule = Instance.new("ModuleScript")
 		storyModule.Name = `{name}.story`
 		storyModule.Source = `return \{ name = "{name}", story = function() end \}`
@@ -587,19 +588,19 @@ describe("requesting story modules", function()
 		}
 	end
 
-	local function getRecord(target: StoryModuleTarget)
-		local recordsForModule = store.getStoryModuleRecords()[target.storyModule]
-		return if recordsForModule then recordsForModule[target.storybook.source] else nil
+	local function getRecord(storyRequest: StoryRequest)
+		local recordsForModule = store.getStoryModuleRecords()[storyRequest.storyModule]
+		return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
 	end
 
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Delegated")
+		local storyRequest = createRequest("Delegated")
 
-		store.requestStoryModules({ target })
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
 
 		waitFor(function()
-			local record = getRecord(target)
+			local record = getRecord(storyRequest)
 			assert(record and record.stories, "expected a loaded record for the requested story module")
 			expect(record.stories[1].name).toBe("Delegated")
 		end)
@@ -607,12 +608,12 @@ describe("requesting story modules", function()
 
 	test("clears records when the store is destroyed", function()
 		store = StorytellerStore.new(new("Folder"))
-		local target = createTarget("Ephemeral")
+		local storyRequest = createRequest("Ephemeral")
 
-		store.requestStoryModules({ target })
+		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
 
 		waitFor(function()
-			expect(getRecord(target)).toBeDefined()
+			expect(getRecord(storyRequest)).toBeDefined()
 		end)
 
 		store.destroy()

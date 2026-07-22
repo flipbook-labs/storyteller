@@ -16,12 +16,10 @@ local function useStoriesForModule(
 	local records = useSignalState(storytellerStore.getStoryModuleRecords)
 
 	useEffect(function()
-		return storytellerStore.requestStoryModules({
-			{
-				storyModule = module,
-				storybook = storybook,
-			},
-		}, StoryModuleRequestPriority.Interactive)
+		return storytellerStore.requestStoryModule(StoryModuleRequestPriority.Interactive, {
+			storyModule = module,
+			storybook = storybook,
+		})
 	end, { module, storytellerStore, storybook } :: { unknown })
 
 	local recordsForModule = records[module]

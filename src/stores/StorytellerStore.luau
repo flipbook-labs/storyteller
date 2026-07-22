@@ -25,7 +25,8 @@ type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 
-type StoryModuleTarget = StoryModuleRecordStore.StoryModuleTarget
+type StoryRequest = StoryModuleRecordStore.StoryRequest
+type CleanupFn = StoryModuleRecordStore.CleanupFn
 type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
 
 export type StorytellerStore = {
@@ -41,10 +42,10 @@ export type StorytellerStore = {
 	getOrphanedStoryModules: () -> { ModuleScript },
 
 	getStoryModuleRecords: () -> StoryModuleRecords,
-	requestStoryModules: (
-		targets: { StoryModuleTarget },
-		priority: StoryModuleRequestPriority.StoryModuleRequestPriority?
-	) -> () -> (),
+	requestStoryModule: (
+		priority: StoryModuleRequestPriority.StoryModuleRequestPriority,
+		storyRequest: StoryRequest
+	) -> CleanupFn,
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
@@ -86,7 +87,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local recordStore = StoryModuleRecordStore.new()
 	self.getStoryModuleRecords = recordStore.getRecords
-	self.requestStoryModules = recordStore.request
+	self.requestStoryModule = recordStore.request
 
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
 		local orphans = {}

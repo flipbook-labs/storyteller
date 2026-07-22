@@ -30,7 +30,7 @@ export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-export type StoryModuleTarget = types.StoryModuleTarget
+export type StoryRequest = StoryModuleRecordStore.StoryRequest
 export type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
 export type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
 

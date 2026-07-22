@@ -4,6 +4,7 @@ local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
+local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StorytellerContext = require("./StorytellerContext")
 local StorytellerStore = require("@root/stores/StorytellerStore")
 local renderHook = require("@root/test-utils/renderHook")
@@ -37,7 +38,7 @@ test("loads records and isolates malformed modules", function()
 		source = Instance.new("ModuleScript"),
 		storyRoots = {},
 	}
-	local targets: { types.StoryModuleTarget } = {
+	local requests: { StoryModuleRecordStore.StoryRequest } = {
 		{
 			storyModule = validStoryModule,
 			storybook = storybook,
@@ -49,7 +50,7 @@ test("loads records and isolates malformed modules", function()
 	}
 
 	local get = renderHook(function()
-		return useStoryModuleRecords(targets)
+		return useStoryModuleRecords(requests)
 	end)
 
 	act(function()
@@ -136,7 +137,7 @@ test("keeps records for every Storybook that covers a module", function()
 	storyModule:Destroy()
 end)
 
-test("does not reload when an equivalent target array is recreated", function()
+test("does not reload when an equivalent request array is recreated", function()
 	local storyModule = Instance.new("ModuleScript")
 	storyModule.Name = "Stable.story"
 	storyModule.Source = [[
@@ -173,7 +174,7 @@ test("does not reload when an equivalent target array is recreated", function()
 	storyModule:Destroy()
 end)
 
-test("does not reload existing targets when targets are added or removed", function()
+test("does not reload existing requests when requests are added or removed", function()
 	local firstStoryModule = Instance.new("ModuleScript")
 	firstStoryModule.Name = "First.story"
 	firstStoryModule.Source = [[
@@ -198,15 +199,15 @@ test("does not reload existing targets when targets are added or removed", funct
 		source = Instance.new("ModuleScript"),
 		storyRoots = {},
 	}
-	local firstTarget: types.StoryModuleTarget = {
+	local firstRequest: StoryModuleRecordStore.StoryRequest = {
 		storyModule = firstStoryModule,
 		storybook = firstStorybook,
 	}
-	local secondTarget: types.StoryModuleTarget = {
+	local secondRequest: StoryModuleRecordStore.StoryRequest = {
 		storyModule = secondStoryModule,
 		storybook = secondStorybook,
 	}
-	local targets = { firstTarget }
+	local requests = { firstRequest }
 	local getRenderVersion, setRenderVersion = Charm.signal(0)
 	local root = Instance.new("Folder")
 	local store = StorytellerStore.new(root)
@@ -219,7 +220,7 @@ test("does not reload existing targets when targets are added or removed", funct
 
 	local get = renderHook(function()
 		useSignalState(getRenderVersion)
-		return useStoryModuleRecords(targets)
+		return useStoryModuleRecords(requests)
 	end, {
 		wrapper = Wrapper,
 	})
@@ -236,7 +237,7 @@ test("does not reload existing targets when targets are added or removed", funct
 	end)
 
 	act(function()
-		targets = { firstTarget, secondTarget }
+		requests = { firstRequest, secondRequest }
 		setRenderVersion(1)
 		task.wait(0.1)
 	end)
@@ -254,7 +255,7 @@ test("does not reload existing targets when targets are added or removed", funct
 	expect(secondStoryModule:GetAttribute("LoadCount")).toBe(1)
 
 	act(function()
-		targets = { secondTarget }
+		requests = { secondRequest }
 		setRenderVersion(2)
 		task.wait(0.1)
 	end)

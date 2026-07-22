@@ -10,12 +10,17 @@ type LoadedStorybook = types.LoadedStorybook
 type LoadedStory<T> = types.LoadedStory<T>
 type RequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
-export type StoryModuleTarget = types.StoryModuleTarget
+export type StoryRequest = {
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+}
 
 export type StoryModuleRecord = {
 	stories: { LoadedStory<unknown> }?,
 	problem: string?,
 }
+
+export type CleanupFn = () -> ()
 
 -- Records are keyed by (Story module, Storybook source) pair: the outer key is
 -- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
@@ -30,15 +35,15 @@ export type StoryModuleRecords = {
 
 export type StoryModuleRecordStore = {
 	getRecords: () -> StoryModuleRecords,
-	request: (targets: { StoryModuleTarget }, priority: RequestPriority?) -> () -> (),
+	request: (priority: RequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 	clear: () -> (),
 	destroy: () -> (),
 }
 
 -- One entry exists per requested (Story module, Storybook source) pair.
 -- Every field backs a distinct behavior; drop the behavior to drop the field.
-type TargetEntry = {
-	target: StoryModuleTarget,
+type RequestEntry = {
+	request: StoryRequest,
 	-- The Storybook source this entry loads through; also the key into
 	-- loaderEntries for the shared ModuleLoader.
 	loaderSource: ModuleScript,
@@ -75,11 +80,11 @@ type LoaderEntry = {
 	loader: ModuleLoader.ModuleLoader,
 	connection: RBXScriptConnection,
 	destroyingConnection: RBXScriptConnection,
-	targets: { [ModuleScript]: TargetEntry },
+	requests: { [ModuleScript]: RequestEntry },
 }
 
-type TargetQueue = {
-	items: { [number]: TargetEntry },
+type RequestQueue = {
+	items: { [number]: RequestEntry },
 	head: number,
 	tail: number,
 }
@@ -99,50 +104,50 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local initialRecords: StoryModuleRecords = {}
 	local getRecords, setRecords = Charm.signal(initialRecords)
 
-	local targetEntries: { [ModuleScript]: { [ModuleScript]: TargetEntry } } = {}
+	local requestEntries: { [ModuleScript]: { [ModuleScript]: RequestEntry } } = {}
 	local loaderEntries: { [ModuleScript]: LoaderEntry } = {}
-	local backgroundQueue: TargetQueue = {
+	local backgroundQueue: RequestQueue = {
 		items = {},
 		head = 1,
 		tail = 0,
 	}
-	local interactiveQueue: TargetQueue = {
+	local interactiveQueue: RequestQueue = {
 		items = {},
 		head = 1,
 		tail = 0,
 	}
-	local isProcessingTargets = false
+	local isProcessingRequests = false
 
-	local processPendingTargets: () -> ()
-	local queueTarget: (TargetEntry, RequestPriority, boolean) -> ()
-	local invalidateTarget: (TargetEntry, RequestPriority) -> ()
-	local cleanupTargetEntry: (TargetEntry) -> ()
+	local processPendingRequests: () -> ()
+	local queueRequest: (RequestEntry, RequestPriority, boolean) -> ()
+	local invalidateRequest: (RequestEntry, RequestPriority) -> ()
+	local cleanupRequestEntry: (RequestEntry) -> ()
 
-	local function getTargetEntry(storyModule: ModuleScript, storybookSource: ModuleScript): TargetEntry?
-		local entriesForModule = targetEntries[storyModule]
+	local function getRequestEntry(storyModule: ModuleScript, storybookSource: ModuleScript): RequestEntry?
+		local entriesForModule = requestEntries[storyModule]
 		return if entriesForModule then entriesForModule[storybookSource] else nil
 	end
 
-	local function setTargetEntry(entry: TargetEntry)
-		local storyModule = entry.target.storyModule
-		local entriesForModule = targetEntries[storyModule]
+	local function setRequestEntry(entry: RequestEntry)
+		local storyModule = entry.request.storyModule
+		local entriesForModule = requestEntries[storyModule]
 		if not entriesForModule then
 			entriesForModule = {}
-			targetEntries[storyModule] = entriesForModule
+			requestEntries[storyModule] = entriesForModule
 		end
 		entriesForModule[entry.loaderSource] = entry
 	end
 
-	local function removeTargetEntry(entry: TargetEntry)
-		local storyModule = entry.target.storyModule
-		local entriesForModule = targetEntries[storyModule]
+	local function removeRequestEntry(entry: RequestEntry)
+		local storyModule = entry.request.storyModule
+		local entriesForModule = requestEntries[storyModule]
 		if not entriesForModule or entriesForModule[entry.loaderSource] ~= entry then
 			return
 		end
 
 		entriesForModule[entry.loaderSource] = nil
 		if next(entriesForModule) == nil then
-			targetEntries[storyModule] = nil
+			requestEntries[storyModule] = nil
 		end
 	end
 
@@ -165,7 +170,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	local function publishRecords(publications: { [TargetEntry]: PendingPublication })
+	local function publishRecords(publications: { [RequestEntry]: PendingPublication })
 		if next(publications) == nil then
 			return
 		end
@@ -175,17 +180,17 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			local clonedModules: { [ModuleScript]: boolean } = {}
 
 			for entry, publication in publications do
-				local target = entry.target
+				local storyRequest = entry.request
 				if
 					entry.refCount > 0
 					and entry.generation == publication.generation
-					and getTargetEntry(target.storyModule, entry.loaderSource) == entry
+					and getRequestEntry(storyRequest.storyModule, entry.loaderSource) == entry
 				then
-					local recordsForModule = nextRecords[target.storyModule]
-					if not clonedModules[target.storyModule] then
+					local recordsForModule = nextRecords[storyRequest.storyModule]
+					if not clonedModules[storyRequest.storyModule] then
 						recordsForModule = if recordsForModule then table.clone(recordsForModule) else {}
-						nextRecords[target.storyModule] = recordsForModule
-						clonedModules[target.storyModule] = true
+						nextRecords[storyRequest.storyModule] = recordsForModule
+						clonedModules[storyRequest.storyModule] = true
 					end
 					recordsForModule[entry.loaderSource] = publication.record
 				end
@@ -195,33 +200,33 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	local function resetQueue(targetQueue: TargetQueue)
-		table.clear(targetQueue.items)
-		targetQueue.head = 1
-		targetQueue.tail = 0
+	local function resetQueue(requestQueue: RequestQueue)
+		table.clear(requestQueue.items)
+		requestQueue.head = 1
+		requestQueue.tail = 0
 	end
 
-	local function pushQueue(targetQueue: TargetQueue, entry: TargetEntry)
-		targetQueue.tail += 1
-		targetQueue.items[targetQueue.tail] = entry
+	local function pushQueue(requestQueue: RequestQueue, entry: RequestEntry)
+		requestQueue.tail += 1
+		requestQueue.items[requestQueue.tail] = entry
 	end
 
-	local function popQueue(targetQueue: TargetQueue, priority: RequestPriority): TargetEntry?
-		while targetQueue.head <= targetQueue.tail do
-			local index = targetQueue.head
-			local entry = targetQueue.items[index]
-			targetQueue.items[index] = nil
-			targetQueue.head += 1
+	local function popQueue(requestQueue: RequestQueue, priority: RequestPriority): RequestEntry?
+		while requestQueue.head <= requestQueue.tail do
+			local index = requestQueue.head
+			local entry = requestQueue.items[index]
+			requestQueue.items[index] = nil
+			requestQueue.head += 1
 
 			if entry and entry.refCount > 0 and entry.queuedPriority == priority then
-				if targetQueue.head > targetQueue.tail then
-					resetQueue(targetQueue)
+				if requestQueue.head > requestQueue.tail then
+					resetQueue(requestQueue)
 				end
 				return entry
 			end
 		end
 
-		resetQueue(targetQueue)
+		resetQueue(requestQueue)
 		return nil
 	end
 
@@ -236,12 +241,12 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		loaderEntry = {
 			loader = loader,
 			connection = loader.loadedModuleChanged:Connect(function(changedModule)
-				local changedTarget = loaderEntry.targets[changedModule]
-				if changedTarget then
-					if not changedTarget.reloadLoader then
-						invalidateTarget(
-							changedTarget,
-							if changedTarget.interactiveRefCount > 0
+				local changedEntry = loaderEntry.requests[changedModule]
+				if changedEntry then
+					if not changedEntry.reloadLoader then
+						invalidateRequest(
+							changedEntry,
+							if changedEntry.interactiveRefCount > 0
 								then StoryModuleRequestPriority.Interactive
 								else StoryModuleRequestPriority.Background
 						)
@@ -251,9 +256,9 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 					return
 				end
 
-				for _, entry in loaderEntry.targets do
+				for _, entry in loaderEntry.requests do
 					if not entry.reloadLoader then
-						invalidateTarget(
+						invalidateRequest(
 							entry,
 							if entry.interactiveRefCount > 0
 								then StoryModuleRequestPriority.Interactive
@@ -264,14 +269,14 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			end),
 			destroyingConnection = storybookSource.Destroying:Connect(function()
 				local entries = {}
-				for _, entry in loaderEntry.targets do
+				for _, entry in loaderEntry.requests do
 					table.insert(entries, entry)
 				end
 				for _, entry in entries do
-					cleanupTargetEntry(entry)
+					cleanupRequestEntry(entry)
 				end
 			end),
-			targets = {},
+			requests = {},
 		}
 		loaderEntries[storybookSource] = loaderEntry
 		return loaderEntry
@@ -279,16 +284,16 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 	local function cleanupLoaderEntry(storybookSource: ModuleScript)
 		local loaderEntry = loaderEntries[storybookSource]
-		if loaderEntry and next(loaderEntry.targets) == nil then
+		if loaderEntry and next(loaderEntry.requests) == nil then
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
 			loaderEntry.loader:clear()
-			table.clear(loaderEntry.targets)
+			table.clear(loaderEntry.requests)
 			loaderEntries[storybookSource] = nil
 		end
 	end
 
-	cleanupTargetEntry = function(entry: TargetEntry)
+	cleanupRequestEntry = function(entry: RequestEntry)
 		entry.refCount = 0
 		entry.interactiveRefCount = 0
 		entry.generation += 1
@@ -312,23 +317,23 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		entry.reloadLoader = nil
 
 		local loaderEntry = loaderEntries[entry.loaderSource]
-		if loaderEntry and loaderEntry.targets[entry.target.storyModule] == entry then
-			loaderEntry.targets[entry.target.storyModule] = nil
+		if loaderEntry and loaderEntry.requests[entry.request.storyModule] == entry then
+			loaderEntry.requests[entry.request.storyModule] = nil
 		end
 
-		removeTargetEntry(entry)
-		removeRecord(entry.target.storyModule, entry.loaderSource)
+		removeRequestEntry(entry)
+		removeRecord(entry.request.storyModule, entry.loaderSource)
 		cleanupLoaderEntry(entry.loaderSource)
 	end
 
-	local function createRecord(entry: TargetEntry): StoryModuleRecord
-		local target = entry.target
+	local function createRecord(entry: RequestEntry): StoryModuleRecord
+		local storyRequest = entry.request
 		local loaderEntry = loaderEntries[entry.loaderSource]
-		assert(loaderEntry, "Story module loader was cleaned up while a target was loading")
+		assert(loaderEntry, "Story module loader was cleaned up while a story module was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
 		local success, result = pcall(function()
-			return loadStoryModuleData(target.storyModule, target.storybook, loader)
+			return loadStoryModuleData(storyRequest.storyModule, storyRequest.storybook, loader)
 		end)
 
 		if not success then
@@ -344,14 +349,14 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		}
 	end
 
-	processPendingTargets = function()
-		if isProcessingTargets or isDestroyed then
+	processPendingRequests = function()
+		if isProcessingRequests or isDestroyed then
 			return
 		end
-		isProcessingTargets = true
+		isProcessingRequests = true
 
 		task.defer(function()
-			local publications: { [TargetEntry]: PendingPublication } = {}
+			local publications: { [RequestEntry]: PendingPublication } = {}
 			local workStarted = os.clock()
 
 			while not isDestroyed do
@@ -380,17 +385,17 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			end
 
 			publishRecords(publications)
-			isProcessingTargets = false
+			isProcessingRequests = false
 			if
 				not isDestroyed
 				and (interactiveQueue.head <= interactiveQueue.tail or backgroundQueue.head <= backgroundQueue.tail)
 			then
-				processPendingTargets()
+				processPendingRequests()
 			end
 		end)
 	end
 
-	queueTarget = function(entry: TargetEntry, priority: RequestPriority, invalidate: boolean)
+	queueRequest = function(entry: RequestEntry, priority: RequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -409,10 +414,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		else
 			pushQueue(backgroundQueue, entry)
 		end
-		processPendingTargets()
+		processPendingRequests()
 	end
 
-	invalidateTarget = function(entry: TargetEntry, priority: RequestPriority)
+	invalidateRequest = function(entry: RequestEntry, priority: RequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -428,96 +433,80 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		local loader = ModuleLoader.new()
 		entry.reloadLoader = loader
 		entry.reloadConnection = loader.loadedModuleChanged:Connect(function()
-			invalidateTarget(
+			invalidateRequest(
 				entry,
 				if entry.interactiveRefCount > 0
 					then StoryModuleRequestPriority.Interactive
 					else StoryModuleRequestPriority.Background
 			)
 		end)
-		queueTarget(entry, priority, true)
+		queueRequest(entry, priority, true)
 	end
 
-	local function request(targets: { StoryModuleTarget }, priority: RequestPriority?): () -> ()
+	local function request(priority: RequestPriority, storyRequest: StoryRequest): CleanupFn
 		if isDestroyed then
 			return function() end
 		end
 
-		local requestPriority: RequestPriority = priority or StoryModuleRequestPriority.Background
-		local acquiredEntries: { TargetEntry } = {}
-		local acquiredByModule: { [ModuleScript]: { [ModuleScript]: boolean } } = {}
+		local storyModule = storyRequest.storyModule
+		local storybookSource = storyRequest.storybook.source
 
-		for _, target in targets do
-			local storyModule = target.storyModule
-			local storybookSource = target.storybook.source
-			local acquiredForModule = acquiredByModule[storyModule]
-			if not acquiredForModule then
-				acquiredForModule = {}
-				acquiredByModule[storyModule] = acquiredForModule
+		local existingEntry = getRequestEntry(storyModule, storybookSource)
+		local entry: RequestEntry
+		local hasStorybookChanged = false
+		if existingEntry then
+			entry = existingEntry
+			if entry.request.storybook ~= storyRequest.storybook then
+				entry.request = storyRequest
+				hasStorybookChanged = true
 			end
-			if acquiredForModule[storybookSource] then
-				continue
-			end
-			acquiredForModule[storybookSource] = true
+		else
+			entry = {
+				request = storyRequest,
+				loaderSource = storybookSource,
+				refCount = 0,
+				interactiveRefCount = 0,
+				generation = 1,
+				isLoading = false,
+				queuedPriority = nil,
+				reloadLoader = nil,
+				reloadConnection = nil,
+				sourceConnection = nil,
+				destroyingConnection = nil,
+			}
+			setRequestEntry(entry)
 
-			local existingEntry = getTargetEntry(storyModule, storybookSource)
-			local entry: TargetEntry
-			local hasTargetChanged = false
-			if existingEntry then
-				entry = existingEntry
-				if entry.target.storybook ~= target.storybook then
-					entry.target = target
-					hasTargetChanged = true
-				end
-			else
-				entry = {
-					target = target,
-					loaderSource = storybookSource,
-					refCount = 0,
-					interactiveRefCount = 0,
-					generation = 1,
-					isLoading = false,
-					queuedPriority = nil,
-					reloadLoader = nil,
-					reloadConnection = nil,
-					sourceConnection = nil,
-					destroyingConnection = nil,
-				}
-				setTargetEntry(entry)
+			local loaderEntry = ensureLoaderEntry(storybookSource)
+			loaderEntry.requests[storyModule] = entry
+			entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
+				invalidateRequest(
+					entry,
+					if entry.interactiveRefCount > 0
+						then StoryModuleRequestPriority.Interactive
+						else StoryModuleRequestPriority.Background
+				)
+			end)
+			entry.destroyingConnection = storyModule.Destroying:Connect(function()
+				cleanupRequestEntry(entry)
+			end)
+		end
 
-				local loaderEntry = ensureLoaderEntry(storybookSource)
-				loaderEntry.targets[storyModule] = entry
-				entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
-					invalidateTarget(
-						entry,
-						if entry.interactiveRefCount > 0
-							then StoryModuleRequestPriority.Interactive
-							else StoryModuleRequestPriority.Background
-					)
-				end)
-				entry.destroyingConnection = storyModule.Destroying:Connect(function()
-					cleanupTargetEntry(entry)
-				end)
-			end
+		entry.refCount += 1
+		if priority == StoryModuleRequestPriority.Interactive then
+			entry.interactiveRefCount += 1
+		end
 
-			entry.refCount += 1
-			if requestPriority == StoryModuleRequestPriority.Interactive then
-				entry.interactiveRefCount += 1
-			end
-			table.insert(acquiredEntries, entry)
-
-			local recordsForModule = getRecords()[storyModule]
-			local record = if recordsForModule then recordsForModule[storybookSource] else nil
-			if hasTargetChanged then
-				invalidateTarget(entry, requestPriority)
-			elseif not record and not entry.isLoading then
-				queueTarget(entry, requestPriority, false)
-			elseif
-				entry.queuedPriority == StoryModuleRequestPriority.Background
-				and requestPriority == StoryModuleRequestPriority.Interactive
-			then
-				queueTarget(entry, StoryModuleRequestPriority.Interactive, false)
-			end
+		local recordsForModule = getRecords()[storyModule]
+		local record = if recordsForModule then recordsForModule[storybookSource] else nil
+		if hasStorybookChanged then
+			invalidateRequest(entry, priority)
+		elseif not record and not entry.isLoading then
+			queueRequest(entry, priority, false)
+		elseif
+			entry.queuedPriority == StoryModuleRequestPriority.Background
+			and priority == StoryModuleRequestPriority.Interactive
+		then
+			queueRequest(entry, StoryModuleRequestPriority.Interactive, false)
 		end
 
 		local isReleased = false
@@ -527,22 +516,18 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			end
 			isReleased = true
 
-			for _, entry in acquiredEntries do
-				if requestPriority == StoryModuleRequestPriority.Interactive then
-					entry.interactiveRefCount = math.max(0, entry.interactiveRefCount - 1)
-				end
-				entry.refCount = math.max(0, entry.refCount - 1)
-				if entry.refCount == 0 then
-					cleanupTargetEntry(entry)
-				end
+			if priority == StoryModuleRequestPriority.Interactive then
+				entry.interactiveRefCount = math.max(0, entry.interactiveRefCount - 1)
 			end
-			table.clear(acquiredEntries)
-			table.clear(acquiredByModule)
+			entry.refCount = math.max(0, entry.refCount - 1)
+			if entry.refCount == 0 then
+				cleanupRequestEntry(entry)
+			end
 		end
 	end
 
 	local function clear()
-		for _, entriesForModule in targetEntries do
+		for _, entriesForModule in requestEntries do
 			for _, entry in entriesForModule do
 				entry.refCount = 0
 				entry.interactiveRefCount = 0
@@ -567,13 +552,13 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			end
 			table.clear(entriesForModule)
 		end
-		table.clear(targetEntries)
+		table.clear(requestEntries)
 
 		for _, loaderEntry in loaderEntries do
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
 			loaderEntry.loader:clear()
-			table.clear(loaderEntry.targets)
+			table.clear(loaderEntry.requests)
 		end
 		table.clear(loaderEntries)
 
