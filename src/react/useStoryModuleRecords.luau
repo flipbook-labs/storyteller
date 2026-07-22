@@ -1,6 +1,7 @@
 local React = require("@pkg/React")
 local ReactCharm = require("@pkg/ReactCharm")
 
+local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local types = require("@root/types")
 local useStorytellerStore = require("@root/react/useStorytellerStore")
@@ -10,7 +11,7 @@ local useMemo = React.useMemo
 local useRef = React.useRef
 local useSignalState = ReactCharm.useSignalState
 
-type StoryModuleSnapshots = types.StoryModuleSnapshots
+type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
 type StoryModuleTarget = types.StoryModuleTarget
 
 type ActiveRequest = {
@@ -49,15 +50,16 @@ local function releaseActiveRequests(activeRequests: ActiveRequests)
 end
 
 --[=[
-	Requests and subscribes to the metadata needed to build Story browser nodes.
-	Story module loading, caching, scheduling, and watching are owned by the
-	active StorytellerStore.
+	Requests and subscribes to the loaded Story module records needed to build
+	Story browser nodes. Consumers project the metadata they need (names,
+	summaries, load problems) from each record's stories. Story module loading,
+	caching, scheduling, and watching are owned by the active StorytellerStore.
 
 	@tag React
 	@tag Story
 	@within Storyteller
 ]=]
-local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): StoryModuleSnapshots
+local function useStoryModuleRecords(targets: { StoryModuleTarget }): StoryModuleRecords
 	local storytellerStore = useStorytellerStore()
 	local records = useSignalState(storytellerStore.getStoryModuleRecords)
 	local stableTargetsRef = useRef(targets)
@@ -127,21 +129,21 @@ local function useStoryModuleSnapshots(targets: { StoryModuleTarget }): StoryMod
 	end, { storytellerStore, stableTargets } :: { unknown })
 
 	return useMemo(function()
-		local snapshots = {} :: StoryModuleSnapshots
+		local result = {} :: StoryModuleRecords
 		for _, target in stableTargets do
 			local recordsForModule = records[target.storyModule]
 			local record = if recordsForModule then recordsForModule[target.storybook.source] else nil
 			if record then
-				local snapshotsForModule = snapshots[target.storyModule]
-				if not snapshotsForModule then
-					snapshotsForModule = {}
-					snapshots[target.storyModule] = snapshotsForModule
+				local resultForModule = result[target.storyModule]
+				if not resultForModule then
+					resultForModule = {}
+					result[target.storyModule] = resultForModule
 				end
-				snapshotsForModule[target.storybook.source] = record.snapshot
+				resultForModule[target.storybook.source] = record
 			end
 		end
-		return snapshots
+		return result
 	end, { records, stableTargets } :: { unknown })
 end
 
-return useStoryModuleSnapshots
+return useStoryModuleRecords

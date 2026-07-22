@@ -85,13 +85,6 @@ test("loads a requested story module", function()
 			source = target.storyModule,
 			storybook = target.storybook,
 		})
-		expect(record.snapshot.stories).toEqual({
-			{
-				id = "Button",
-				name = "Button",
-				summary = "Button summary",
-			},
-		})
 	end)
 end)
 
@@ -139,14 +132,6 @@ test("loads every story from a requested module", function()
 		expect(record.stories).toEqual({
 			expect.objectContaining({ id = "Primary", name = "Primary" }),
 			expect.objectContaining({ id = "Secondary", name = "Secondary" }),
-		})
-		expect(record.snapshot).toMatchObject({
-			name = "Buttons",
-			source = target.storyModule,
-			stories = {
-				{ id = "Primary", name = "Primary" },
-				{ id = "Secondary", name = "Secondary" },
-			},
 		})
 	end)
 end)
@@ -244,7 +229,6 @@ test("reports a story module load problem", function()
 		assert(record, "expected a record for the requested story module")
 		expect(record.stories).toBeUndefined()
 		expect(record.problem).toBeDefined()
-		expect(record.snapshot.problem).toBe(record.problem)
 	end)
 end)
 

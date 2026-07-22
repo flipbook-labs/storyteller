@@ -134,28 +134,9 @@ export type LoadedStory<T> = {
 	props: ExtraStoryProps?,
 }
 
-export type StorySnapshot = {
-	id: string,
-	name: string,
-	summary: string?,
-}
-
-export type StoryModuleSnapshot = {
-	name: string,
-	source: ModuleScript,
-	stories: { StorySnapshot },
-	problem: string?,
-}
-
 export type StoryModuleTarget = {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
-}
-
-export type StoryModuleSnapshots = {
-	[ModuleScript]: {
-		[ModuleScript]: StoryModuleSnapshot,
-	},
 }
 
 return types

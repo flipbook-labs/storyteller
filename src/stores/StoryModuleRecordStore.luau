@@ -2,7 +2,6 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
-local constants = require("@root/constants")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local types = require("@root/types")
@@ -14,7 +13,6 @@ type RequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 export type StoryModuleTarget = types.StoryModuleTarget
 
 export type StoryModuleRecord = {
-	snapshot: types.StoryModuleSnapshot,
 	stories: { LoadedStory<unknown> }?,
 	problem: string?,
 }
@@ -334,35 +332,14 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 
 		if not success then
-			local problem = tostring(result)
 			return {
-				snapshot = {
-					name = target.storyModule.Name:gsub(constants.STORY_NAME_PATTERN, ""),
-					source = target.storyModule,
-					stories = {},
-					problem = problem,
-				},
-				problem = problem,
+				problem = tostring(result),
 			}
 		end
 
 		local stories = result.stories
 		excludeFromCharmFreeze(stories)
-		local storySnapshots = {}
-		for _, story in stories do
-			table.insert(storySnapshots, {
-				id = story.id,
-				name = story.name,
-				summary = story.summary,
-			})
-		end
-
 		return {
-			snapshot = {
-				name = result.name,
-				source = target.storyModule,
-				stories = storySnapshots,
-			},
 			stories = stories,
 		}
 	end

@@ -8,7 +8,7 @@ local StorytellerContext = require("./StorytellerContext")
 local StorytellerStore = require("@root/stores/StorytellerStore")
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
-local useStoryModuleSnapshots = require("./useStoryModuleSnapshots")
+local useStoryModuleRecords = require("./useStoryModuleRecords")
 local waitFor = require("@root/test-utils/waitFor")
 
 local act = ReactRoblox.act
@@ -16,7 +16,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local useSignalState = ReactCharm.useSignalState
 
-test("loads snapshots and isolates malformed modules", function()
+test("loads records and isolates malformed modules", function()
 	local validStoryModule = Instance.new("ModuleScript")
 	validStoryModule.Name = "Valid.story"
 	validStoryModule.Source = [[
@@ -49,7 +49,7 @@ test("loads snapshots and isolates malformed modules", function()
 	}
 
 	local get = renderHook(function()
-		return useStoryModuleSnapshots(targets)
+		return useStoryModuleRecords(targets)
 	end)
 
 	act(function()
@@ -57,14 +57,14 @@ test("loads snapshots and isolates malformed modules", function()
 	end)
 
 	waitFor(function()
-		local snapshots = get()
-		local validSnapshot = snapshots[validStoryModule][storybook.source]
-		local invalidSnapshot = snapshots[invalidStoryModule][storybook.source]
-		expect(validSnapshot.stories).toEqual({
+		local records = get()
+		local validRecord = records[validStoryModule][storybook.source]
+		local invalidRecord = records[invalidStoryModule][storybook.source]
+		expect(validRecord.stories).toEqual({
 			expect.objectContaining({ id = "Alpha", name = "Alpha" }),
 			expect.objectContaining({ id = "Beta", name = "Beta" }),
 		})
-		expect(invalidSnapshot.problem).toBeDefined()
+		expect(invalidRecord.problem).toBeDefined()
 	end)
 
 	act(function()
@@ -77,9 +77,9 @@ test("loads snapshots and isolates malformed modules", function()
 	end)
 
 	waitFor(function()
-		local snapshot = get()[invalidStoryModule][storybook.source]
-		expect(snapshot.problem).toBeUndefined()
-		expect(snapshot.stories).toEqual({
+		local record = get()[invalidStoryModule][storybook.source]
+		expect(record.problem).toBeUndefined()
+		expect(record.stories).toEqual({
 			expect.objectContaining({
 				id = "default",
 				name = "Invalid",
@@ -92,7 +92,7 @@ test("loads snapshots and isolates malformed modules", function()
 	invalidStoryModule:Destroy()
 end)
 
-test("keeps snapshots for every Storybook that covers a module", function()
+test("keeps records for every Storybook that covers a module", function()
 	local storyModule = Instance.new("ModuleScript")
 	storyModule.Name = "Shared.story"
 	storyModule.Source = "return { story = function() end }"
@@ -109,7 +109,7 @@ test("keeps snapshots for every Storybook that covers a module", function()
 	}
 
 	local get = renderHook(function()
-		return useStoryModuleSnapshots({
+		return useStoryModuleRecords({
 			{
 				storyModule = storyModule,
 				storybook = firstStorybook,
@@ -126,9 +126,9 @@ test("keeps snapshots for every Storybook that covers a module", function()
 	end)
 
 	waitFor(function()
-		local snapshotsForModule = get()[storyModule]
-		expect(snapshotsForModule[firstStorybook.source]).toBeDefined()
-		expect(snapshotsForModule[secondStorybook.source]).toBeDefined()
+		local recordsForModule = get()[storyModule]
+		expect(recordsForModule[firstStorybook.source]).toBeDefined()
+		expect(recordsForModule[secondStorybook.source]).toBeDefined()
 	end)
 
 	firstStorybook.source:Destroy()
@@ -153,7 +153,7 @@ test("does not reload when an equivalent target array is recreated", function()
 
 	renderHook(function()
 		useSignalState(getRenderVersion)
-		return useStoryModuleSnapshots({
+		return useStoryModuleRecords({
 			{
 				storyModule = storyModule,
 				storybook = storybook,
@@ -219,7 +219,7 @@ test("does not reload existing targets when targets are added or removed", funct
 
 	local get = renderHook(function()
 		useSignalState(getRenderVersion)
-		return useStoryModuleSnapshots(targets)
+		return useStoryModuleRecords(targets)
 	end, {
 		wrapper = Wrapper,
 	})
@@ -229,10 +229,10 @@ test("does not reload existing targets when targets are added or removed", funct
 	end)
 
 	waitFor(function()
-		local snapshotsForModule = get()[firstStoryModule]
-		local snapshot = if snapshotsForModule then snapshotsForModule[firstStorybook.source] else nil
-		assert(snapshot, "expected the first snapshot to load")
-		expect(snapshot.stories[1].id).toBe("default")
+		local recordsForModule = get()[firstStoryModule]
+		local record = if recordsForModule then recordsForModule[firstStorybook.source] else nil
+		assert(record and record.stories, "expected the first record to load")
+		expect(record.stories[1].id).toBe("default")
 	end)
 
 	act(function()
@@ -245,10 +245,10 @@ test("does not reload existing targets when targets are added or removed", funct
 	end)
 
 	waitFor(function()
-		local snapshotsForModule = get()[secondStoryModule]
-		local snapshot = if snapshotsForModule then snapshotsForModule[secondStorybook.source] else nil
-		assert(snapshot, "expected the second snapshot to load")
-		expect(snapshot.stories[1].id).toBe("default")
+		local recordsForModule = get()[secondStoryModule]
+		local record = if recordsForModule then recordsForModule[secondStorybook.source] else nil
+		assert(record and record.stories, "expected the second record to load")
+		expect(record.stories[1].id).toBe("default")
 	end)
 	expect(firstStoryModule:GetAttribute("LoadCount")).toBe(1)
 	expect(secondStoryModule:GetAttribute("LoadCount")).toBe(1)
