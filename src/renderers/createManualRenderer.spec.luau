@@ -200,6 +200,95 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 end)
 
+test("mounts and unmounts a story that is an Instance", function()
+	local instance = Instance.new("TextLabel")
+	local story = createStory({
+		story = instance,
+	})
+
+	local lifecycle = render(container, story)
+
+	expect(#container:GetChildren()).toBe(1)
+	expect(instance.Parent).toBe(container)
+
+	lifecycle.unmount()
+
+	expect(#container:GetChildren()).toBe(0)
+end)
+
+test("a story function with two parameters receives the container first", function()
+	local receivedTarget
+	local receivedProps
+
+	local story = createStory({
+		story = function(target, props)
+			receivedTarget = target
+			receivedProps = props
+
+			local label = Instance.new("TextLabel")
+			label.Parent = target
+		end,
+	})
+
+	render(container, story)
+
+	expect(receivedTarget).toBe(container)
+	expect(receivedProps).toMatchObject({
+		container = container,
+	})
+	expect(#container:GetChildren()).toBe(1)
+end)
+
+test("the previous render is cleaned up exactly once per update", function()
+	local cleanups = 0
+
+	local story = createStory({
+		story = function(props)
+			local label = Instance.new("TextLabel")
+			label.Parent = props.container
+
+			return function()
+				cleanups += 1
+			end
+		end,
+	})
+
+	story.controls = {
+		isDisabled = false,
+	} :: StoryControlsSchema
+
+	local lifecycle = render(container, story)
+
+	expect(cleanups).toBe(0)
+
+	lifecycle.update({
+		isDisabled = true,
+	} :: StoryControls)
+
+	-- The update remounts from scratch, cleaning up the previous render
+	expect(cleanups).toBe(1)
+	expect(#container:GetChildren()).toBe(1)
+
+	lifecycle.unmount()
+
+	expect(cleanups).toBe(2)
+	expect(#container:GetChildren()).toBe(0)
+end)
+
+test("errors thrown by the story propagate out of render", function()
+	local story = createStory({
+		story = function()
+			error("manual story blew up")
+		end,
+	})
+
+	expect(function()
+		render(container, story)
+	end).toThrow("manual story blew up")
+
+	expect(#container:GetChildren()).toBe(0)
+end)
+
 test("mapStory middleware wraps the story", function()
 	local story = createStory({
 		story = function()
