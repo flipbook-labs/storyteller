@@ -1,0 +1,277 @@
+--!strict
+-- API Snapshot Tool
+--
+-- Snapshots the public API surface of a Luau module (value exports from the
+-- return table and `export type` declarations) into a deterministic golden
+-- file that can be checked into version control and verified in CI.
+--
+-- Update mode (default):
+--   lute run scripts/api-snapshot.luau -- ./src/init.luau
+--
+-- Check mode:
+--   lute run scripts/api-snapshot.luau -- --check ./src/init.luau
+
+local luau = require("@lute/luau")
+local fs = require("@lute/fs")
+local process = require("@lute/process")
+local printer = require("@std/syntax/printer")
+
+local SNAPSHOT_PATH = "api-snapshot.txt"
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Argument parsing
+-- ────────────────────────────────────────────────────────────────────────────
+
+local rawArgs: { string } = { ... }
+local checkMode = false
+local modulePath: string? = nil
+
+-- rawArgs[1] is always the script path; skip it and any bare "--" separator
+for i, arg in rawArgs do
+	if i == 1 then
+		continue
+	end
+	if arg == "--" then
+		continue
+	end
+	if arg == "--check" then
+		checkMode = true
+	elseif modulePath == nil then
+		modulePath = arg
+	end
+end
+
+if modulePath == nil then
+	print("Usage: lute run scripts/api-snapshot.luau -- [--check] <module-path>")
+	print("  <module-path>  Path to the Luau module to snapshot (e.g. ./src/init.luau)")
+	print("  --check        Compare against golden file instead of writing")
+	process.exit(1)
+end
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Read & parse the module
+-- ────────────────────────────────────────────────────────────────────────────
+
+local function readFile(path: string): string
+	local handle = fs.open(path, "r")
+	local contents = fs.read(handle)
+	fs.close(handle)
+	return contents
+end
+
+local source = readFile(modulePath :: string)
+local parseResult = luau.parse(source)
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- AST helpers
+-- ────────────────────────────────────────────────────────────────────────────
+
+local function nodeText(node: luau.AstNode): string
+	local raw = printer.printnode(node)
+	local trimmed = raw:match("^%s*(.-)%s*$")
+	return trimmed or raw
+end
+
+-- Render the LHS of a type alias, including generic parameters.
+-- e.g. "Story<T>" or "BooleanControl"
+local function typeAliasLhs(stmt: luau.AstStatTypeAlias): string
+	local name = stmt.name.text
+
+	local hasGenerics = false
+	if stmt.generics ~= nil then
+		for _ in stmt.generics do
+			hasGenerics = true
+			break
+		end
+	end
+	if not hasGenerics and stmt.genericpacks ~= nil then
+		for _ in stmt.genericpacks do
+			hasGenerics = true
+			break
+		end
+	end
+
+	if not hasGenerics then
+		return name
+	end
+
+	local open = stmt.opengenerics and "<" or ""
+	local close = stmt.closegenerics and ">" or ""
+
+	local genericItems: { string } = {}
+	if stmt.generics then
+		for _, pair in stmt.generics do
+			local g = pair.node
+			local gStr = g.name.text
+			if g.default then
+				gStr = gStr .. " = " .. nodeText(g.default)
+			end
+			table.insert(genericItems, gStr)
+		end
+	end
+	if stmt.genericpacks then
+		for _, pair in stmt.genericpacks do
+			local g = pair.node
+			local gStr = g.name.text .. "..."
+			if g.default then
+				gStr = gStr .. " = " .. nodeText(g.default)
+			end
+			table.insert(genericItems, gStr)
+		end
+	end
+
+	return name .. open .. table.concat(genericItems, ", ") .. close
+end
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Collect exports from the AST
+-- ────────────────────────────────────────────────────────────────────────────
+
+type TypeExport = { name: string, lhs: string, rhs: string }
+
+local typeExports: { TypeExport } = {}
+local valueExports: { string } = {}
+
+for _, stmt in parseResult.root.statements do
+	if stmt.kind == "stat" and stmt.tag == "typealias" then
+		if stmt.export ~= nil then
+			local lhs = typeAliasLhs(stmt)
+			local rhs = nodeText(stmt["type"])
+			table.insert(typeExports, {
+				name = stmt.name.text,
+				lhs = lhs,
+				rhs = rhs,
+			})
+		end
+	elseif stmt.kind == "stat" and stmt.tag == "return" then
+		for _, pair in stmt.expressions do
+			local expr = pair.node
+			if expr.kind == "expr" and expr.tag == "table" then
+				for _, entry in expr.entries do
+					if entry.kind == "record" then
+						table.insert(valueExports, entry.key.text)
+					end
+				end
+			end
+		end
+	end
+end
+
+table.sort(typeExports, function(a: TypeExport, b: TypeExport)
+	return a.name:lower() < b.name:lower()
+end)
+table.sort(valueExports, function(a: string, b: string)
+	return a:lower() < b:lower()
+end)
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Serialize to the golden-file format
+-- ────────────────────────────────────────────────────────────────────────────
+
+local function generateSnapshot(path: string): string
+	local lines: { string } = {
+		`-- API Snapshot for {path}`,
+		"-- Generated by scripts/api-snapshot.luau",
+		"-- Do not edit manually.",
+		`-- Update: lute run scripts/api-snapshot.luau -- {path}`,
+		"",
+		"[values]",
+	}
+
+	for _, name in valueExports do
+		table.insert(lines, name)
+	end
+
+	table.insert(lines, "")
+	table.insert(lines, "[types]")
+
+	for _, t in typeExports do
+		table.insert(lines, `{t.lhs} = {t.rhs}`)
+	end
+
+	table.insert(lines, "")
+
+	return table.concat(lines, "\n")
+end
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Diff helper
+-- ────────────────────────────────────────────────────────────────────────────
+
+local function splitLines(s: string): { string }
+	local result: { string } = {}
+	for line in s:gmatch("[^\n]*") do
+		table.insert(result, line)
+	end
+	if #result > 0 and result[#result] == "" then
+		table.remove(result)
+	end
+	return result
+end
+
+local function printDiff(golden: string, current: string): boolean
+	local goldenLines = splitLines(golden)
+	local currentLines = splitLines(current)
+
+	local goldenSet: { [string]: boolean } = {}
+	local currentSet: { [string]: boolean } = {}
+
+	for _, line in goldenLines do
+		goldenSet[line] = true
+	end
+	for _, line in currentLines do
+		currentSet[line] = true
+	end
+
+	local hasChanges = false
+
+	for _, line in goldenLines do
+		if not currentSet[line] and not line:match("^%-%-") and line ~= "" then
+			print(`  - {line}`)
+			hasChanges = true
+		end
+	end
+
+	for _, line in currentLines do
+		if not goldenSet[line] and not line:match("^%-%-") and line ~= "" then
+			print(`  + {line}`)
+			hasChanges = true
+		end
+	end
+
+	return hasChanges
+end
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Main
+-- ────────────────────────────────────────────────────────────────────────────
+
+local snapshot = generateSnapshot(modulePath :: string)
+
+if checkMode then
+	if not fs.exists(SNAPSHOT_PATH) then
+		print(`[api-snapshot] Snapshot file not found: {SNAPSHOT_PATH}`)
+		print("[api-snapshot] Run without --check to generate the initial snapshot.")
+		process.exit(1)
+	end
+
+	local golden = readFile(SNAPSHOT_PATH)
+
+	if golden == snapshot then
+		print("[api-snapshot] API surface is unchanged.")
+	else
+		print("[api-snapshot] API surface has changed!")
+		print("")
+		local hasChanges = printDiff(golden, snapshot)
+		if hasChanges then
+			print("")
+			print(`[api-snapshot] Run 'lute run scripts/api-snapshot.luau -- {modulePath}' to update the snapshot.`)
+		end
+		process.exit(1)
+	end
+else
+	local handle = fs.open(SNAPSHOT_PATH, "w+")
+	fs.write(handle, snapshot)
+	fs.close(handle)
+	print(`[api-snapshot] Snapshot written to {SNAPSHOT_PATH}`)
+end
