@@ -70,27 +70,19 @@ run("lute", { "run", "build", "--channel", "dev" })
 copyInto(src, dest)
 
 local packageVersionRoot = path.dirname(packageInstallation)
-local sourceDependencies = path.join(repoRoot, "Packages")
-copyInto(path.join(sourceDependencies, "_Index"), flipbookPackageIndex)
-for _, targetLink in find(packageVersionRoot, "%.lua$") do
-	local sourceLink = path.join(sourceDependencies, path.basename(targetLink))
-	if not fs.exists(sourceLink) then
-		continue
-	end
-
-	local handle = fs.open(sourceLink)
-	local contents = fs.read(handle)
-	fs.close(handle)
-	contents = contents:gsub("script%.Parent%._Index", "script.Parent.Parent")
-
-	handle = fs.open(targetLink, "w+")
-	fs.write(handle, contents)
-	fs.close(handle)
-end
+local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
+local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
+local handle = fs.open(sourceModuleLoaderLink)
+local moduleLoaderLink = fs.read(handle)
+fs.close(handle)
+moduleLoaderLink = moduleLoaderLink:gsub("script%.Parent%._Index", "script.Parent.Parent")
+handle = fs.open(targetModuleLoaderLink, "w+")
+fs.write(handle, moduleLoaderLink)
+fs.close(handle)
 fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
 
 if fs.exists(packageLink) then
-	local handle = fs.open(packageLink)
+	handle = fs.open(packageLink)
 	local contents = fs.read(handle)
 	fs.close(handle)
 
