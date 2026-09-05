@@ -59,8 +59,9 @@ test("loads records and isolates malformed modules", function()
 
 	waitFor(function()
 		local records = get()
-		local validRecord = records[validStoryModule][storybook.source]
-		local invalidRecord = records[invalidStoryModule][storybook.source]
+		local recordsForStorybook = records[storybook.source]
+		local validRecord = recordsForStorybook[validStoryModule]
+		local invalidRecord = recordsForStorybook[invalidStoryModule]
 		expect(validRecord.stories).toEqual({
 			expect.objectContaining({ id = "Alpha", name = "Alpha" }),
 			expect.objectContaining({ id = "Beta", name = "Beta" }),
@@ -78,7 +79,7 @@ test("loads records and isolates malformed modules", function()
 	end)
 
 	waitFor(function()
-		local record = get()[invalidStoryModule][storybook.source]
+		local record = get()[storybook.source][invalidStoryModule]
 		expect(record.problem).toBeUndefined()
 		expect(record.stories).toEqual({
 			expect.objectContaining({
@@ -91,6 +92,53 @@ test("loads records and isolates malformed modules", function()
 	storybook.source:Destroy()
 	validStoryModule:Destroy()
 	invalidStoryModule:Destroy()
+end)
+
+test("releases requested records when the consumer unmounts", function()
+	local storyModule = Instance.new("ModuleScript")
+	storyModule.Name = "Unmounted.story"
+	storyModule.Source = "return { story = function() end }"
+
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+	local store = StorytellerStore.get()
+	store.stop()
+
+	local function Wrapper(): React.ReactNode
+		useStoryModuleRecords({
+			{
+				storyModule = storyModule,
+				storybook = storybook,
+			},
+		})
+		return nil
+	end
+
+	local container = Instance.new("Folder")
+	local root = ReactRoblox.createRoot(container)
+	act(function()
+		root:render(React.createElement(Wrapper))
+	end)
+
+	waitFor(function()
+		local recordsForStorybook = store.getStoryModuleRecords()[storybook.source]
+		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
+		assert(record and record.stories, "expected the requested record to load")
+		expect(record.stories[1].id).toBe("default")
+	end)
+
+	act(function()
+		root:unmount()
+	end)
+	expect(store.getStoryModuleRecords()[storybook.source]).toBeUndefined()
+
+	store.stop()
+	storybook.source:Destroy()
+	storyModule:Destroy()
+	container:Destroy()
 end)
 
 test("keeps records for every Storybook that covers a module", function()
@@ -127,9 +175,9 @@ test("keeps records for every Storybook that covers a module", function()
 	end)
 
 	waitFor(function()
-		local recordsForModule = get()[storyModule]
-		expect(recordsForModule[firstStorybook.source]).toBeDefined()
-		expect(recordsForModule[secondStorybook.source]).toBeDefined()
+		local records = get()
+		expect(records[firstStorybook.source][storyModule]).toBeDefined()
+		expect(records[secondStorybook.source][storyModule]).toBeDefined()
 	end)
 
 	firstStorybook.source:Destroy()
@@ -230,8 +278,8 @@ test("does not reload existing requests when requests are added or removed", fun
 	end)
 
 	waitFor(function()
-		local recordsForModule = get()[firstStoryModule]
-		local record = if recordsForModule then recordsForModule[firstStorybook.source] else nil
+		local recordsForStorybook = get()[firstStorybook.source]
+		local record = if recordsForStorybook then recordsForStorybook[firstStoryModule] else nil
 		assert(record and record.stories, "expected the first record to load")
 		expect(record.stories[1].id).toBe("default")
 	end)
@@ -246,8 +294,8 @@ test("does not reload existing requests when requests are added or removed", fun
 	end)
 
 	waitFor(function()
-		local recordsForModule = get()[secondStoryModule]
-		local record = if recordsForModule then recordsForModule[secondStorybook.source] else nil
+		local recordsForStorybook = get()[secondStorybook.source]
+		local record = if recordsForStorybook then recordsForStorybook[secondStoryModule] else nil
 		assert(record and record.stories, "expected the second record to load")
 		expect(record.stories[1].id).toBe("default")
 	end)

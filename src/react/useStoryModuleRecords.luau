@@ -130,15 +130,16 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 	return useMemo(function()
 		local result = {} :: StoryModuleRecords
 		for _, request in stableRequests do
-			local recordsForModule = records[request.storyModule]
-			local record = if recordsForModule then recordsForModule[request.storybook.source] else nil
+			local storybookSource = request.storybook.source
+			local recordsForStorybook = records[storybookSource]
+			local record = if recordsForStorybook then recordsForStorybook[request.storyModule] else nil
 			if record then
-				local resultForModule = result[request.storyModule]
-				if not resultForModule then
-					resultForModule = {}
-					result[request.storyModule] = resultForModule
+				local resultForStorybook = result[storybookSource]
+				if not resultForStorybook then
+					resultForStorybook = {}
+					result[storybookSource] = resultForStorybook
 				end
-				resultForModule[request.storybook.source] = record
+				resultForStorybook[request.storyModule] = record
 			end
 		end
 		return result

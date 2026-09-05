@@ -13,7 +13,7 @@ local types = {}
 export type StudioTheme = "Light" | "Dark"
 
 export type ExtraStoryProps = {
-	[string]: unknown,
+	[string]: any,
 }
 
 export type ReservedStoryProps = {
@@ -145,11 +145,9 @@ export type StoryModuleRecord = {
 	problem: string?,
 }
 
--- Records are keyed by (Story module, Storybook source) pair: the outer key is
--- the Story ModuleScript, the inner key is the ModuleScript of the Storybook it
--- was loaded through. The same Story module can be covered by multiple
--- Storybooks, and each pairing loads independently because the Storybook
--- supplies the loader environment (packages, mapStory, and friends).
+-- Records are grouped by Storybook source, then keyed by Story module. Each
+-- pairing loads independently because the Storybook supplies the loader
+-- environment (packages, mapStory, and friends).
 export type StoryModuleRecords = {
 	[ModuleScript]: {
 		[ModuleScript]: StoryModuleRecord,

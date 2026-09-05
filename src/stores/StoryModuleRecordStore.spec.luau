@@ -36,8 +36,8 @@ local function createRequest(name: string): StoryRequest
 end
 
 local function getRecord(storyRequest: StoryRequest)
-	local recordsForModule = recordStore.getRecords()[storyRequest.storyModule]
-	return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
+	local recordsForStorybook = recordStore.getRecords()[storyRequest.storybook.source]
+	return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
 end
 
 -- Builds a batch of story modules that stamp the order they were evaluated in,
@@ -359,7 +359,7 @@ test("releasing the same request twice does not steal another consumer's hold", 
 	expect(getRecord(storyRequest)).toBeDefined()
 end)
 
-test("keeps one record per Storybook covering the same module", function()
+test("groups records by Storybook when multiple Storybooks cover the same module", function()
 	recordStore = StoryModuleRecordStore.new()
 	local first = createRequest("Shared")
 	local second: StoryRequest = {
@@ -375,10 +375,9 @@ test("keeps one record per Storybook covering the same module", function()
 	recordStore.request(StoryModuleRequestPriority.Background, second)
 
 	waitFor(function()
-		local recordsForModule = recordStore.getRecords()[first.storyModule]
-		assert(recordsForModule, "expected records for the shared story module")
-		expect(recordsForModule[first.storybook.source]).toBeDefined()
-		expect(recordsForModule[second.storybook.source]).toBeDefined()
+		local records = recordStore.getRecords()
+		expect(records[first.storybook.source][first.storyModule]).toBeDefined()
+		expect(records[second.storybook.source][second.storyModule]).toBeDefined()
 	end)
 end)
 

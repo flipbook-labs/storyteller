@@ -118,14 +118,7 @@ The type of the `story` property is dependent on what kind of Story is being ren
 Use `stories` in place of `story` when several variants share one module. An array preserves its declared order. A dictionary sorts Stories alphabetically by key.
 
 ```lua title="StatusLabels.story.luau"
-local function createLabel(text, color)
-    return function()
-        local label = Instance.new("TextLabel")
-        label.Text = text
-        label.TextColor3 = color
-        return label
-    end
-end
+local React = require("@pkg/React")
 
 return {
     name = "Status Labels",
@@ -134,12 +127,22 @@ return {
         {
             id = "success",
             name = "Success",
-            story = createLabel("Ready", Color3.fromRGB(70, 180, 90)),
+            story = function()
+                return React.createElement("TextLabel", {
+                    Text = "Ready",
+                    TextColor3 = Color3.fromRGB(70, 180, 90),
+                })
+            end,
         },
         {
             id = "failure",
             name = "Failure",
-            story = createLabel("Try again", Color3.fromRGB(220, 70, 70)),
+            story = function()
+                return React.createElement("TextLabel", {
+                    Text = "Try again",
+                    TextColor3 = Color3.fromRGB(220, 70, 70),
+                })
+            end,
         },
     },
 }

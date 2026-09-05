@@ -1,7 +1,6 @@
 local React = require("@pkg/React")
 
 local createStory = require("@root/test-utils/createStory")
-local types = require("@root/types")
 
 local StoryContainer = require("./StoryContainer")
 
@@ -34,7 +33,7 @@ return {
 				theme = "Light",
 				locale = "en-us",
 				script = script,
-			} :: types.ExtraStoryProps,
+			},
 			onError = function(message)
 				print("onError", message)
 			end,

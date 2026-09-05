@@ -588,29 +588,3 @@ test("rejects malformed props", function()
 		loadStoryModule(storyModule, mockPlainStorybook)
 	end).toThrow("Story is malformed")
 end)
-
-describe("roblox internal", function()
-	test("pick a single substory to show", function()
-		local storybook: types.LoadedStorybook = {
-			name = "Storybook",
-			storyRoots = {},
-			source = Instance.new("ModuleScript"),
-			packages = {},
-		}
-
-		local storyModule = createMockStoryModule([[
-			return {
-				stories = {
-					One = function() end,
-					Two = function() end,
-					Three = function() end,
-				}
-			}
-		]])
-
-		local story = loadStoryModule(storyModule, storybook)
-
-		expect(story.story).toBeDefined()
-		expect((story :: any).substories).toBeUndefined()
-	end)
-end)

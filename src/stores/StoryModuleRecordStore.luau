@@ -21,13 +21,9 @@ export type StoryModuleRecordStore = {
 	destroy: () -> (),
 }
 
--- One entry exists per requested (Story module, Storybook source) pair.
--- Every field backs a distinct behavior; drop the behavior to drop the field.
+-- One entry exists per requested (Storybook source, Story module) pair.
 type RequestEntry = {
 	request: StoryRequest,
-	-- The Storybook source this entry loads through; also the key into
-	-- loaderEntries for the shared ModuleLoader.
-	loaderSource: ModuleScript,
 	-- Overlapping requests share one entry. The record lives until the last
 	-- request releases.
 	refCount: number,
@@ -85,7 +81,6 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local initialRecords: StoryModuleRecords = {}
 	local getRecords, setRecords = Charm.signal(initialRecords)
 
-	local requestEntries: { [ModuleScript]: { [ModuleScript]: RequestEntry } } = {}
 	local loaderEntries: { [ModuleScript]: LoaderEntry } = {}
 	local backgroundQueue: RequestQueue = {
 		items = {},
@@ -105,47 +100,24 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local cleanupRequestEntry: (RequestEntry) -> ()
 
 	local function getRequestEntry(storyModule: ModuleScript, storybookSource: ModuleScript): RequestEntry?
-		local entriesForModule = requestEntries[storyModule]
-		return if entriesForModule then entriesForModule[storybookSource] else nil
-	end
-
-	local function setRequestEntry(entry: RequestEntry)
-		local storyModule = entry.request.storyModule
-		local entriesForModule = requestEntries[storyModule]
-		if not entriesForModule then
-			entriesForModule = {}
-			requestEntries[storyModule] = entriesForModule
-		end
-		entriesForModule[entry.loaderSource] = entry
-	end
-
-	local function removeRequestEntry(entry: RequestEntry)
-		local storyModule = entry.request.storyModule
-		local entriesForModule = requestEntries[storyModule]
-		if not entriesForModule or entriesForModule[entry.loaderSource] ~= entry then
-			return
-		end
-
-		entriesForModule[entry.loaderSource] = nil
-		if next(entriesForModule) == nil then
-			requestEntries[storyModule] = nil
-		end
+		local loaderEntry = loaderEntries[storybookSource]
+		return if loaderEntry then loaderEntry.requests[storyModule] else nil
 	end
 
 	local function removeRecord(storyModule: ModuleScript, storybookSource: ModuleScript)
 		setRecords(function(previous)
-			local previousForModule = previous[storyModule]
-			if not previousForModule or not previousForModule[storybookSource] then
+			local previousForStorybook = previous[storybookSource]
+			if not previousForStorybook or not previousForStorybook[storyModule] then
 				return previous
 			end
 
 			local nextRecords = table.clone(previous)
-			local nextForModule = table.clone(previousForModule)
-			nextForModule[storybookSource] = nil
-			if next(nextForModule) == nil then
-				nextRecords[storyModule] = nil
+			local nextForStorybook = table.clone(previousForStorybook)
+			nextForStorybook[storyModule] = nil
+			if next(nextForStorybook) == nil then
+				nextRecords[storybookSource] = nil
 			else
-				nextRecords[storyModule] = nextForModule
+				nextRecords[storybookSource] = nextForStorybook
 			end
 			return nextRecords
 		end)
@@ -158,22 +130,23 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 		setRecords(function(previous)
 			local nextRecords = table.clone(previous)
-			local clonedModules: { [ModuleScript]: boolean } = {}
+			local clonedStorybooks: { [ModuleScript]: boolean } = {}
 
 			for entry, publication in publications do
 				local storyRequest = entry.request
+				local storybookSource = storyRequest.storybook.source
 				if
 					entry.refCount > 0
 					and entry.generation == publication.generation
-					and getRequestEntry(storyRequest.storyModule, entry.loaderSource) == entry
+					and getRequestEntry(storyRequest.storyModule, storybookSource) == entry
 				then
-					local recordsForModule = nextRecords[storyRequest.storyModule]
-					if not clonedModules[storyRequest.storyModule] then
-						recordsForModule = if recordsForModule then table.clone(recordsForModule) else {}
-						nextRecords[storyRequest.storyModule] = recordsForModule
-						clonedModules[storyRequest.storyModule] = true
+					local recordsForStorybook = nextRecords[storybookSource]
+					if not clonedStorybooks[storybookSource] then
+						recordsForStorybook = if recordsForStorybook then table.clone(recordsForStorybook) else {}
+						nextRecords[storybookSource] = recordsForStorybook
+						clonedStorybooks[storybookSource] = true
 					end
-					recordsForModule[entry.loaderSource] = publication.record
+					recordsForStorybook[storyRequest.storyModule] = publication.record
 				end
 			end
 
@@ -275,6 +248,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	cleanupRequestEntry = function(entry: RequestEntry)
+		local storyRequest = entry.request
+		local storybookSource = storyRequest.storybook.source
 		entry.refCount = 0
 		entry.interactiveRefCount = 0
 		entry.generation += 1
@@ -297,19 +272,18 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end
 		entry.reloadLoader = nil
 
-		local loaderEntry = loaderEntries[entry.loaderSource]
-		if loaderEntry and loaderEntry.requests[entry.request.storyModule] == entry then
-			loaderEntry.requests[entry.request.storyModule] = nil
+		local loaderEntry = loaderEntries[storybookSource]
+		if loaderEntry and loaderEntry.requests[storyRequest.storyModule] == entry then
+			loaderEntry.requests[storyRequest.storyModule] = nil
 		end
 
-		removeRequestEntry(entry)
-		removeRecord(entry.request.storyModule, entry.loaderSource)
-		cleanupLoaderEntry(entry.loaderSource)
+		removeRecord(storyRequest.storyModule, storybookSource)
+		cleanupLoaderEntry(storybookSource)
 	end
 
 	local function createRecord(entry: RequestEntry): StoryModuleRecord
 		local storyRequest = entry.request
-		local loaderEntry = loaderEntries[entry.loaderSource]
+		local loaderEntry = loaderEntries[storyRequest.storybook.source]
 		assert(loaderEntry, "Story module loader was cleaned up while a story module was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
@@ -445,7 +419,6 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		else
 			entry = {
 				request = storyRequest,
-				loaderSource = storybookSource,
 				refCount = 0,
 				interactiveRefCount = 0,
 				generation = 1,
@@ -456,8 +429,6 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				sourceConnection = nil,
 				destroyingConnection = nil,
 			}
-			setRequestEntry(entry)
-
 			local loaderEntry = ensureLoaderEntry(storybookSource)
 			loaderEntry.requests[storyModule] = entry
 			entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
@@ -478,8 +449,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			entry.interactiveRefCount += 1
 		end
 
-		local recordsForModule = getRecords()[storyModule]
-		local record = if recordsForModule then recordsForModule[storybookSource] else nil
+		local recordsForStorybook = getRecords()[storybookSource]
+		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
 		if hasStorybookChanged then
 			invalidateRequest(entry, priority)
 		elseif not record and not entry.isLoading then
@@ -509,8 +480,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	local function clear()
-		for _, entriesForModule in requestEntries do
-			for _, entry in entriesForModule do
+		for _, loaderEntry in loaderEntries do
+			for _, entry in loaderEntry.requests do
 				entry.refCount = 0
 				entry.interactiveRefCount = 0
 				entry.generation += 1
@@ -532,11 +503,6 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				end
 				entry.reloadLoader = nil
 			end
-			table.clear(entriesForModule)
-		end
-		table.clear(requestEntries)
-
-		for _, loaderEntry in loaderEntries do
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
 			loaderEntry.loader:clear()

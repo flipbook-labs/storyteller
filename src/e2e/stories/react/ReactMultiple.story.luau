@@ -1,34 +1,33 @@
+local React = require("@pkg/React")
+
 local controls = {
 	isDisabled = false,
 }
 
 type Props = {
-	container: Instance,
 	controls: typeof(controls),
 }
 
-local function createButton(props: Props): TextButton
-	local button = Instance.new("TextButton")
-	button.Text = if props.controls.isDisabled then "Disabled" else "Enabled"
-	return button
-end
-
 return {
-	name = "Multiple manual stories",
+	name = "Multiple React stories",
 	controls = controls,
 	stories = {
 		{
 			id = "primary",
 			name = "Primary",
 			story = function(props: Props)
-				return createButton(props)
+				return React.createElement("TextButton", {
+					Text = if props.controls.isDisabled then "Disabled" else "Enabled",
+				})
 			end,
 		},
 		{
 			id = "secondary",
 			name = "Secondary",
 			story = function(props: Props)
-				return createButton(props)
+				return React.createElement("TextButton", {
+					Text = if props.controls.isDisabled then "Disabled" else "Enabled",
+				})
 			end,
 		},
 	},

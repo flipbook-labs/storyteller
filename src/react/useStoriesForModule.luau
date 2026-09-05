@@ -22,8 +22,8 @@ local function useStoriesForModule(
 		})
 	end, { module, storytellerStore, storybook } :: { unknown })
 
-	local recordsForModule = records[module]
-	local record = if recordsForModule then recordsForModule[storybook.source] else nil
+	local recordsForStorybook = records[storybook.source]
+	local record = if recordsForStorybook then recordsForStorybook[module] else nil
 	return if record then record.stories else nil, if record then record.problem else nil
 end
 

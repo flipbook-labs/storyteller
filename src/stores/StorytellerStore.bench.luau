@@ -202,8 +202,8 @@ describeEach({
 
 		local function countRecords(): number
 			local count = 0
-			for _, recordsForModule in store.getStoryModuleRecords() do
-				for _ in recordsForModule do
+			for _, recordsForStorybook in store.getStoryModuleRecords() do
+				for _ in recordsForStorybook do
 					count += 1
 				end
 			end
@@ -230,9 +230,9 @@ describeEach({
 		})
 
 		-- Every record carries the module's three stories.
-		local sampleRecords = store.getStoryModuleRecords()[storyModules[1]]
-		assert(sampleRecords, "expected records for the first story module")
-		local sampleRecord = sampleRecords[storybook.source]
+		local sampleRecords = store.getStoryModuleRecords()[storybook.source]
+		assert(sampleRecords, "expected records for the Storybook")
+		local sampleRecord = sampleRecords[storyModules[1]]
 		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
 		expect(#sampleRecord.stories).toBe(3)
 
@@ -273,14 +273,14 @@ test("interactive requests are serviced ahead of background backlog", function()
 	}
 
 	local function getRecord(storyRequest: StoryRequest)
-		local recordsForModule = store.getStoryModuleRecords()[storyRequest.storyModule]
-		return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
+		local recordsForStorybook = store.getStoryModuleRecords()[storyRequest.storybook.source]
+		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
 	end
 
 	local function countRecords(): number
 		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
+		for _, recordsForStorybook in store.getStoryModuleRecords() do
+			for _ in recordsForStorybook do
 				count += 1
 			end
 		end
@@ -385,8 +385,8 @@ test("republishes a single edited story at scale without reloading siblings", fu
 
 	local function countRecords(): number
 		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
+		for _, recordsForStorybook in store.getStoryModuleRecords() do
+			for _ in recordsForStorybook do
 				count += 1
 			end
 		end
@@ -401,13 +401,13 @@ test("republishes a single edited story at scale without reloading siblings", fu
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = store.getStoryModuleRecords()[editedModule][storybook.source]
+	local recordBefore = store.getStoryModuleRecords()[storybook.source][editedModule]
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
 	editedModule.Source = "-- edited\n" .. COUNTING_MULTI_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = store.getStoryModuleRecords()[editedModule][storybook.source]
+		local record = store.getStoryModuleRecords()[storybook.source][editedModule]
 		return record ~= recordBefore and record.problem == nil
 	end)
 
@@ -611,14 +611,14 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		local recordsForModule = store.getStoryModuleRecords()[storyModule]
-		return if recordsForModule then recordsForModule[storybook.source] else nil
+		local recordsForStorybook = store.getStoryModuleRecords()[storybook.source]
+		return if recordsForStorybook then recordsForStorybook[storyModule] else nil
 	end
 
 	local function countRecords(): number
 		local count = 0
-		for _, recordsForModule in store.getStoryModuleRecords() do
-			for _ in recordsForModule do
+		for _, recordsForStorybook in store.getStoryModuleRecords() do
+			for _ in recordsForStorybook do
 				count += 1
 			end
 		end

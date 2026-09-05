@@ -589,8 +589,8 @@ describe("requesting story modules", function()
 	end
 
 	local function getRecord(storyRequest: StoryRequest)
-		local recordsForModule = store.getStoryModuleRecords()[storyRequest.storyModule]
-		return if recordsForModule then recordsForModule[storyRequest.storybook.source] else nil
+		local recordsForStorybook = store.getStoryModuleRecords()[storyRequest.storybook.source]
+		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
 	end
 
 	test("serves requests through the record store", function()
