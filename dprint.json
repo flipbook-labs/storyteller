@@ -1,0 +1,8 @@
+{
+  "$schema": "https://dprint.dev/schema.json",
+  "markdown": {
+    "emphasisKind": "asterisks",
+    "textWrap": "never"
+  },
+  "plugins": ["npm:@dprint/markdown@0.23.2"]
+}
