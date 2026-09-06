@@ -32,6 +32,51 @@ local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	end
 end
 
+local function prepareFlipbookPackageInstallation(
+	repoRoot: path.Path,
+	flipbookRoot: path.Path,
+	packageInstallation: path.Path
+)
+	local packageVersionRoot = path.dirname(packageInstallation)
+	local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
+	local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
+	local moduleLoaderLink = fs.readFileToString(sourceModuleLoaderLink)
+		:gsub("script%.Parent%._Index", "script.Parent.Parent")
+	fs.writeStringToFile(targetModuleLoaderLink, moduleLoaderLink)
+	fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
+
+	local packageLink = path.join(flipbookRoot, "Packages/Storyteller.lua")
+	if not fs.exists(packageLink) then
+		return
+	end
+
+	local contents = fs.readFileToString(packageLink)
+	local missingExports = {}
+	for _, exportName in
+		{
+			"StoryEntry<T>",
+			"StoryGroup<T>",
+			"StoryModule<T>",
+			"StoryRequest",
+			"StoryModuleRecord",
+			"StoryModuleRecords",
+		}
+	do
+		local typeName = exportName:match("^[^<]+") :: string
+		if not contents:find(`export type {typeName}`, 1, true) then
+			table.insert(missingExports, `export type {exportName} = REQUIRED_MODULE.{exportName}`)
+		end
+	end
+
+	if #missingExports == 0 then
+		return
+	end
+
+	contents =
+		contents:gsub("return REQUIRED_MODULE", `{table.concat(missingExports, "\n")}\nreturn REQUIRED_MODULE`, 1)
+	fs.writeStringToFile(packageLink, contents)
+end
+
 local args = cli.parser()
 args:add("flipbook", "option", {
 	help = "path to the Flipbook checkout to receive the development build",
@@ -60,7 +105,6 @@ if not packageInstallation or not fs.exists(packageInstallation) then
 end
 
 local dest = path.join(packageInstallation, BUNDLE_DIR_NAME)
-local packageLink = path.join(flipbookRoot, "Packages/Storyteller.lua")
 
 fs.removeDirectory(dest, {
 	recursive = true,
@@ -68,48 +112,6 @@ fs.removeDirectory(dest, {
 
 run("lute", { "run", "build", "--channel", "dev" })
 copyInto(src, dest)
-
-local packageVersionRoot = path.dirname(packageInstallation)
-local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
-local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
-local handle = fs.open(sourceModuleLoaderLink)
-local moduleLoaderLink = fs.read(handle)
-fs.close(handle)
-moduleLoaderLink = moduleLoaderLink:gsub("script%.Parent%._Index", "script.Parent.Parent")
-handle = fs.open(targetModuleLoaderLink, "w+")
-fs.write(handle, moduleLoaderLink)
-fs.close(handle)
-fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
-
-if fs.exists(packageLink) then
-	handle = fs.open(packageLink)
-	local contents = fs.read(handle)
-	fs.close(handle)
-
-	local missingExports = {}
-	for _, exportName in
-		{
-			"StoryEntry<T>",
-			"StoryGroup<T>",
-			"StoryModule<T>",
-			"StoryRequest",
-			"StoryModuleRecord",
-			"StoryModuleRecords",
-		}
-	do
-		local typeName = exportName:match("^[^<]+") :: string
-		if not contents:find(`export type {typeName}`, 1, true) then
-			table.insert(missingExports, `export type {exportName} = REQUIRED_MODULE.{exportName}`)
-		end
-	end
-
-	if #missingExports > 0 then
-		contents =
-			contents:gsub("return REQUIRED_MODULE", `{table.concat(missingExports, "\n")}\nreturn REQUIRED_MODULE`, 1)
-		handle = fs.open(packageLink, "w+")
-		fs.write(handle, contents)
-		fs.close(handle)
-	end
-end
+prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
 
 print(`successfully installed to {dest}`)

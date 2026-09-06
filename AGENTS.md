@@ -41,6 +41,10 @@ Never assume a subagent will discover the skills on its own.
 
 Skills are living documents. When your work here contradicts a skill (a renamed symbol, a changed value, a fixed bug it still calls known), fix it in the agent-skills repo with a `.changes/` entry in the same effort. The fix reaches this repo on its next `rev` bump. The `org/review-pass` skill folds this check into closing out a task, so it fires without you having to remember it.
 
+## Repository skills
+
+- `.agents/skills/test-storyteller-in-flipbook/SKILL.md`: Build the current Storyteller checkout into an exact Flipbook checkout and validate it through AgentGateway and Studio MCP. Use when a Storyteller change needs end-to-end Flipbook verification.
+
 ## Repo specifics
 
 - Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
