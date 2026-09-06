@@ -3,4 +3,4 @@ bump: patch
 category: Changes
 ---
 
-Prioritize common Studio services during discovery and cache lazy story loads until consumers release each module.
+Load Stories through shared, prioritized requests while spreading Storybook evaluation across frames.

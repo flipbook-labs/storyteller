@@ -13,7 +13,7 @@ local types = {}
 export type StudioTheme = "Light" | "Dark"
 
 export type ExtraStoryProps = {
-	[string]: unknown,
+	[string]: any,
 }
 
 export type ReservedStoryProps = {
@@ -107,7 +107,10 @@ export type StoryGroup<T> = {
 	props: ExtraStoryProps?,
 }
 types.IStoryGroup = t.interface({
-	stories = t.union(t.array(t.any), t.map(t.string, t.any)),
+	-- Key discipline (array or string-keyed dictionary) is enforced by
+	-- normalizeStoryModule so mixed keys surface an actionable error instead
+	-- of a generic union failure.
+	stories = t.table,
 	name = t.optional(t.string),
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),
@@ -131,27 +134,23 @@ export type LoadedStory<T> = {
 	props: ExtraStoryProps?,
 }
 
-export type StorySnapshot = {
-	id: string,
-	name: string,
-	summary: string?,
-}
-
-export type StoryModuleSnapshot = {
-	name: string,
-	source: ModuleScript,
-	stories: { StorySnapshot },
-	problem: string?,
-}
-
-export type StoryModuleTarget = {
+export type StoryRequest = {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
 }
 
-export type StoryModuleSnapshots = {
+export type StoryModuleRecord = {
+	name: string?,
+	stories: { LoadedStory<unknown> }?,
+	problem: string?,
+}
+
+-- Records are grouped by Storybook source, then keyed by Story module. Each
+-- pairing loads independently because the Storybook supplies the loader
+-- environment (packages, mapStory, and friends).
+export type StoryModuleRecords = {
 	[ModuleScript]: {
-		[ModuleScript]: StoryModuleSnapshot,
+		[ModuleScript]: StoryModuleRecord,
 	},
 }
 

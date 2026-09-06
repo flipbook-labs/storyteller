@@ -29,10 +29,9 @@ export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-export type StorySnapshot = types.StorySnapshot
-export type StoryModuleSnapshot = types.StoryModuleSnapshot
-export type StoryModuleTarget = types.StoryModuleTarget
-export type StoryModuleSnapshots = types.StoryModuleSnapshots
+export type StoryRequest = types.StoryRequest
+export type StoryModuleRecord = types.StoryModuleRecord
+export type StoryModuleRecords = types.StoryModuleRecords
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
@@ -77,7 +76,7 @@ return {
 	StoryContainer = require("@self/react/StoryContainer"),
 	StorytellerProvider = StorytellerContext.StorytellerProvider,
 	useStory = require("@self/react/useStory"),
-	useStoryModuleSnapshots = require("@self/react/useStoryModuleSnapshots"),
+	useStoryModuleRecords = require("@self/react/useStoryModuleRecords"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
 

@@ -10,10 +10,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type LoadedStorybook = types.LoadedStorybook
 type ModuleLoader = ModuleLoader.ModuleLoader
-type ExtraStoryProps = types.ExtraStoryProps
 type Story<T> = types.Story<T>
-type StoryControlsSchema = types.StoryControlsSchema
-type StoryPackages = types.StoryPackages
 type StoryProps = types.StoryProps
 
 export type LoadedStoryModuleData<T> = {
@@ -21,14 +18,14 @@ export type LoadedStoryModuleData<T> = {
 	stories: { LoadedStory<T> },
 }
 
-type RawStory = { [string]: unknown }
+type RawStory = { [string]: any }
 
 local function getOptionalString(story: RawStory, field: string): string?
 	local value = story[field]
 	if value ~= nil and typeof(value) ~= "string" then
 		error(`Story is malformed. \`{field}\` must be a string`)
 	end
-	return value :: string?
+	return value
 end
 
 local function mergeField(defaults: RawStory?, overrides: RawStory?): RawStory?
@@ -38,18 +35,18 @@ local function mergeField(defaults: RawStory?, overrides: RawStory?): RawStory?
 	return Sift.Dictionary.merge(defaults, overrides)
 end
 
-local function toRawStory(entry: unknown): RawStory
+local function toRawStory(entry: any): RawStory
 	if typeof(entry) == "table" then
-		return table.clone(entry :: RawStory)
+		return table.clone(entry)
 	end
 	return { story = entry }
 end
 
 local function inheritDefaults(entry: RawStory, defaults: RawStory, id: string, name: string): RawStory
-	local story = Sift.Dictionary.merge(defaults, entry) :: RawStory
-	story.controls = mergeField(defaults.controls :: RawStory?, entry.controls :: RawStory?)
-	story.packages = mergeField(defaults.packages :: RawStory?, entry.packages :: RawStory?)
-	story.props = mergeField(defaults.props :: RawStory?, entry.props :: RawStory?)
+	local story = Sift.Dictionary.merge(defaults, entry)
+	story.controls = mergeField(defaults.controls, entry.controls)
+	story.packages = mergeField(defaults.packages, entry.packages)
+	story.props = mergeField(defaults.props, entry.props)
 	story.id = id
 	story.name = name
 	return story
@@ -66,11 +63,11 @@ local function validateStoryDefinition(story: RawStory, storyModule: ModuleScrip
 	end
 end
 
-local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleScript): (string, { RawStory }, boolean)
+local function normalizeStoryModule(requiredStory: any, storyModule: ModuleScript): (string, { RawStory }, boolean)
 	local moduleName = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, "")
 
 	if typeof(requiredStory) == "function" then
-		local callback = requiredStory :: (Instance, StoryProps) -> unknown
+		local callback = requiredStory
 		local story: RawStory = {
 			id = "default",
 			name = moduleName,
@@ -89,7 +86,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 		)
 	end
 
-	local module = requiredStory :: RawStory
+	local module = requiredStory
 	if module.story ~= nil and module.stories ~= nil then
 		error("Story is malformed. A Story module cannot define both `story` and `stories`")
 	end
@@ -106,11 +103,11 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	defaults.story = nil
 	defaults.stories = nil
 
-	local stories = module.stories :: { [unknown]: unknown }
+	local stories = module.stories
 	local normalized: { RawStory } = {}
 
 	if Sift.Array.is(stories) then
-		for index, entry in stories :: { unknown } do
+		for index, entry in stories do
 			local raw = toRawStory(entry)
 			local fallback = tostring(index)
 			local name = getOptionalString(raw, "name")
@@ -126,7 +123,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 			error("Story is malformed. `stories` must be an array or a dictionary with string keys")
 		end
 
-		local sortedKeys = Sift.Array.sort(keys :: { string }, function(a, b)
+		local sortedKeys = Sift.Array.sort(keys, function(a, b)
 			local lowerA, lowerB = a:lower(), b:lower()
 			return if lowerA == lowerB then a < b else lowerA < lowerB
 		end)
@@ -165,7 +162,7 @@ local function loadStoryModuleData<T>(
 	end)
 	local loadedStorybook = freshStorybook or storybook
 
-	local requiredStory
+	local requiredStory: any
 	local success, err = pcall(function()
 		requiredStory = loader:require(storyModule)
 	end)
@@ -178,7 +175,7 @@ local function loadStoryModuleData<T>(
 	local seenIds: { [string]: boolean } = {}
 
 	for _, raw in normalizedStories do
-		local id = raw.id :: string
+		local id = raw.id
 		if seenIds[id] then
 			error(`Story is malformed. Story id "{id}" is duplicated in {storyModule:GetFullName()}`)
 		end
@@ -187,12 +184,12 @@ local function loadStoryModuleData<T>(
 		validateStoryDefinition(raw, storyModule, id)
 		local story: Story<T> = {
 			id = id,
-			name = raw.name :: string?,
-			story = raw.story :: T | (StoryProps) -> T,
-			summary = raw.summary :: string?,
-			controls = raw.controls :: StoryControlsSchema?,
-			packages = raw.packages :: StoryPackages?,
-			props = raw.props :: ExtraStoryProps?,
+			name = raw.name,
+			story = raw.story,
+			summary = raw.summary,
+			controls = raw.controls,
+			packages = raw.packages,
+			props = raw.props,
 		}
 		if story.controls then
 			story.controls = migrateControlsSchema(story.controls)

@@ -28,6 +28,15 @@ local function Wrapper(props): React.ReactNode
 	}, props.children)
 end
 
+local function waitForRender(callback: () -> ())
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		callback()
+	end)
+end
+
 beforeEach(function()
 	container = Instance.new("Folder")
 
@@ -59,7 +68,7 @@ test("loads storybook modules", function()
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
+	waitForRender(function()
 		local storybooks = get()
 
 		expect(#storybooks.available).toBe(1)
@@ -89,7 +98,7 @@ test("storybooks with syntax errors are marked unavailable", function()
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
+	waitForRender(function()
 		local storybooks = get()
 
 		expect(#storybooks.available).toBe(0)
@@ -203,6 +212,9 @@ test("removing a storybook from the DM triggers a re-render", function()
 		wrapper = Wrapper,
 	})
 
+	waitForRender(function()
+		expect(#get().available).toBe(1)
+	end)
 	local storybooks = get()
 
 	expect(#storybooks.available).toBe(1)
