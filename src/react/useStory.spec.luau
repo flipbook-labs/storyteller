@@ -90,6 +90,54 @@ test("loads a story module", function()
 	})
 end)
 
+test("selects a story by id", function()
+	storyModule.Source = [[
+		return {
+			stories = {
+				{ id = "primary", name = "Primary", story = function() end },
+				{ id = "secondary", name = "Secondary", story = function() end },
+			},
+		}
+	]]
+
+	local get = renderHook(function()
+		return useStory(storyModule, storybook, "secondary")
+	end)
+
+	flushStoryLoad()
+
+	waitFor(function()
+		local story, err = get()
+		expect(err).toBeUndefined()
+		expect(story).toEqual(expect.objectContaining({
+			id = "secondary",
+			name = "Secondary",
+		}))
+	end)
+end)
+
+test("reports an unknown story id", function()
+	storyModule.Source = [[
+		return {
+			stories = {
+				{ id = "primary", name = "Primary", story = function() end },
+			},
+		}
+	]]
+
+	local get = renderHook(function()
+		return useStory(storyModule, storybook, "missing")
+	end)
+
+	flushStoryLoad()
+
+	waitFor(function()
+		local story, err = get()
+		expect(story).toBeUndefined()
+		expect(err).toContain('Story "missing" was not found')
+	end)
+end)
+
 test("handles story errors", function()
 	storyModule.Source = "syntax error" .. storyModule.Source
 
