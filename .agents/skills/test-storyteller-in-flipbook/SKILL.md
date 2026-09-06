@@ -17,7 +17,7 @@ lute run install
 lute run try-in-flipbook --flipbook /absolute/path/to/flipbook-worktree
 ```
 
-The overlay script updates both the installed package contents and Wally's generated Storyteller type link. Run it again after reinstalling Flipbook dependencies because `wally install` replaces the package overlay.
+The overlay script updates the installed package contents, applies Storyteller's development package metadata, and regenerates Storyteller's Wally type link from the overlaid build. Run it again after reinstalling Flipbook dependencies because `wally install` replaces the package overlay.
 
 From the target Flipbook worktree, run local checks and build the Studio artifacts:
 
@@ -50,6 +50,15 @@ If no Studio appears, verify Studio MCP is enabled in the open Studio session. I
 
 Find `CoreGui.FlipbookAgentGateway`, call `getInstructions`, and call the gateway's `list` method before using actions. Treat that runtime response as the source of truth for current action schemas.
 
+Define the behavior under test as a scenario with four inputs:
+
+- A Storybook selector and one or more concrete Story selectors discovered from gateway results.
+- Gateway actions that exercise the behavior.
+- Semantic assertions read back through gateway actions.
+- Visual assertions that require Studio UI evidence.
+
+Keep fixture names, expected values, and behavior-specific assertions in the target Flipbook scenario reference. For example, Flipbook's multi-story proof lives in `.agents/skills/use-studio-mcp-for-flipbook/references/multi-story.md` within the target checkout.
+
 To validate Storyteller behavior:
 
 1. Open the Flipbook widget and refresh storybooks.
@@ -61,4 +70,4 @@ To validate Storyteller behavior:
 
 Run the renderer check in a clean Studio session with only the distinctly named integration plugin loaded. Temporarily unloading the user's normal Flipbook plugin requires explicit permission and it must be restored after validation.
 
-Studio MCP viewport captures do not include dock widgets. For visual evidence, call `embedFlipbook`, enter play mode, and capture the embedded Flipbook UI in the viewport. Stop play mode when finished. Semantic gateway results are still required because screenshots alone do not prove which concrete story id Flipbook selected.
+Studio MCP viewport captures do not include dock widgets. When the agent host can inspect the native Studio window, leave each requested Story open and capture or inspect the Flipbook dock widget directly. Otherwise, call `embedFlipbook`, enter play mode, and capture the embedded UI; stop and report client errors if it does not mount, and stop play mode when finished. Semantic gateway results are still required because screenshots alone do not prove which concrete Story id Flipbook selected.
