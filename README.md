@@ -1,4 +1,3 @@
-
 # Storyteller
 
 [![CI](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml/badge.svg)](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml)
@@ -6,6 +5,7 @@
 Storyteller is a package for the discovery and rendering of UI stories and powers our storybook plugin [Flipbook](https://github.com/flipbook-labs/flipbook).
 
 The API for this package focuses around...
+
 1. Validation for the Story format and Storybook format
 2. Discvoery of valid ModuleScripts with `.story` and `.storybook` extensions
 3. Loading of Stories and Storybooks into a sandbox with cacheless module requiring
@@ -15,8 +15,8 @@ There also exist React hooks for ease of integration into storybook apps.
 
 ## Features
 
-* Discover Storybooks and their Story files
-* Render stories written in React, Roact, Fusion, Iris, and any generic Roblox Gui.
+- Discover Storybooks and their Story files
+- Render stories written in React, Roact, Fusion, Iris, and any generic Roblox Gui.
 
 ## Installation
 
