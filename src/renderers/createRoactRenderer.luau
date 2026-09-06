@@ -27,7 +27,7 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 		local element
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<T>
 		end
 
 		if isRoactElement(story.story) then

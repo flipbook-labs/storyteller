@@ -72,7 +72,7 @@ local function normalizeStoryModule(requiredStory: any, storyModule: ModuleScrip
 			id = "default",
 			name = moduleName,
 			story = function(props: StoryProps)
-				return callback(props.container, props)
+				return callback(props.container :: Instance, props)
 			end,
 		}
 		return moduleName, { story }, true
