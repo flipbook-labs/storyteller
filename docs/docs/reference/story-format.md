@@ -168,7 +168,13 @@ If `props` is supplied on the Story, then the key/value pairs will be merged wit
 
 ## Legacy package support
 
-:::warning A future version of Storyteller may remove this compatibility layer. It is recommended to migrate to `packages` in the meantime. :::
+<!-- dprint-ignore-start -->
+
+:::warning
+A future version of Storyteller may remove this compatibility layer. It is recommended to migrate to `packages` in the meantime.
+:::
+
+<!-- dprint-ignore-end -->
 
 UI libraries used to be supplied by attaching them as properties to a Story or Storybook. This has been superseded by the `packages` object, which acts as a dedicated location to supply the packages used for rendering Stories.
 
