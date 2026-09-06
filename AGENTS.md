@@ -9,10 +9,10 @@ Complete every step below before you write any code, tests, changelog entries, o
 1. Install the toolchain and dependencies:
 
    ```sh
-   rokit install && lute run install
+   rokit install && lute run install && npm ci
    ```
 
-   `rokit install` puts `lute`, `luau-lsp`, `stylua`, and `selene` on PATH. `lute run install` fetches the Loom dependencies into `~/.loom/store` and vendors the runtime ones into the package folders. The shared skills library is a dev dependency, so it lands in `~/.loom/store` for you to read but is not shipped with the package. Without this step the skills are not on disk.
+   `rokit install` puts `lute`, `luau-lsp`, `stylua`, and `selene` on PATH. `lute run install` fetches the Loom dependencies into `~/.loom/store` and vendors the runtime ones into the package folders. The shared skills library is a dev dependency, so it lands in `~/.loom/store` for you to read but is not shipped with the package. `npm ci` uses Node.js 24 to install the pinned Prettier development dependency. Without these steps the skills and formatter are not on disk.
 
 2. Resolve the concrete skills path from the pinned version (do not guess it):
 
@@ -48,7 +48,7 @@ Skills are living documents. When your work here contradicts a skill (a renamed 
 ## Repo specifics
 
 - Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
-- `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`. The install task also installs the root npm development tools used by lint.
+- `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
 - Markdown uses Prettier with soft wrapping. `npm run format:markdown` formats Markdown at the repository root and under `.agents`, `.changes`, `docs`, and `src`. `lute run lint` checks the same set.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
 - The build is a Darklua-processed mirror of `src/` written to `dist/`, and Wally publishes from `dist/`. Never edit `dist/` by hand.

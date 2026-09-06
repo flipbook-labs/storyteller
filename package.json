@@ -1,6 +1,10 @@
 {
   "name": "storyteller-dev-tools",
+  "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=24.0"
+  },
   "scripts": {
     "format:markdown": "prettier --write \"*.md\" \".agents/**/*.md\" \".changes/**/*.md\" \"docs/**/*.md\" \"src/**/*.md\"",
     "format:markdown:check": "prettier --check \"*.md\" \".agents/**/*.md\" \".changes/**/*.md\" \"docs/**/*.md\" \"src/**/*.md\""
