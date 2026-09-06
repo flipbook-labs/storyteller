@@ -3,7 +3,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ControlTypes = require("@root/controls/ControlTypes")
 local findStoryModulesForStorybook = require("@root/findStoryModulesForStorybook")
 local findStorybookModules = require("@root/findStorybookModules")
-local loadStoryModule = require("@root/loadStoryModule")
+local loadStoriesFromModule = require("@root/loadStoriesFromModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local render = require("@root/render")
 local types = require("@root/types")
@@ -55,66 +55,69 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 			return
 		end
 
+		local numStories = 0
 		local numStoriesWithControls = 0
 
 		assert(#storyModules >= 2, "storybook must have at least 2 stories")
 
 		for _, storyModule in storyModules do
-			local story = loadStoryModule(storyModule, storybook)
-
-			if story.controls then
-				numStoriesWithControls += 1
+			for _, story in loadStoriesFromModule(storyModule, storybook) do
+				numStories += 1
+				if story.controls then
+					numStoriesWithControls += 1
+				end
 			end
 		end
 
 		assert(numStoriesWithControls >= 1, "storybook must have at least one story with controls")
-		assert(#storyModules - numStoriesWithControls >= 1, "storybook must have at least one story without controls")
+		assert(numStories - numStoriesWithControls >= 1, "storybook must have at least one story without controls")
 	end)
 
 	describeEach(storyModules)("%s", function(storyModule)
 		test("basic mount/unmount lifecycle", function()
-			local story = loadStoryModule(storyModule, storybook)
-			local lifecycle = render(container, story)
-
-			afterRender(story)
-
-			expect(#container:GetChildren()).toBe(1)
-
-			lifecycle.unmount()
-
-			expect(#container:GetChildren()).toBe(0)
-		end)
-
-		test("rerenders on control changes", function()
-			local story = loadStoryModule(storyModule, storybook)
-
-			if story.controls then
+			for _, story in loadStoriesFromModule(storyModule, storybook) do
 				local lifecycle = render(container, story)
 
 				afterRender(story)
 
 				expect(#container:GetChildren()).toBe(1)
 
-				local button = container:FindFirstChildWhichIsA("TextButton")
-				assert(button, "for conformance, each story with controls must include a TextButton")
-
-				expect(button.Text).toBe("Enabled")
-
-				lifecycle.update({
-					isDisabled = true,
-				} :: StoryControls)
-
-				afterRender(story)
-
-				expect(#container:GetChildren()).toBe(1)
-
-				button = container:FindFirstChildWhichIsA("TextButton")
-				assert(button, "after updating, the story no longer has a TextButton")
-				expect(button.Text).toBe("Disabled")
-
 				lifecycle.unmount()
 
 				expect(#container:GetChildren()).toBe(0)
+			end
+		end)
+
+		test("rerenders on control changes", function()
+			for _, story in loadStoriesFromModule(storyModule, storybook) do
+				if story.controls then
+					local lifecycle = render(container, story)
+
+					afterRender(story)
+
+					expect(#container:GetChildren()).toBe(1)
+
+					local button = container:FindFirstChildWhichIsA("TextButton")
+					assert(button, "for conformance, each story with controls must include a TextButton")
+
+					expect(button.Text).toBe("Enabled")
+
+					lifecycle.update({
+						isDisabled = true,
+					} :: StoryControls)
+
+					afterRender(story)
+
+					expect(#container:GetChildren()).toBe(1)
+
+					button = container:FindFirstChildWhichIsA("TextButton")
+					assert(button, "after updating, the story no longer has a TextButton")
+					expect(button.Text).toBe("Disabled")
+
+					lifecycle.unmount()
+
+					expect(#container:GetChildren()).toBe(0)
+				end
 			end
 		end)
 	end)

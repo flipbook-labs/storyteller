@@ -8,6 +8,7 @@ local function createStory<T>(partial: {
 	[string]: any,
 }): types.LoadedStory<T>
 	local story: types.LoadedStory<T> = Sift.Dictionary.join({
+		id = "sample",
 		name = "Sample",
 		source = Instance.new("ModuleScript"),
 		storybook = {
