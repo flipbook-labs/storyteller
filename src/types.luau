@@ -78,21 +78,51 @@ export type UnavailableStorybook = {
 export type Story<T> = {
 	story: T | (props: StoryProps) -> T,
 
+	id: string?,
 	controls: StoryControlsSchema?,
 	name: string?,
 	packages: StoryPackages?,
 	summary: string?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
-types.IStory = t.interface({
+types.IStoryDefinition = t.interface({
 	story = t.any,
+	id = t.optional(t.string),
 	name = t.optional(t.string),
 	summary = t.optional(t.string),
 	controls = t.optional(t.map(t.string, t.any)),
 	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
 })
 
+export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
+
+export type StoryGroup<T> = {
+	stories: { StoryEntry<T> } | { [string]: StoryEntry<T> },
+
+	name: string?,
+	summary: string?,
+	controls: StoryControlsSchema?,
+	packages: StoryPackages?,
+	props: ExtraStoryProps?,
+}
+types.IStoryGroup = t.interface({
+	-- Key discipline (array or string-keyed dictionary) is enforced by
+	-- normalizeStoryModule so mixed keys surface an actionable error instead
+	-- of a generic union failure.
+	stories = t.table,
+	name = t.optional(t.string),
+	summary = t.optional(t.string),
+	controls = t.optional(t.map(t.string, t.any)),
+	packages = t.optional(t.map(t.string, t.any)),
+	props = t.optional(t.map(t.string, t.any)),
+})
+
+export type StoryModule<T> = Story<T> | StoryGroup<T>
+types.IStory = t.union(types.IStoryDefinition, types.IStoryGroup)
+
 export type LoadedStory<T> = {
+	id: string,
 	name: string,
 	story: T | (props: StoryProps) -> T,
 	source: ModuleScript,
@@ -101,7 +131,7 @@ export type LoadedStory<T> = {
 
 	summary: string?,
 	controls: StoryControlsSchema?,
-	props: { [string]: any }?,
+	props: ExtraStoryProps?,
 }
 
 return types
