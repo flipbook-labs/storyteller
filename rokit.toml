@@ -5,8 +5,6 @@
 
 [tools]
 darklua = "seaofvoices/darklua@0.19.0"
-# Newer releases include Android assets that Rokit 1.2.0 can select on Linux CI.
-dprint = "dprint/dprint@0.54.0"
 luau-lsp = "JohnnyMorganz/luau-lsp@1.68.1"
 lute = "luau-lang/lute@1.0.1-nightly.20260701"
 rocale = "Roblox/rocale-cli@0.1.3"

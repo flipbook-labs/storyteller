@@ -48,7 +48,8 @@ Skills are living documents. When your work here contradicts a skill (a renamed 
 ## Repo specifics
 
 - Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
-- `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
+- `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`. The install task also installs the root npm development tools used by lint.
+- Markdown uses Prettier with soft wrapping. `npm run format:markdown` formats Markdown at the repository root and under `.agents`, `.changes`, `docs`, and `src`. `lute run lint` checks the same set.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
 - The build is a Darklua-processed mirror of `src/` written to `dist/`, and Wally publishes from `dist/`. Never edit `dist/` by hand.
 - Releases are handled by the [Changewrite](https://github.com/flipbook-labs/changewrite) action. Unreleased entries live as partials in [`.changes/`](.changes) and are assembled into [`CHANGELOG.md`](CHANGELOG.md) at release time. Add a `.changes/` entry for any user-facing change.

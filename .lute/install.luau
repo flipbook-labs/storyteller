@@ -101,6 +101,7 @@ do
 		end
 	end
 
+	run("npm", { "ci" })
 	installWallyPackages()
 	patchStringRequires()
 end

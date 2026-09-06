@@ -12,13 +12,11 @@ Check out the [Actions](https://github.com/flipbook-labs/storyteller/actions) ta
 
 In the event that publishing our Wally packages starts to fail this section shows how to update the login token.
 
-<!-- dprint-ignore-start -->
-
 :::warning
-Your GitHub account must have permission to publish to the flipbook-labs org. To add a new account, update [owners.json](https://github.com/UpliftGames/wally-index/blob/main/flipbook-labs/owners.json) with your GitHub user ID.
-:::
 
-<!-- dprint-ignore-end -->
+Your GitHub account must have permission to publish to the flipbook-labs org. To add a new account, update [owners.json](https://github.com/UpliftGames/wally-index/blob/main/flipbook-labs/owners.json) with your GitHub user ID.
+
+:::
 
 First run `wally login` locally and authenticate with your GitHub account.
 

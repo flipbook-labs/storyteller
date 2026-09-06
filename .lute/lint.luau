@@ -37,7 +37,7 @@ run("stylua", {
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
-run("dprint", { "check" })
+run("npm", { "run", "format:markdown:check" })
 
 local files = findLuaFiles()
 if #files > 0 then

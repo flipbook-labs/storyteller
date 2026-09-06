@@ -1,0 +1,11 @@
+{
+  "name": "storyteller-dev-tools",
+  "private": true,
+  "scripts": {
+    "format:markdown": "prettier --write \"*.md\" \".agents/**/*.md\" \".changes/**/*.md\" \"docs/**/*.md\" \"src/**/*.md\"",
+    "format:markdown:check": "prettier --check \"*.md\" \".agents/**/*.md\" \".changes/**/*.md\" \"docs/**/*.md\" \"src/**/*.md\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
