@@ -51,9 +51,14 @@ Find `CoreGui.FlipbookAgentGateway`, call `getInstructions`, and call the gatewa
 For multi-story verification:
 
 1. Open the Flipbook widget and refresh storybooks.
-2. Call `listStories` and verify the target module produces separate concrete entries with distinct `id` and `name` values.
-3. Call `openStory` once per entry, passing its module path, storybook path, and `storyId`.
-4. Poll `getCurrentStory` until the requested id matches and `isMounted` is true; do not use a fixed sleep.
-5. Exercise controls when present and verify state with `getControls`.
+2. Select the `Agent Multi-Story E2E` storybook from the integration build.
+3. Call `listStories` and verify its `MultipleStories.story` module produces separate concrete entries with distinct `id` and `name` values.
+4. Call `openStory` once per entry, passing its module path, storybook path, and `storyId`.
+5. Poll `getCurrentStory` until the requested id matches and `isMounted` is true; do not use a fixed sleep.
+6. Exercise controls when present and verify state with `getControls`.
+
+Run the renderer check in a clean Studio session with only the distinctly named
+integration plugin loaded. Temporarily unloading the user's normal Flipbook
+plugin requires explicit permission and it must be restored after validation.
 
 Studio MCP viewport captures do not include dock widgets. For visual evidence, call `embedFlipbook`, enter play mode, and capture the embedded Flipbook UI in the viewport. Stop play mode when finished. Semantic gateway results are still required because screenshots alone do not prove which concrete story id Flipbook selected.
