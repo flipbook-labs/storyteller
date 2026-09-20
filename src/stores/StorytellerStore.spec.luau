@@ -20,6 +20,48 @@ afterEach(function()
 	store.destroy()
 end)
 
+test("classifies one scan into stable story and storybook snapshots", function()
+	local folder = Instance.new("Folder")
+	local story = new("ModuleScript", { Name = "Example.story", Parent = folder })
+	local storybook = new("ModuleScript", {
+		Name = "Example.storybook",
+		Source = "return { storyRoots = {} }",
+		Parent = folder,
+	})
+	local scanCount = 0
+	local root = (
+		{
+			IsA = function(_self, selector: string)
+				return folder:IsA(selector)
+			end,
+			QueryDescendants = function(_self, selector: string)
+				scanCount += 1
+				expect(selector).toBe("ModuleScript")
+				return folder:QueryDescendants(selector)
+			end,
+			Destroying = folder.Destroying,
+		} :: unknown
+	) :: Instance
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	expect(scanCount).toBe(1)
+	expect(store.getStoryModules()).toEqual({ story })
+	expect(store.getStorybookModules()).toEqual({ storybook })
+
+	local stories = store.getStoryModules()
+	local storybooks = store.getStorybookModules()
+
+	waitFor(function()
+		expect(scanCount >= 2).toBe(true)
+	end)
+
+	expect(store.getStoryModules()).toBe(stories)
+	expect(store.getStorybookModules()).toBe(storybooks)
+	folder:Destroy()
+end)
+
 test("collects all relevant ModuleScripts under the root", function()
 	local storyA = new("ModuleScript")
 	local storyB = new("ModuleScript")

@@ -1,5 +1,4 @@
 local Charm = require("@pkg/Charm")
-local Sift = require("@pkg/Sift")
 
 local QUERY_STEP_COOLDOWN_SEC = 0.2
 
@@ -27,134 +26,52 @@ export type QueryResult = {
 	stop: () -> (),
 }
 
-type QueryState = {
-	matcher: ((instance: Instance) -> boolean)?,
-	setCurrentMatches: (matches: { Instance }) -> (),
-}
-
-type QueryGroup = {
-	isRunning: boolean,
-	root: Instance,
-	selector: string,
-	states: { [QueryState]: boolean },
-}
-
-local queryGroupsByRoot = {} :: { [Instance]: { [string]: QueryGroup } }
-
-local function queryDescendants(group: QueryGroup): { Instance }
-	local candidates = {}
-
-	if group.root:IsA(group.selector) then
-		table.insert(candidates, group.root)
-	end
-
-	for _, instance in group.root:QueryDescendants(group.selector) do
-		table.insert(candidates, instance)
-	end
-
-	return candidates
-end
-
-local function updateQuery(state: QueryState, candidates: { Instance })
-	if not state.matcher then
-		state.setCurrentMatches(candidates)
-		return
-	end
-
-	local matches = {}
-	for _, instance in candidates do
-		if state.matcher(instance) then
-			table.insert(matches, instance)
-		end
-	end
-	state.setCurrentMatches(matches)
-end
-
-local function stepAsync(group: QueryGroup)
-	if not group.isRunning then
-		return
-	end
-
-	local candidates = queryDescendants(group)
-	for state in group.states do
-		updateQuery(state, candidates)
-	end
-	task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync, group)
-end
-
-local function getQueryGroup(root: Instance, selector: string): QueryGroup
-	local groupsBySelector = queryGroupsByRoot[root]
-	if not groupsBySelector then
-		groupsBySelector = {}
-		queryGroupsByRoot[root] = groupsBySelector
-	end
-
-	local group = groupsBySelector[selector]
-	if not group then
-		group = {
-			isRunning = false,
-			root = root,
-			selector = selector,
-			states = {},
-		}
-		groupsBySelector[selector] = group
-	end
-
-	return group
-end
-
-local function removeQueryGroupIfEmpty(group: QueryGroup)
-	if next(group.states) ~= nil then
-		return
-	end
-
-	group.isRunning = false
-	local groupsBySelector = queryGroupsByRoot[group.root]
-	if not groupsBySelector then
-		return
-	end
-
-	groupsBySelector[group.selector] = nil
-	if next(groupsBySelector) == nil then
-		queryGroupsByRoot[group.root] = nil
-	end
-end
-
 local function query(options: QueryOptions): QueryResult
 	local getMatches, setMatches = Charm.signal({} :: { Instance })
 
 	local isDestroyed = false
 	local isRunning = false
+	local generation = 0
 
-	local function setCurrentMatches(matches: { Instance })
-		setMatches(function(prev)
-			if #matches == #prev and #Sift.List.differenceSymmetric(matches, prev) == 0 then
-				return prev
+	local function queryDescendants(): { Instance }
+		local matches = {}
+
+		if options.root:IsA(options.selector) then
+			local isMatch = if options.matcher then options.matcher(options.root) else true
+			if isMatch then
+				table.insert(matches, options.root)
 			end
+		end
 
-			return matches
-		end)
+		for _, instance in options.root:QueryDescendants(options.selector) do
+			local isMatch = if options.matcher then options.matcher(instance) else true
+			if isMatch then
+				table.insert(matches, instance)
+			end
+		end
+
+		return matches
 	end
-
-	local state: QueryState = {
-		matcher = options.matcher,
-		setCurrentMatches = setCurrentMatches,
-	}
-	local activeGroup: QueryGroup?
 
 	local function start()
 		if isDestroyed or isRunning then
 			return
 		end
 		isRunning = true
+		generation += 1
+		local activeGeneration = generation
 
-		local group = getQueryGroup(options.root, options.selector)
-		activeGroup = group
-		group.states[state] = true
-		if not group.isRunning then
-			group.isRunning = true
-			task.defer(stepAsync, group)
+		local function stepAsync()
+			if isDestroyed or not isRunning or activeGeneration ~= generation then
+				return
+			end
+
+			-- Membership can stay unchanged while names change their classification.
+			setMatches(queryDescendants())
+			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)
 		end
+
+		task.spawn(stepAsync)
 	end
 
 	local function stop()
@@ -162,13 +79,6 @@ local function query(options: QueryOptions): QueryResult
 			return
 		end
 		isRunning = false
-
-		local group = activeGroup
-		activeGroup = nil
-		if group then
-			group.states[state] = nil
-			removeQueryGroupIfEmpty(group)
-		end
 	end
 
 	local function destroy()
