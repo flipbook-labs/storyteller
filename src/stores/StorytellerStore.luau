@@ -30,6 +30,7 @@ type CleanupFn = StoryModuleRecordStore.CleanupFn
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StorytellerStore = {
+	acquire: () -> CleanupFn,
 	start: () -> (),
 	stop: () -> (),
 	destroy: () -> (),
@@ -304,6 +305,31 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.insert(connections, script.Destroying:Connect(stop))
 	end
 	self.start = start
+
+	local consumerCount = 0
+	local function acquire(): CleanupFn
+		if isDestroyed then
+			return function() end
+		end
+
+		consumerCount += 1
+		if consumerCount == 1 then
+			start()
+		end
+
+		local isReleased = false
+		return function()
+			if isReleased then
+				return
+			end
+			isReleased = true
+			consumerCount -= 1
+			if consumerCount == 0 then
+				stop()
+			end
+		end
+	end
+	self.acquire = acquire
 
 	local function destroy()
 		if isDestroyed then
