@@ -3,4 +3,4 @@ bump: minor
 category: Features
 ---
 
-Expose Storyteller's Charm store for consumers that coordinate discovery outside React hooks.
+Expose read-only Charm getters for loaded, unavailable, and orphaned story discovery state.

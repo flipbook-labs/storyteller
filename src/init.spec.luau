@@ -13,20 +13,12 @@ test("Storyteller can be required", function()
 	expect(Storyteller).toBeDefined()
 end)
 
-test("creates independent Storyteller stores", function()
+test("exposes Storyteller discovery state", function()
 	local Storyteller = require("@self")
-	local rootA = Instance.new("Folder")
-	local rootB = Instance.new("Folder")
 
-	local storeA = Storyteller.createStore(rootA)
-	local storeB = Storyteller.createStore(rootB)
-
-	expect(storeA).never.toBe(storeB)
-
-	storeA.destroy()
-	storeB.destroy()
-	rootA:Destroy()
-	rootB:Destroy()
+	expect(Storyteller.getLoadedStorybooks()).toEqual({})
+	expect(Storyteller.getUnavailableStorybooks()).toEqual({})
+	expect(Storyteller.getOrphanedStoryModules()).toEqual({})
 end)
 
 test("Storyteller can be required in a ModuleLoader context", function()

@@ -1,6 +1,5 @@
 local ControlTypes = require("@self/controls/ControlTypes")
 local StorytellerContext = require("@root/react/StorytellerContext")
-local StorytellerStore = require("@root/stores/StorytellerStore")
 local types = require("@self/types")
 
 --[=[
@@ -27,7 +26,6 @@ export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
-export type Store = StorytellerStore.StorytellerStore
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
@@ -60,8 +58,10 @@ return {
 	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
 	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
-	-- Store
-	createStore = StorytellerStore.new,
+	-- Discovery state
+	getLoadedStorybooks = require("@self/getLoadedStorybooks"),
+	getUnavailableStorybooks = require("@self/getUnavailableStorybooks"),
+	getOrphanedStoryModules = require("@self/getOrphanedStoryModules"),
 
 	-- Module loading
 	loadStoryModule = require("@self/loadStoryModule"),
@@ -73,7 +73,6 @@ return {
 	-- React
 	StoryContainer = require("@self/react/StoryContainer"),
 	StorytellerProvider = StorytellerContext.StorytellerProvider,
-	useStore = require("@self/react/useStorytellerStore"),
 	useStory = require("@self/react/useStory"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
