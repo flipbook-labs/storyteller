@@ -1,5 +1,7 @@
 local Charm = require("@pkg/Charm")
 
+local observeModuleCollection = require("./observeModuleCollection")
+
 local QUERY_STEP_COOLDOWN_SEC = 0.2
 
 export type QueryOptions = {
@@ -32,6 +34,7 @@ local function query(options: QueryOptions): QueryResult
 	local isDestroyed = false
 	local isRunning = false
 	local generation = 0
+	local disposeCollection: (() -> ())?
 
 	local function queryDescendants(): { Instance }
 		local matches = {}
@@ -61,6 +64,21 @@ local function query(options: QueryOptions): QueryResult
 		generation += 1
 		local activeGeneration = generation
 
+		if options.selector == "ModuleScript" and options.matcher == nil then
+			local success, collection = pcall(function()
+				return game:GetService("CollectionService"):CreateCollection("ModuleScript", options.root)
+			end)
+
+			if success then
+				disposeCollection = observeModuleCollection(
+					(collection :: unknown) :: observeModuleCollection.ModuleCollection,
+					options.root,
+					setMatches
+				)
+				return
+			end
+		end
+
 		local function stepAsync()
 			if isDestroyed or not isRunning or activeGeneration ~= generation then
 				return
@@ -79,6 +97,10 @@ local function query(options: QueryOptions): QueryResult
 			return
 		end
 		isRunning = false
+		if disposeCollection then
+			disposeCollection()
+			disposeCollection = nil
+		end
 	end
 
 	local function destroy()
