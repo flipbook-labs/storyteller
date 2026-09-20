@@ -1,7 +1,6 @@
 local React = require("@pkg/React")
 
 local StorytellerStore = require("@root/stores/StorytellerStore")
-local acquireStorytellerStore = require("@root/stores/acquireStorytellerStore")
 
 local useContext = React.useContext
 local useEffect = React.useEffect
@@ -29,7 +28,7 @@ local function StorytellerProvider(storytellerProviderProps: StorytellerProvider
 	end, { store })
 
 	useEffect(function()
-		return acquireStorytellerStore(store)
+		return store.acquire()
 	end, { store })
 
 	return React.createElement(StorytellerContext.Provider, {
