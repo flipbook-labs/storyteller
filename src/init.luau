@@ -58,6 +58,11 @@ return {
 	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
 	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
+	-- Discovery state
+	getLoadedStorybooks = require("@self/getLoadedStorybooks"),
+	getUnavailableStorybooks = require("@self/getUnavailableStorybooks"),
+	getOrphanedStoryModules = require("@self/getOrphanedStoryModules"),
+
 	-- Module loading
 	loadStoryModule = require("@self/loadStoryModule"),
 	loadStorybookModule = require("@self/loadStorybookModule"),
