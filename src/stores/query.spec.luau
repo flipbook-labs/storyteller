@@ -14,6 +14,86 @@ local test = JestGlobals.test
 
 type LoadedStorybook = types.LoadedStorybook
 
+test("shares one engine scan between matching queries", function()
+	local scanCount = 0
+	local story = ({} :: unknown) :: Instance
+	local storybook = ({} :: unknown) :: Instance
+	local fakeRoot = (
+		{
+			IsA = function(_self, _selector: string)
+				return false
+			end,
+			QueryDescendants = function(_self, _selector: string)
+				scanCount += 1
+				return { story, storybook }
+			end,
+		} :: unknown
+	) :: Instance
+
+	local storiesQuery = query({
+		root = fakeRoot,
+		selector = "ModuleScript",
+		matcher = function(instance)
+			return instance == story
+		end,
+	})
+	local storybooksQuery = query({
+		root = fakeRoot,
+		selector = "ModuleScript",
+		matcher = function(instance)
+			return instance == storybook
+		end,
+	})
+
+	storiesQuery.start()
+	storybooksQuery.start()
+	task.wait()
+	storiesQuery.stop()
+	storybooksQuery.stop()
+
+	expect(scanCount).toBe(1)
+	expect(storiesQuery.get()).toEqual({ story })
+	expect(storybooksQuery.get()).toEqual({ storybook })
+end)
+
+test("keeps shared scans running until the last query stops", function()
+	local first = ({} :: unknown) :: Instance
+	local second = ({} :: unknown) :: Instance
+	local candidates = { first }
+	local fakeRoot = (
+		{
+			IsA = function(_self, _selector: string)
+				return false
+			end,
+			QueryDescendants = function(_self, _selector: string)
+				return candidates
+			end,
+		} :: unknown
+	) :: Instance
+
+	local firstQuery = query({
+		root = fakeRoot,
+		selector = "ModuleScript",
+	})
+	local secondQuery = query({
+		root = fakeRoot,
+		selector = "ModuleScript",
+	})
+
+	firstQuery.start()
+	secondQuery.start()
+	task.wait()
+	firstQuery.stop()
+	candidates = { second }
+
+	waitFor(function()
+		expect(secondQuery.get()).toEqual({ second })
+	end)
+	secondQuery.stop()
+
+	expect(firstQuery.get()).toEqual({ first })
+end)
+
 describe("DataModel behavior", function()
 	test("updates when adding a matching Instance", function()
 		local root = Instance.new("Folder")
