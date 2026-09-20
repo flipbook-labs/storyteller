@@ -55,9 +55,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local connections: { RBXScriptConnection } = {}
 	local disposeStorybookModuleObserver
-	local disposeStorybookModulesSubscription
+	local disposeModulesSubscription
 	local disposeStoryModuleObserver
-	local disposeStoryModulesSubscription
 
 	local isDestroyed = false
 	local isRunning = false
@@ -96,17 +95,40 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end)
 	self.getOrphanedStoryModules = getOrphanedStoryModules
 
-	local storyModulesQuery = query({
+	local modulesQuery = query({
 		root = root,
 		selector = "ModuleScript",
-		matcher = isStoryModule,
 	})
 
-	local storybookModulesQuery = query({
-		root = root,
-		selector = "ModuleScript",
-		matcher = isStorybookModule,
-	})
+	local function classifyModules(modules: { Instance })
+		local stories: { ModuleScript } = {}
+		local storybooks: { ModuleScript } = {}
+
+		for _, module in modules do
+			assert(module:IsA("ModuleScript"), "Luau")
+
+			if isStoryModule(module) then
+				table.insert(stories, module)
+			elseif isStorybookModule(module) then
+				table.insert(storybooks, module)
+			end
+		end
+
+		Charm.batch(function()
+			local previousStories = getStoryModules()
+			if #stories ~= #previousStories or #Sift.List.differenceSymmetric(stories, previousStories) > 0 then
+				setStoryModules(stories)
+			end
+
+			local previousStorybooks = getStorybookModules()
+			if
+				#storybooks ~= #previousStorybooks
+				or #Sift.List.differenceSymmetric(storybooks, previousStorybooks) > 0
+			then
+				setStorybookModules(storybooks)
+			end
+		end)
+	end
 
 	local function loadStorybook(storybookModule: ModuleScript)
 		local loader = ModuleLoader.new()
@@ -235,8 +257,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.clear(pendingStorybookModules)
 		table.clear(queuedStorybookModules)
 
-		storyModulesQuery.stop()
-		storybookModulesQuery.stop()
+		modulesQuery.stop()
 
 		for _, connection in connections do
 			connection:Disconnect()
@@ -244,9 +265,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		table.clear(connections)
 
 		disposeStorybookModuleObserver()
-		disposeStorybookModulesSubscription()
+		disposeModulesSubscription()
 		disposeStoryModuleObserver()
-		disposeStoryModulesSubscription()
 		recordStore.clear()
 	end
 	self.stop = stop
@@ -260,11 +280,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end
 		isRunning = true
 
-		disposeStoryModulesSubscription = Charm.listen(storyModulesQuery.get, function(storyModules)
-			setStoryModules((storyModules :: any) :: { ModuleScript })
-		end)
+		disposeModulesSubscription = Charm.listen(modulesQuery.get, classifyModules)
 
-		disposeStoryModuleObserver = Charm.observe(storyModulesQuery.get, function(storyModule)
+		disposeStoryModuleObserver = Charm.observe(getStoryModules, function(storyModule)
 			assert(storyModule:IsA("ModuleScript"), "Luau")
 
 			local changedConn = storyModule.Changed:Connect(debounce(function()
@@ -278,11 +296,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end
 		end)
 
-		disposeStorybookModulesSubscription = Charm.listen(storybookModulesQuery.get, function(storybookModules)
-			setStorybookModules((storybookModules :: any) :: { ModuleScript })
-		end)
-
-		disposeStorybookModuleObserver = Charm.observe(storybookModulesQuery.get, function(storybookModule)
+		disposeStorybookModuleObserver = Charm.observe(getStorybookModules, function(storybookModule)
 			assert(storybookModule:IsA("ModuleScript"), "Luau")
 
 			queueStorybookModule(storybookModule)
@@ -298,8 +312,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 			end
 		end)
 
-		storyModulesQuery.start()
-		storybookModulesQuery.start()
+		modulesQuery.start()
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
@@ -339,8 +352,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		stop()
 		isDestroyed = true
 		recordStore.destroy()
-		storyModulesQuery.destroy()
-		storybookModulesQuery.destroy()
+		modulesQuery.destroy()
 	end
 	self.destroy = destroy
 
