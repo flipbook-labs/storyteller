@@ -1,5 +1,4 @@
 local Charm = require("@pkg/Charm")
-local Sift = require("@pkg/Sift")
 
 local QUERY_STEP_COOLDOWN_SEC = 0.2
 
@@ -32,16 +31,7 @@ local function query(options: QueryOptions): QueryResult
 
 	local isDestroyed = false
 	local isRunning = false
-
-	local function setCurrentMatches(matches: { Instance })
-		setMatches(function(prev)
-			if #matches == #prev and #Sift.List.differenceSymmetric(matches, prev) == 0 then
-				return prev
-			end
-
-			return matches
-		end)
-	end
+	local generation = 0
 
 	local function queryDescendants(): { Instance }
 		local matches = {}
@@ -68,13 +58,16 @@ local function query(options: QueryOptions): QueryResult
 			return
 		end
 		isRunning = true
+		generation += 1
+		local activeGeneration = generation
 
 		local function stepAsync()
-			if isDestroyed or not isRunning then
+			if isDestroyed or not isRunning or activeGeneration ~= generation then
 				return
 			end
 
-			setCurrentMatches(queryDescendants())
+			-- Membership can stay unchanged while names change their classification.
+			setMatches(queryDescendants())
 			task.delay(QUERY_STEP_COOLDOWN_SEC, stepAsync)
 		end
 
