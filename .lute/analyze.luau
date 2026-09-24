@@ -34,7 +34,6 @@ local function analyzeLuauSource()
 		`--defs={globalDefsPath}`,
 		"--settings=./.vscode/settings.json",
 		"--platform=standard",
-		"--flag:LuauSolverV2=true",
 		project.SCRIPTS_PATH,
 	})
 end
