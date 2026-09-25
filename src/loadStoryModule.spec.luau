@@ -94,7 +94,8 @@ test("wraps Hoarcekat function stories to receive the container from props", fun
 	expect(story.name).toBe("Foo")
 
 	local container = Instance.new("Folder")
-	local result = (story.story :: any)({ container = container })
+	local mount = story.story :: (props: { container: Instance }) -> { mountedTo: Instance }
+	local result = mount({ container = container })
 	expect(result.mountedTo).toBe(container)
 end)
 
@@ -506,7 +507,7 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow("`id` must be a string")
+		end).toThrow('Story "1" is malformed')
 	end)
 
 	test("rejects stories tables with non-string keys", function()

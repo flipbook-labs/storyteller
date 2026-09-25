@@ -1,4 +1,5 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
+local gt = require("@pkg/GreenTea")
 local t = require("@pkg/t")
 
 local ControlTypes = require("@root/controls/ControlTypes")
@@ -85,15 +86,17 @@ export type Story<T> = {
 	summary: string?,
 	props: ExtraStoryProps?,
 }
-types.IStoryDefinition = t.interface({
-	story = t.any,
-	id = t.optional(t.string),
-	name = t.optional(t.string),
-	summary = t.optional(t.string),
-	controls = t.optional(t.map(t.string, t.any)),
-	packages = t.optional(t.map(t.string, t.any)),
-	props = t.optional(t.map(t.string, t.any)),
+local StringMap = gt.dictionary(gt.string(), gt.unknown())
+local StoryDefinition = gt.struct({
+	story = gt.unknown(),
+	id = gt.optional(gt.string()),
+	name = gt.optional(gt.string()),
+	summary = gt.optional(gt.string()),
+	controls = gt.optional(StringMap),
+	packages = gt.optional(StringMap),
+	props = gt.optional(StringMap),
 })
+types.IStoryDefinition = gt.build(StoryDefinition)
 
 export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
 
@@ -106,20 +109,21 @@ export type StoryGroup<T> = {
 	packages: StoryPackages?,
 	props: ExtraStoryProps?,
 }
-types.IStoryGroup = t.interface({
+local StoryGroup = gt.struct({
 	-- Key discipline (array or string-keyed dictionary) is enforced by
 	-- normalizeStoryModule so mixed keys surface an actionable error instead
 	-- of a generic union failure.
-	stories = t.table,
-	name = t.optional(t.string),
-	summary = t.optional(t.string),
-	controls = t.optional(t.map(t.string, t.any)),
-	packages = t.optional(t.map(t.string, t.any)),
-	props = t.optional(t.map(t.string, t.any)),
+	stories = gt.table({ [gt.unknown()] = gt.unknown() }),
+	name = gt.optional(gt.string()),
+	summary = gt.optional(gt.string()),
+	controls = gt.optional(StringMap),
+	packages = gt.optional(StringMap),
+	props = gt.optional(StringMap),
 })
+types.IStoryGroup = gt.build(StoryGroup)
 
 export type StoryModule<T> = Story<T> | StoryGroup<T>
-types.IStory = t.union(types.IStoryDefinition, types.IStoryGroup)
+types.IStory = gt.build(gt.union(StoryDefinition, StoryGroup))
 
 export type LoadedStory<T> = {
 	id: string,
