@@ -29,6 +29,9 @@ export type LoadedStorybook = types.LoadedStorybook
 export type UnavailableStorybook = types.UnavailableStorybook
 export type StoryProps = types.StoryProps
 export type StoryRenderer<T> = types.StoryRenderer<T>
+export type StoryRequest = types.StoryRequest
+export type StoryModuleRecord = types.StoryModuleRecord
+export type StoryModuleRecords = types.StoryModuleRecords
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
