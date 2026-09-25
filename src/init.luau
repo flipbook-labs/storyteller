@@ -20,6 +20,9 @@ local types = require("@self/types")
 
 export type RenderLifecycle = types.RenderLifecycle
 export type Story<T> = types.Story<T>
+export type StoryEntry<T> = types.StoryEntry<T>
+export type StoryGroup<T> = types.StoryGroup<T>
+export type StoryModule<T> = types.StoryModule<T>
 export type LoadedStory<T> = types.LoadedStory<T>
 export type Storybook = types.Storybook
 export type LoadedStorybook = types.LoadedStorybook
@@ -59,6 +62,7 @@ return {
 	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
 
 	-- Module loading
+	loadStoriesFromModule = require("@self/loadStoriesFromModule"),
 	loadStoryModule = require("@self/loadStoryModule"),
 	loadStorybookModule = require("@self/loadStorybookModule"),
 
