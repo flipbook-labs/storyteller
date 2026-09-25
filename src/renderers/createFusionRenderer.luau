@@ -3,12 +3,18 @@ local Sift = require("@pkg/Sift")
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
+type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
 type Packages = {
 	Fusion: any,
 }
+
+type FusionValue = {
+	set: (FusionValue, unknown) -> (),
+}
+type FusionValues = { [string]: FusionValue }
 
 local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local Fusion = packages.Fusion
@@ -25,8 +31,10 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 			scope = Fusion:scoped()
 		end
 
-		transformed.controls = Sift.Dictionary.map(props.controls, function(arg, key)
-			local prevControl = if prevProps and prevProps.controls then prevProps.controls[key] else nil
+		local prevControls: FusionValues? = if prevProps then prevProps.controls :: FusionValues? else nil
+
+		transformed.controls = Sift.Dictionary.map(props.controls :: StoryControls, function(arg, key)
+			local prevControl = if prevControls then prevControls[key] else nil
 
 			if prevControl ~= nil then
 				return prevControl
@@ -45,13 +53,13 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<Instance>
 		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 
 		if mapStory then
-			handle = mapStory(story.story)(props)
+			handle = mapStory(story.story)(props) :: Instance?
 		elseif typeof(story.story) == "Instance" then
 			handle = story.story
 		elseif typeof(story.story) == "function" then
@@ -77,8 +85,10 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 		-- we leave `handle` alone and mutate the controls with the newly
 		-- updated values
 		if prevProps then
-			for key, value in props.controls do
-				local prevControl = prevProps.controls[key]
+			local prevControls = prevProps.controls :: FusionValues
+
+			for key, value in props.controls :: StoryControls do
+				local prevControl = prevControls[key]
 
 				if prevControl ~= nil then
 					prevControl:set(value)

@@ -4,6 +4,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local types = require("@root/types")
 local waitFor = require("@root/test-utils/waitFor")
 
 local beforeEach = JestGlobals.beforeEach
@@ -12,6 +13,8 @@ local test = JestGlobals.test
 
 type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
+type LoadedStory<T> = types.LoadedStory<T>
+type StoryProps = types.StoryProps
 
 local container
 
@@ -130,8 +133,9 @@ test("mapStory middleware wraps the story", function()
 	end)
 
 	story.storybook.mapStory = function(originalStory)
+		local storyFn = originalStory :: (StoryProps) -> ()
 		return function(props)
-			originalStory(props)
+			storyFn(props)
 
 			Iris.Window({ "Middleware Window" })
 			Iris.Text({ "FromMiddleware" })
@@ -201,7 +205,7 @@ test("mapDefinition is applied exactly once, at mount", function()
 
 	story.storybook.mapDefinition = function(storyDefinition)
 		applications += 1
-		return table.clone(storyDefinition)
+		return table.clone(storyDefinition :: LoadedStory<unknown>)
 	end
 
 	local lifecycle = render(container, story)
@@ -233,11 +237,12 @@ test("mapDefinition can replace the story's component", function()
 	end)
 
 	story.storybook.mapDefinition = function(storyDefinition)
-		local mapped = table.clone(storyDefinition)
+		local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 		mapped.story = function()
 			Iris.Window({ "Replaced Window" })
 			Iris.Text({ "Replaced" })
 			Iris.End()
+			return nil
 		end
 		return mapped
 	end
