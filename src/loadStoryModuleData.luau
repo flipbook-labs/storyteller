@@ -148,9 +148,20 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	local normalized: { NormalizedStory } = {}
 
 	if Sift.Array.is(group.stories) then
+		local seenNames: { [string]: boolean } = {}
 		for index, entry in group.stories do
 			local fallback = tostring(index)
 			local definition = parseStoryEntry(entry, storyModule, `at index {index}`)
+			if definition.id == nil and definition.name ~= nil then
+				if seenNames[definition.name] then
+					error(
+						`Story is malformed. Two Stories named "{definition.name}" collide. Rename one Story or give them distinct explicit `
+							.. "`id` values. Source: "
+							.. storyModule:GetFullName()
+					)
+				end
+				seenNames[definition.name] = true
+			end
 			local id = definition.id or definition.name or fallback
 			table.insert(normalized, inheritDefaults(definition, group, id, definition.name or fallback))
 		end
