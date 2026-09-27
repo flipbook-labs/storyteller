@@ -100,6 +100,7 @@ local StoryDefinition = gt.struct({
 	props = gt.optional(UnknownDict),
 })
 types.IStoryDefinition = gt.build(StoryDefinition)
+export type StoryDefinitionSource = typeof(StoryDefinition)
 
 export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
 
@@ -124,6 +125,7 @@ local StoryGroup = gt.struct({
 	props = gt.optional(UnknownDict),
 })
 types.IStoryGroup = gt.build(StoryGroup)
+export type StoryGroupSource = typeof(StoryGroup)
 
 export type StoryModule<T> = Story<T> | StoryGroup<T>
 types.IStory = gt.build(gt.union(StoryDefinition, StoryGroup))

@@ -82,30 +82,30 @@ test("load a story module as a table", function()
 	})
 end)
 
-test("wraps Hoarcekat function stories to receive the container and return cleanup", function()
+test("handle Hoarcekat stories", function()
 	local storyModule = createMockStoryModule([[
 		return function(target)
-			local mounted = Instance.new("Folder")
-			mounted.Name = "Mounted"
-			mounted.Parent = target
+			local gui = Instance.new("TextLabel")
+			gui.Parent = target
 
 			return function()
-				target:SetAttribute("CleanedUp", true)
+				gui:Destroy()
 			end
 		end
 	]])
 
 	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
+	expect(story).toBeDefined()
 	expect(story.id).toBe("default")
 	expect(story.name).toBe("Foo")
 
 	local container = Instance.new("Folder")
 	local lifecycle = render(container, story)
-	expect(container:FindFirstChild("Mounted")).toBeDefined()
+	expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 
 	lifecycle.unmount()
-	expect(container:GetAttribute("CleanedUp")).toBe(true)
+	expect(#container:GetChildren()).toBe(0)
 end)
 
 test("legacy function stories never inherit storybook packages", function()
