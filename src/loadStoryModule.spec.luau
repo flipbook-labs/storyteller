@@ -456,6 +456,37 @@ describe("multiple stories", function()
 		})
 	end)
 
+	test("keeps custom fields from a single Story's source", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				customField = "single",
+				story = function() end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		expect(story).toMatchObject({ customField = "single" })
+	end)
+
+	test("keeps custom fields from grouped Stories and their module defaults", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				groupField = "group",
+				stories = {
+					{ name = "First", entryField = "entry", story = function() end },
+					{ name = "Second", groupField = "override", story = function() end },
+				},
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(stories[1]).toMatchObject({ groupField = "group", entryField = "entry" })
+		expect(stories[1]).never.toHaveProperty("stories")
+		expect(stories[2]).toMatchObject({ groupField = "override" })
+	end)
+
 	test("story packages merge with module defaults and fall back to the storybook's", function()
 		-- Real packages are libraries such as React. These marker tables only
 		-- make the merge result easy to inspect.
