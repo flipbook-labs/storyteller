@@ -167,6 +167,33 @@ test("lifecycle", function()
 	expect(#container:GetChildren()).toBe(0)
 end)
 
+test("unmounting runs willUnmount", function()
+	local unmounted = false
+
+	local StoryWithWillUnmount = Roact.Component:extend("StoryWithWillUnmount")
+
+	function StoryWithWillUnmount:render()
+		return Roact.createElement("TextLabel", {
+			Text = "Effectful",
+		})
+	end
+
+	function StoryWithWillUnmount:willUnmount()
+		unmounted = true
+	end
+
+	local lifecycle = render(container, createRoactStory(StoryWithWillUnmount))
+
+	expect(unmounted).toBe(false)
+
+	lifecycle.unmount()
+
+	-- Stories rely on their lifecycle methods running when the story is
+	-- closed, so unmounting must go through Roact rather than only
+	-- clearing the container
+	expect(unmounted).toBe(true)
+end)
+
 describe("middleware", function()
 	test("supply context provider to all stories", function()
 		local ThemeContext = Roact.createContext(nil)
@@ -196,6 +223,54 @@ describe("middleware", function()
 		local element = container:FindFirstChildWhichIsA("TextLabel")
 		assert(element, "no TextLabel found")
 		expect(element.Text).toBe("Dark")
+	end)
+
+	test("mapStory continues to wrap the story on updates", function()
+		local ThemeContext = Roact.createContext(nil)
+
+		local function StoryThatNeedsContext(props: {
+			controls: {
+				isDisabled: boolean?,
+			},
+		})
+			local state = if props.controls.isDisabled then "Disabled" else "Enabled"
+
+			return Roact.createElement(ThemeContext.Consumer, {
+				render = function(theme)
+					return Roact.createElement("TextLabel", {
+						Text = `{theme} {state}`,
+					})
+				end,
+			})
+		end
+
+		local story = createRoactStory(StoryThatNeedsContext)
+
+		story.controls = {
+			isDisabled = false,
+		} :: StoryControlsSchema
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				return Roact.createElement(ThemeContext.Provider, {
+					value = "Dark",
+				}, Roact.createElement(element, props))
+			end
+		end
+
+		local lifecycle = render(container, story)
+
+		local element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark Enabled")
+
+		lifecycle.update({
+			isDisabled = true,
+		} :: StoryControls)
+
+		element = container:FindFirstChildWhichIsA("TextLabel")
+		assert(element, "no TextLabel found")
+		expect(element.Text).toBe("Dark Disabled")
 	end)
 
 	test("mapDefinition is applied exactly once, at mount", function()

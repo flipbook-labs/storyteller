@@ -104,6 +104,60 @@ describe("Vide", function()
 		expect(element.Text).toBe("Enabled")
 	end)
 
+	test("unmounting destroys the reactive scope", function()
+		local cleaned = false
+
+		local story = createVideStory(function()
+			Vide.cleanup(function()
+				cleaned = true
+			end)
+
+			return Vide.create("TextLabel")({
+				Text = "Hello, world!",
+			})
+		end)
+
+		local lifecycle = render(container, story)
+
+		expect(cleaned).toBe(false)
+
+		lifecycle.unmount()
+
+		-- Stories rely on their `Vide.cleanup` callbacks running when the
+		-- story is closed, so unmounting must destroy the reactive scope
+		-- rather than only clearing the container
+		expect(cleaned).toBe(true)
+	end)
+
+	test("mount and unmount a story that is an Instance", function()
+		local instance = Vide.create("TextLabel")({
+			Text = "Static",
+		})
+		local story = createVideStory(instance)
+
+		local lifecycle = render(container, story)
+
+		expect(#container:GetChildren()).toBe(1)
+		expect(instance.Parent).toBe(container)
+
+		lifecycle.unmount()
+
+		expect(#container:GetChildren()).toBe(0)
+		expect(instance.Parent).toBeNil()
+	end)
+
+	test("errors thrown by the story propagate out of render", function()
+		local story = createVideStory(function()
+			error("vide story blew up")
+		end)
+
+		expect(function()
+			render(container, story)
+		end).toThrow("vide story blew up")
+
+		expect(#container:GetChildren()).toBe(0)
+	end)
+
 	test("mapStory middleware wraps the story", function()
 		local story = createVideStory(TextStory)
 
