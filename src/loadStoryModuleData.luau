@@ -108,7 +108,6 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 					story = function(props: StoryProps)
 						return callback(props.container, props)
 					end,
-					-- Hoarcekat Stories manage their own rendering.
 					packages = {},
 					sourceFields = {},
 				},
