@@ -30,9 +30,12 @@ type NormalizedStory = {
 	controls: UnknownDict?,
 	packages: UnknownDict?,
 	props: UnknownDict?,
-	-- Every field the Story source defines, including custom metadata that
-	-- Storybook middleware such as `mapDefinition` can read.
-	sourceFields: UnknownDict,
+	-- Every field the Story source defines, copied onto the loaded Story for
+	-- parity with the single-Story loader, which merged the whole source in.
+	-- This passthrough is not a supported contract and may be removed, so
+	-- don't build features on it. Fields Storyteller supports belong in the
+	-- typed fields above.
+	legacyPassthroughFields: UnknownDict,
 }
 
 type NormalizedStoryModule = {
@@ -78,16 +81,18 @@ local function inheritDefaults(
 	id: string,
 	name: string
 ): NormalizedStory
-	local sourceFields: UnknownDict = Sift.Dictionary.merge(defaults, entry, { stories = Sift.None })
+	local source: UnknownDict = Sift.Dictionary.merge(defaults, entry, { stories = Sift.None })
 	return {
 		id = id,
 		name = name,
 		story = entry.story,
 		summary = entry.summary or (defaults and defaults.summary),
 		controls = mergeOrNil(defaults and defaults.controls, entry.controls),
-		packages = mergeOrNil(defaults and defaults.packages, entry.packages) or migrateLegacyPackages(sourceFields),
+		-- Legacy fields such as `react` migrate into `packages`. That migration is
+		-- supported and does not depend on `legacyPassthroughFields`.
+		packages = mergeOrNil(defaults and defaults.packages, entry.packages) or migrateLegacyPackages(source),
 		props = mergeOrNil(defaults and defaults.props, entry.props),
-		sourceFields = sourceFields,
+		legacyPassthroughFields = source,
 	}
 end
 
@@ -109,7 +114,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 						return callback(props.container, props)
 					end,
 					packages = {},
-					sourceFields = {},
+					legacyPassthroughFields = {},
 				},
 			},
 		}
@@ -227,7 +232,7 @@ local function loadStoryModuleData<T>(
 			controls = controls,
 			props = normalizedStory.props,
 		}
-		table.insert(loadedStories, Sift.Dictionary.merge(normalizedStory.sourceFields, loadedStory))
+		table.insert(loadedStories, Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory))
 	end
 
 	return {

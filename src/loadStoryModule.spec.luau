@@ -456,37 +456,6 @@ describe("multiple stories", function()
 		})
 	end)
 
-	test("keeps custom fields from a single Story's source", function()
-		local storyModule = createMockStoryModule([[
-			return {
-				customField = "single",
-				story = function() end,
-			}
-		]])
-
-		local story = loadStoryModule(storyModule, mockPlainStorybook)
-
-		expect(story).toMatchObject({ customField = "single" })
-	end)
-
-	test("keeps custom fields from grouped Stories and their module defaults", function()
-		local storyModule = createMockStoryModule([[
-			return {
-				groupField = "group",
-				stories = {
-					{ name = "First", entryField = "entry", story = function() end },
-					{ name = "Second", groupField = "override", story = function() end },
-				},
-			}
-		]])
-
-		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
-
-		expect(stories[1]).toMatchObject({ groupField = "group", entryField = "entry" })
-		expect(stories[1]).never.toHaveProperty("stories")
-		expect(stories[2]).toMatchObject({ groupField = "override" })
-	end)
-
 	test("story packages merge with module defaults and fall back to the storybook's", function()
 		-- Real packages are libraries such as React. These marker tables only
 		-- make the merge result easy to inspect.
@@ -568,17 +537,53 @@ describe("multiple stories", function()
 	end)
 end)
 
+describe("legacy passthrough", function()
+	-- The single-Story loader copied every source field onto the loaded Story.
+	-- These tests keep parity with that, but the passthrough is not a
+	-- supported contract and may be removed. Update or delete them if it is.
+	test("keeps custom fields from a single Story's source", function()
+		local storyModule = createMockStoryModule([[
+				return {
+					customField = "single",
+					story = function() end,
+				}
+			]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		expect(story).toMatchObject({ customField = "single" })
+	end)
+
+	test("keeps custom fields from grouped Stories and their module defaults", function()
+		local storyModule = createMockStoryModule([[
+				return {
+					groupField = "group",
+					stories = {
+						{ name = "First", entryField = "entry", story = function() end },
+						{ name = "Second", groupField = "override", story = function() end },
+					},
+				}
+			]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(stories[1]).toMatchObject({ groupField = "group", entryField = "entry" })
+		expect(stories[1]).never.toHaveProperty("stories")
+		expect(stories[2]).toMatchObject({ groupField = "override" })
+	end)
+end)
+
 describe("storybook middleware", function()
-	test("mapDefinition receives custom fields from the Story source", function()
-		local receivedField: unknown
+	test("mapDefinition receives the loaded Story", function()
+		local receivedSummary: unknown
 		mockPlainStorybook.mapDefinition = function(storyDefinition)
-			receivedField = storyDefinition.customField
+			receivedSummary = storyDefinition.summary
 			return storyDefinition
 		end
 
 		local storyModule = createMockStoryModule([[
 			return {
-				customField = "custom",
+				summary = "From the source",
 				story = function(props)
 					local label = Instance.new("TextLabel")
 					label.Parent = props.container
@@ -590,7 +595,7 @@ describe("storybook middleware", function()
 		local container = Instance.new("Folder")
 		local lifecycle = render(container, story)
 
-		expect(receivedField).toBe("custom")
+		expect(receivedSummary).toBe("From the source")
 		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 
 		lifecycle.unmount()
