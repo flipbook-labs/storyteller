@@ -3,7 +3,7 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 
 local renderHook = require("@root/test-utils/renderHook")
 local types = require("@root/types")
-local useStoriesForModule = require("./useStoriesForModule")
+local useStories = require("./useStories")
 local waitFor = require("@root/test-utils/waitFor")
 
 local expect = JestGlobals.expect
@@ -29,7 +29,7 @@ test("loads every story from a module", function()
 	}
 
 	local get = renderHook(function()
-		return useStoriesForModule(storyModule, storybook)
+		return useStories(storyModule, storybook)
 	end)
 	act(function()
 		task.wait(0.1)
@@ -70,7 +70,7 @@ test("surfaces a problem for a malformed module", function()
 	}
 
 	local get = renderHook(function()
-		return useStoriesForModule(storyModule, storybook)
+		return useStories(storyModule, storybook)
 	end)
 	act(function()
 		task.wait(0.1)
