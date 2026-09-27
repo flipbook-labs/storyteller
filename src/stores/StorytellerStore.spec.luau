@@ -12,10 +12,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryRequest = {
-	storyModule: ModuleScript,
-	storybook: types.LoadedStorybook,
-}
+type StoryRequest = types.StoryRequest
 
 local store
 
