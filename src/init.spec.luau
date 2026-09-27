@@ -13,6 +13,14 @@ test("Storyteller can be required", function()
 	expect(Storyteller).toBeDefined()
 end)
 
+test("exposes Storyteller discovery state", function()
+	local Storyteller = require("@self")
+
+	expect(Storyteller.getLoadedStorybooks()).toEqual({})
+	expect(Storyteller.getUnavailableStorybooks()).toEqual({})
+	expect(Storyteller.getOrphanedStoryModules()).toEqual({})
+end)
+
 test("Storyteller can be required in a ModuleLoader context", function()
 	local loader = ModuleLoader.new()
 
