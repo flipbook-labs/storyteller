@@ -82,12 +82,16 @@ test("load a story module as a table", function()
 	})
 end)
 
-test("wraps Hoarcekat function stories to receive the container from props", function()
+test("wraps Hoarcekat function stories to receive the container and return cleanup", function()
 	local storyModule = createMockStoryModule([[
 		return function(target)
 			local mounted = Instance.new("Folder")
 			mounted.Name = "Mounted"
 			mounted.Parent = target
+
+			return function()
+				target:SetAttribute("CleanedUp", true)
+			end
 		end
 	]])
 
@@ -99,7 +103,9 @@ test("wraps Hoarcekat function stories to receive the container from props", fun
 	local container = Instance.new("Folder")
 	local lifecycle = render(container, story)
 	expect(container:FindFirstChild("Mounted")).toBeDefined()
+
 	lifecycle.unmount()
+	expect(container:GetAttribute("CleanedUp")).toBe(true)
 end)
 
 test("legacy function stories never inherit storybook packages", function()
