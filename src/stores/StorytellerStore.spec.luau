@@ -627,19 +627,19 @@ describe("requesting story modules", function()
 		}
 	end
 
-	local function getRecord(storyRequest: StoryRequest)
-		local recordsForStorybook = store.getStoryModuleRecords()[storyRequest.storybook.source]
-		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
+	local function getRecord(request: StoryRequest)
+		local recordsForStorybook = store.getStoryModuleRecords()[request.storybook.source]
+		return if recordsForStorybook then recordsForStorybook[request.storyModule] else nil
 	end
 
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local storyRequest = createRequest("Delegated")
+		local request = createRequest("Delegated")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			local record = getRecord(storyRequest)
+			local record = getRecord(request)
 			assert(record and record.stories, "expected a loaded record for the requested story module")
 			expect(record.stories[1].name).toBe("Delegated")
 		end)
@@ -647,12 +647,12 @@ describe("requesting story modules", function()
 
 	test("clears records when the store is destroyed", function()
 		store = StorytellerStore.new(new("Folder"))
-		local storyRequest = createRequest("Ephemeral")
+		local request = createRequest("Ephemeral")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			expect(getRecord(storyRequest)).toBeDefined()
+			expect(getRecord(request)).toBeDefined()
 		end)
 
 		store.destroy()
