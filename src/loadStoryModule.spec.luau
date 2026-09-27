@@ -340,7 +340,7 @@ describe("multiple stories", function()
 		expect(story.name).toBe("First")
 	end)
 
-	test("rejects duplicate story ids", function()
+	test("rejects duplicate explicit story ids", function()
 		local storyModule = createMockStoryModule([[
 			return {
 				stories = {
@@ -352,7 +352,39 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow("duplicated")
+		end).toThrow('Story id "duplicate" is duplicated')
+	end)
+
+	test("explains when array story names collide", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ name = "Duplicate", story = function() end },
+					{ name = "Duplicate", story = function() end },
+				}
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow(
+			'Two Stories named "Duplicate" collide. Rename one Story or give them distinct explicit `id` values.'
+		)
+	end)
+
+	test("allows dictionary stories with distinct keys to share a name", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					first = { name = "Shared", story = function() end },
+					second = { name = "Shared", story = function() end },
+				}
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+		expect(stories[1]).toMatchObject({ id = "first", name = "Shared" })
+		expect(stories[2]).toMatchObject({ id = "second", name = "Shared" })
 	end)
 
 	test("rejects modules that define both story and stories", function()
