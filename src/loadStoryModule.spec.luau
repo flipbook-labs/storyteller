@@ -568,6 +568,64 @@ describe("multiple stories", function()
 	end)
 end)
 
+describe("storybook middleware", function()
+	test("mapDefinition receives custom fields from the Story source", function()
+		local receivedField: unknown
+		mockPlainStorybook.mapDefinition = function(storyDefinition)
+			receivedField = storyDefinition.customField
+			return storyDefinition
+		end
+
+		local storyModule = createMockStoryModule([[
+			return {
+				customField = "custom",
+				story = function(props)
+					local label = Instance.new("TextLabel")
+					label.Parent = props.container
+				end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+
+		expect(receivedField).toBe("custom")
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+		lifecycle.unmount()
+	end)
+
+	test("mapStory wraps the loaded Story", function()
+		mockPlainStorybook.mapStory = function(originalStory)
+			return function(props)
+				local wrapper = Instance.new("Frame")
+				wrapper.Name = "Wrapper"
+				wrapper.Parent = props.container
+				return originalStory(props)
+			end
+		end
+
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function(props)
+					local label = Instance.new("TextLabel")
+					label.Parent = props.container
+				end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+
+		expect(container:FindFirstChild("Wrapper")).toBeDefined()
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+		lifecycle.unmount()
+	end)
+end)
+
 describe("storybook freshness", function()
 	test("prefers the storybook reloaded from source over the provided copy", function()
 		local storybookModule = Instance.new("ModuleScript")
