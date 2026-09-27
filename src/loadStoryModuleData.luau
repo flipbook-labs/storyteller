@@ -30,8 +30,8 @@ type NormalizedStory = {
 	controls: UnknownDict?,
 	packages: UnknownDict?,
 	props: UnknownDict?,
-	-- Every field the Story source defines, copied onto the loaded Story for
-	-- parity with the single-Story loader, which merged the whole source in.
+	-- Every field the Story source defines, copied onto the loaded Story so
+	-- Storybook middleware such as `mapDefinition` can read custom fields.
 	-- This passthrough is not a supported contract and may be removed, so
 	-- don't build features on it. Fields Storyteller supports belong in the
 	-- typed fields above.

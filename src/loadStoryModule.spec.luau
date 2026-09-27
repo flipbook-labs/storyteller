@@ -538,9 +538,9 @@ describe("multiple stories", function()
 end)
 
 describe("legacy passthrough", function()
-	-- The single-Story loader copied every source field onto the loaded Story.
-	-- These tests keep parity with that, but the passthrough is not a
-	-- supported contract and may be removed. Update or delete them if it is.
+	-- Loaded Stories carry every field their source defines. That passthrough
+	-- is not a supported contract and may be removed. Update or delete these
+	-- tests if it is.
 	test("keeps custom fields from a single Story's source", function()
 		local storyModule = createMockStoryModule([[
 				return {
