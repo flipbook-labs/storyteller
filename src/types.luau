@@ -90,7 +90,7 @@ export type Story<T> = {
 local UnknownDict = gt.dictionary(gt.string(), gt.unknown())
 export type UnknownDict = typeof(UnknownDict)
 
-local StoryDefinition = gt.struct({
+local StoryDefinitionSource = gt.struct({
 	story = gt.unknown(),
 	id = gt.optional(gt.string()),
 	name = gt.optional(gt.string()),
@@ -99,8 +99,8 @@ local StoryDefinition = gt.struct({
 	packages = gt.optional(UnknownDict),
 	props = gt.optional(UnknownDict),
 })
-types.IStoryDefinition = gt.build(StoryDefinition)
-export type StoryDefinitionSource = typeof(StoryDefinition)
+types.IStoryDefinitionSource = gt.build(StoryDefinitionSource)
+export type StoryDefinitionSource = typeof(StoryDefinitionSource)
 
 export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
 
@@ -113,7 +113,7 @@ export type StoryGroup<T> = {
 	packages: StoryPackages?,
 	props: ExtraStoryProps?,
 }
-local StoryGroup = gt.struct({
+local StoryGroupSource = gt.struct({
 	-- Key discipline (array or string-keyed dictionary) is enforced by
 	-- normalizeStoryModule so mixed keys surface an actionable error instead
 	-- of a generic union failure.
@@ -124,11 +124,13 @@ local StoryGroup = gt.struct({
 	packages = gt.optional(UnknownDict),
 	props = gt.optional(UnknownDict),
 })
-types.IStoryGroup = gt.build(StoryGroup)
-export type StoryGroupSource = typeof(StoryGroup)
+types.IStoryGroupSource = gt.build(StoryGroupSource)
+export type StoryGroupSource = typeof(StoryGroupSource)
 
 export type StoryModule<T> = Story<T> | StoryGroup<T>
-types.IStory = gt.build(gt.union(StoryDefinition, StoryGroup))
+local StoryModuleSource = gt.union(StoryDefinitionSource, StoryGroupSource)
+types.IStoryModuleSource = gt.build(StoryModuleSource)
+export type StoryModuleSource = typeof(StoryModuleSource)
 
 export type LoadedStory<T> = {
 	id: string,

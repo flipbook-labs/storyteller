@@ -20,11 +20,8 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 	used under the hood for handling the requiring of the Story module.
 
 	This function will throw if the module does not conform to the Story
-	format, if two Stories share an id, or if the source has a syntax error
-	that `require` would normally fail for.
-
-	Legacy [Hoarcekat](https://github.com/Kampfkarren/hoarcekat) stories load as
-	a single Story, the same as [Storyteller.loadStoryModule].
+	format, if two Stories in the module share an id, or if the source has a
+	syntax error that `require` would normally fail for.
 
 	@tag Story
 	@tag Module Loading

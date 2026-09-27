@@ -55,7 +55,7 @@ local function parseStoryEntry(
 	fallbackDescription: string
 ): StoryDefinitionSource
 	local definition: unknown = if typeof(entry) == "table" then entry else { story = entry }
-	local isValid, message = types.IStoryDefinition(definition)
+	local isValid, message = types.IStoryDefinitionSource(definition)
 	if not isValid then
 		local fields = definition :: UnknownDict
 		local label = fields.id or fields.name
@@ -108,7 +108,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 		}
 	end
 
-	local isValid, message = types.IStory(requiredStory)
+	local isValid, message = types.IStoryModuleSource(requiredStory)
 	if not isValid then
 		error(
 			`Story is malformed. Check the source of {storyModule:GetFullName()} and make sure its properties are `
@@ -165,6 +165,14 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 		error("Story is malformed. `stories` must contain at least one story")
 	end
 
+	local seenIds: { [string]: boolean } = {}
+	for _, story in normalized do
+		if seenIds[story.id] then
+			error(`Story is malformed. Story id "{story.id}" is duplicated in {storyModule:GetFullName()}`)
+		end
+		seenIds[story.id] = true
+	end
+
 	return {
 		name = group.name or moduleName,
 		stories = normalized,
@@ -194,22 +202,15 @@ local function loadStoryModuleData<T>(
 
 	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)
 	local loadedStories: { LoadedStory<T> } = {}
-	local seenIds: { [string]: boolean } = {}
 
 	for _, normalizedStory in storyModuleData.stories do
-		local id = normalizedStory.id
-		if seenIds[id] then
-			error(`Story is malformed. Story id "{id}" is duplicated in {storyModule:GetFullName()}`)
-		end
-		seenIds[id] = true
-
 		local controls = normalizedStory.controls :: StoryControlsSchema?
 		if controls then
 			controls = migrateControlsSchema(controls)
 		end
 
 		table.insert(loadedStories, {
-			id = id,
+			id = normalizedStory.id,
 			name = normalizedStory.name,
 			storybook = loadedStorybook,
 			source = storyModule,

@@ -5,5 +5,6 @@
     "**/_Index/**",
     "**/dist/**",
     "**/.lute/typedefs/**"
-  ]
+  ],
+  "window.title": "${dirty}${activeEditorShort}${separator}storyteller${separator}${profileName}${separator}${appName}"
 }
