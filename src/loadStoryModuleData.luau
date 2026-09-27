@@ -18,59 +18,58 @@ export type LoadedStoryModuleData<T> = {
 	stories: { LoadedStory<T> },
 }
 
-type RawStory = { [string]: unknown }
-type StoryMap = { [string]: unknown }
+type UnknownDict = types.UnknownDict
 
--- A Story entry after validation and defaults inheritance. `fields` keeps the
--- merged table so legacy package keys can still be migrated.
+-- A Story entry after validation and defaults inheritance.
 type NormalizedStory = {
 	id: string,
 	name: string,
 	story: unknown,
 	summary: string?,
-	controls: StoryMap?,
-	packages: StoryMap?,
-	props: StoryMap?,
-	fields: RawStory,
+	controls: UnknownDict?,
+	packages: UnknownDict?,
+	props: UnknownDict?,
 }
 
-local function mergeField(defaults: unknown, overrides: unknown): StoryMap?
+local function mergeOrNil(defaults: unknown, overrides: unknown): UnknownDict?
 	if defaults == nil and overrides == nil then
 		return nil
 	end
 	return Sift.Dictionary.merge(defaults, overrides)
 end
 
-local function toRawStory(entry: unknown): RawStory
+local function toRawStory(entry: unknown): UnknownDict
 	if typeof(entry) == "table" then
-		return table.clone(entry :: RawStory)
+		return table.clone(entry :: UnknownDict)
 	end
 	return { story = entry }
 end
 
 -- Both tables must already have passed story validation, which guarantees the
 -- shapes of the fields read here.
-local function inheritDefaults(entry: RawStory, defaults: RawStory, id: string, name: string): NormalizedStory
-	local fields: RawStory = Sift.Dictionary.merge(defaults, entry)
+local function inheritDefaults(entry: UnknownDict, defaults: UnknownDict, id: string, name: string): NormalizedStory
+	local fields: UnknownDict = Sift.Dictionary.merge(defaults, entry)
 	return {
 		id = id,
 		name = name,
 		story = fields.story,
 		summary = fields.summary :: string?,
-		controls = mergeField(defaults.controls, entry.controls),
-		packages = mergeField(defaults.packages, entry.packages),
-		props = mergeField(defaults.props, entry.props),
-		fields = fields,
+		controls = mergeOrNil(defaults.controls, entry.controls),
+		packages = mergeOrNil(defaults.packages, entry.packages) or migrateLegacyPackages(fields),
+		props = mergeOrNil(defaults.props, entry.props),
 	}
 end
 
-local function validateStoryDefinition(story: RawStory, storyModule: ModuleScript, fallbackLabel: string)
+-- `fallbackDescription` identifies the entry when it has no usable id or name,
+-- such as `at index 2` for an array entry.
+local function validateStoryDefinition(story: UnknownDict, storyModule: ModuleScript, fallbackDescription: string)
 	local isValid, message = types.IStoryDefinition(story)
 	if not isValid then
 		local label = story.id or story.name
+		local description = if typeof(label) == "string" then `"{label}"` else fallbackDescription
 		error(
-			`Story "{if typeof(label) == "string" then label else fallbackLabel}" is malformed. Check the source of `
-				.. `{storyModule:GetFullName()} and make sure its properties are correct. Error: {message}`
+			`Story {description} is malformed. Check the source of {storyModule:GetFullName()} and make sure its `
+				.. `properties are correct. Error: {message}`
 		)
 	end
 end
@@ -89,7 +88,6 @@ local function normalizeStoryModule(
 			story = function(props: StoryProps)
 				return callback(props.container, props)
 			end,
-			fields = {},
 		}
 		return moduleName, { story }, true
 	end
@@ -102,7 +100,7 @@ local function normalizeStoryModule(
 		)
 	end
 
-	local module = requiredStory :: RawStory
+	local module = requiredStory :: UnknownDict
 	local moduleStoryName = module.name :: string?
 	if module.story ~= nil and module.stories ~= nil then
 		error("Story is malformed. A Story module cannot define both `story` and `stories`")
@@ -126,7 +124,7 @@ local function normalizeStoryModule(
 		for index, entry in stories :: { unknown } do
 			local raw = toRawStory(entry)
 			local fallback = tostring(index)
-			validateStoryDefinition(raw, storyModule, fallback)
+			validateStoryDefinition(raw, storyModule, `at index {index}`)
 			local name = raw.name :: string?
 			local id = raw.id :: string? or name or fallback
 			table.insert(normalized, inheritDefaults(raw, defaults, id, name or fallback))
@@ -145,7 +143,7 @@ local function normalizeStoryModule(
 		end)
 		for _, key in sortedKeys do
 			local raw = toRawStory(stories[key])
-			validateStoryDefinition(raw, storyModule, key)
+			validateStoryDefinition(raw, storyModule, `"{key}"`)
 			local id = raw.id :: string? or key
 			local name = raw.name :: string? or key
 			table.insert(normalized, inheritDefaults(raw, defaults, id, name))
@@ -196,9 +194,7 @@ local function loadStoryModuleData<T>(
 			controls = migrateControlsSchema(controls)
 		end
 
-		local packages = if isLegacyStory
-			then {}
-			else normalizedStory.packages or migrateLegacyPackages(normalizedStory.fields) or loadedStorybook.packages
+		local packages = if isLegacyStory then {} else normalizedStory.packages or loadedStorybook.packages
 
 		table.insert(loadedStories, {
 			id = id,

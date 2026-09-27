@@ -86,15 +86,18 @@ export type Story<T> = {
 	summary: string?,
 	props: ExtraStoryProps?,
 }
-local StringMap = gt.dictionary(gt.string(), gt.unknown())
+-- A dictionary read from Story source before its values have been checked.
+local UnknownDict = gt.dictionary(gt.string(), gt.unknown())
+export type UnknownDict = typeof(UnknownDict)
+
 local StoryDefinition = gt.struct({
 	story = gt.unknown(),
 	id = gt.optional(gt.string()),
 	name = gt.optional(gt.string()),
 	summary = gt.optional(gt.string()),
-	controls = gt.optional(StringMap),
-	packages = gt.optional(StringMap),
-	props = gt.optional(StringMap),
+	controls = gt.optional(UnknownDict),
+	packages = gt.optional(UnknownDict),
+	props = gt.optional(UnknownDict),
 })
 types.IStoryDefinition = gt.build(StoryDefinition)
 
@@ -116,9 +119,9 @@ local StoryGroup = gt.struct({
 	stories = gt.table({ [gt.unknown()] = gt.unknown() }),
 	name = gt.optional(gt.string()),
 	summary = gt.optional(gt.string()),
-	controls = gt.optional(StringMap),
-	packages = gt.optional(StringMap),
-	props = gt.optional(StringMap),
+	controls = gt.optional(UnknownDict),
+	packages = gt.optional(UnknownDict),
+	props = gt.optional(UnknownDict),
 })
 types.IStoryGroup = gt.build(StoryGroup)
 

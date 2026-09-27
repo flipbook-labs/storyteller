@@ -2,6 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local loadStoriesFromModule = require("./loadStoriesFromModule")
 local loadStoryModule = require("./loadStoryModule")
+local render = require("@root/render")
 local types = require("@root/types")
 
 local describe = JestGlobals.describe
@@ -84,7 +85,9 @@ end)
 test("wraps Hoarcekat function stories to receive the container from props", function()
 	local storyModule = createMockStoryModule([[
 		return function(target)
-			return { mountedTo = target }
+			local mounted = Instance.new("Folder")
+			mounted.Name = "Mounted"
+			mounted.Parent = target
 		end
 	]])
 
@@ -94,9 +97,9 @@ test("wraps Hoarcekat function stories to receive the container from props", fun
 	expect(story.name).toBe("Foo")
 
 	local container = Instance.new("Folder")
-	local mount = story.story :: (props: { container: Instance }) -> { mountedTo: Instance }
-	local result = mount({ container = container })
-	expect(result.mountedTo).toBe(container)
+	local lifecycle = render(container, story)
+	expect(container:FindFirstChild("Mounted")).toBeDefined()
+	lifecycle.unmount()
 end)
 
 test("legacy function stories never inherit storybook packages", function()
@@ -448,6 +451,8 @@ describe("multiple stories", function()
 	end)
 
 	test("story packages merge with module defaults and fall back to the storybook's", function()
+		-- Real packages are libraries such as React. These marker tables only
+		-- make the merge result easy to inspect.
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
 			storyRoots = {},
@@ -507,7 +512,7 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow('Story "1" is malformed')
+		end).toThrow("Story at index 1 is malformed")
 	end)
 
 	test("rejects stories tables with non-string keys", function()
