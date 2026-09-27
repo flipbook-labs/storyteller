@@ -94,6 +94,9 @@ end
 local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleScript): NormalizedStoryModule
 	local moduleName = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, "")
 
+	-- Hoarcekat Stories are a bare function that mounts into the container and
+	-- returns a cleanup callback. They manage their own rendering, so they get
+	-- empty packages instead of inheriting the Storybook's.
 	if typeof(requiredStory) == "function" then
 		local callback = requiredStory :: (container: Instance, props: StoryProps) -> unknown
 		return {
