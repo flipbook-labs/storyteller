@@ -43,7 +43,7 @@ export type StorytellerStore = {
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
 
-	getStoryModuleRecord: (storyRequest: StoryRequest) -> StoryModuleRecord?,
+	getStoryModuleRecord: (request: StoryRequest) -> StoryModuleRecord?,
 	getStoryModuleRecords: () -> StoryModuleRecords,
 	requestStoryModule: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 }

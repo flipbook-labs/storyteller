@@ -15,7 +15,7 @@ export type StoryModuleRecords = types.StoryModuleRecords
 export type CleanupFn = () -> ()
 
 export type StoryModuleRecordStore = {
-	getRecord: (storyRequest: StoryRequest) -> StoryModuleRecord?,
+	getRecord: (request: StoryRequest) -> StoryModuleRecord?,
 	getRecords: () -> StoryModuleRecords,
 	request: (priority: RequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 	clear: () -> (),
@@ -100,9 +100,9 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local invalidateRequest: (RequestEntry, RequestPriority) -> ()
 	local cleanupRequestEntry: (RequestEntry) -> ()
 
-	local function getRecord(storyRequest: StoryRequest): StoryModuleRecord?
-		local recordsForStorybook = getRecords()[storyRequest.storybook.source]
-		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
+	local function getRecord(request: StoryRequest): StoryModuleRecord?
+		local recordsForStorybook = getRecords()[request.storybook.source]
+		return if recordsForStorybook then recordsForStorybook[request.storyModule] else nil
 	end
 
 	local function getRequestEntry(storyModule: ModuleScript, storybookSource: ModuleScript): RequestEntry?
