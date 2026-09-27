@@ -82,6 +82,7 @@ test("loads a story module", function()
 		expect(story).toBeDefined()
 	end)
 	expect(story).toEqual({
+		id = "default",
 		name = "Sample",
 		story = expect.any("function"),
 		source = storyModule,
