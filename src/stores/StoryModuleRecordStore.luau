@@ -72,6 +72,8 @@ type PendingPublication = {
 	record: StoryModuleRecord,
 }
 
+-- Fixed for now; flipbook-labs/storyteller#151 tracks deriving this from the
+-- frame's remaining budget.
 local WORK_BUDGET_MS = 4
 
 local StoryModuleRecordStore = {}
