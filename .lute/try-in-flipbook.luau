@@ -5,8 +5,10 @@
 ]]
 
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
+local cli = require("@batteries/cli")
 local fs = require("@std/fs")
 local path = require("@std/path")
+local process = require("@std/process")
 
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
@@ -14,23 +16,6 @@ local find = FlipbookBatteries.find
 
 local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
 local BUNDLE_DIR_NAME = "dist"
-
-local function resolveScriptPath(scriptPath: string): path.Path
-	--[[
-        Lute's script paths are inconsistent depending on how you invoke them.
-        With `lute run <scriptName>`, scriptPath is exactly `scriptName`. As
-        such we need to manually resolve the path to the script.
-
-        Track progress here: https://github.com/luau-lang/lute/issues/852
-    ]]
-	if scriptPath == path.basename(scriptPath) then
-		return path.resolve(`.lute/{scriptPath}.luau`)
-	end
-
-	return path.parse(scriptPath)
-end
-
-local args = { ... }
 
 local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	local dir = startDir
@@ -47,17 +32,68 @@ local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	end
 end
 
-local scriptPath = resolveScriptPath(args[1])
-local repoRoot = path.dirname(path.dirname(scriptPath))
-local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
-local flipbookRoot = findFlipbookRoot(path.dirname(repoRoot))
+local function prepareFlipbookPackageInstallation(
+	repoRoot: path.Path,
+	flipbookRoot: path.Path,
+	packageInstallation: path.Path
+)
+	local packageVersionRoot = path.dirname(packageInstallation)
+	local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
+	local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
+	local moduleLoaderLink = fs.readFileToString(sourceModuleLoaderLink)
+		:gsub("script%.Parent%._Index", "script.Parent.Parent")
+	fs.writeStringToFile(targetModuleLoaderLink, moduleLoaderLink)
+	fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
 
-if flipbookRoot then
+	local packageLink = path.join(flipbookRoot, "Packages/Storyteller.lua")
+	if not fs.exists(packageLink) then
+		return
+	end
+
+	local contents = fs.readFileToString(packageLink)
+	local missingExports = {}
+	for _, exportName in
+		{
+			"StoryEntry<T>",
+			"StoryGroup<T>",
+			"StoryModule<T>",
+			"StoryRequest",
+			"StoryModuleRecord",
+			"StoryModuleRecords",
+		}
+	do
+		local typeName = exportName:match("^[^<]+") :: string
+		if not contents:find(`export type {typeName}`, 1, true) then
+			table.insert(missingExports, `export type {exportName} = REQUIRED_MODULE.{exportName}`)
+		end
+	end
+
+	if #missingExports == 0 then
+		return
+	end
+
+	contents =
+		contents:gsub("return REQUIRED_MODULE", `{table.concat(missingExports, "\n")}\nreturn REQUIRED_MODULE`, 1)
+	fs.writeStringToFile(packageLink, contents)
+end
+
+local args = cli.parser()
+args:add("flipbook", "option", {
+	help = "path to the Flipbook checkout to receive the development build",
+})
+args:parse({ ... })
+
+local repoRoot = path.resolve(process.cwd())
+local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
+local requestedFlipbookRoot = args:get("flipbook")
+local flipbookRoot = if requestedFlipbookRoot
+	then path.resolve(requestedFlipbookRoot)
+	else findFlipbookRoot(path.dirname(repoRoot))
+
+if flipbookRoot and fs.exists(flipbookRoot) then
 	print(`using Flipbook at {flipbookRoot}`)
 else
-	error(
-		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
-	)
+	error(`could not find Flipbook at {tostring(flipbookRoot)}. Pass an explicit checkout with --flipbook <path>`)
 end
 flipbookRoot = path.resolve(flipbookRoot :: path.Path)
 
@@ -74,7 +110,8 @@ fs.removeDirectory(dest, {
 	recursive = true,
 })
 
-run("lute", { "run", "build" })
+run("lute", { "run", "build", "--channel", "dev" })
 copyInto(src, dest)
+prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
 
 print(`successfully installed to {dest}`)

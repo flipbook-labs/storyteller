@@ -35,15 +35,23 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
 
       - uses: CompeyDev/setup-rokit@v0.2.1
         with:
           version: v1.2.0
 
-      - name: Install packages
+      - name: Install Development Tools
+        run: npm ci
+
+      - name: Install Packages
         run: lute run install
 
       - name: Lint

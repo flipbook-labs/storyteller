@@ -37,6 +37,8 @@ run("stylua", {
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
+run("npm", { "run", "format:markdown:check" })
+
 local files = findLuaFiles()
 if #files > 0 then
 	print("[err] the following file(s) are using the '.lua' extension. Please change to '.luau' and try again")

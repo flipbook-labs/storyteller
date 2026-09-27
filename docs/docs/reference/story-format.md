@@ -6,13 +6,13 @@ Any ModuleScript with a `.storybook` extension will be picked up as a Storybook.
 
 The properties that can be used in the module are as follows:
 
-| **Property** | **Type**             | **Description**                                                                                                                                                                                                                                                         |
-| ------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storyRoots` | `{ Instance }`       | Locations that the Storybook manages. Each instance will have its descendants searched for Story modules.                                                                                                                                                               |
-| `name`       | `string?`            | An optional name for the Storybook. Defaults to the module name with the extension removed. i.e. `Sample.storybook` becomes `Sample`.                                                                                                                                   |
-| `packages`   | `{ [string]: any }?` | An optional dictionary used for supplying the Storybook with the packages to use when rendering its Stories. This dictionary can also be supplied per-Story to change the renderer used, but it can be convenient to define your packages globally to avoid repetition. |
-| `mapStory`      | `((story: any) -> (props) -> any)?` | Optional [middleware](#middleware) that wraps every rendered Story, e.g. to supply a shared context provider.                                                                                                                                            |
-| `mapDefinition` | `((story: any) -> any)?`            | Optional [middleware](#middleware) that transforms every Story's definition before it renders.                                                                                                                                                          |
+| **Property** | **Type** | **Description** |
+| --- | --- | --- |
+| `storyRoots` | `{ Instance }` | Locations that the Storybook manages. Each instance will have its descendants searched for Story modules. |
+| `name` | `string?` | An optional name for the Storybook. Defaults to the module name with the extension removed. i.e. `Sample.storybook` becomes `Sample`. |
+| `packages` | `{ [string]: any }?` | An optional dictionary used for supplying the Storybook with the packages to use when rendering its Stories. This dictionary can also be supplied per-Story to change the renderer used, but it can be convenient to define your packages globally to avoid repetition. |
+| `mapStory` | `((story: any) -> (props) -> any)?` | Optional [middleware](#middleware) that wraps every rendered Story, e.g. to supply a shared context provider. |
+| `mapDefinition` | `((story: any) -> any)?` | Optional [middleware](#middleware) that transforms every Story's definition before it renders. |
 
 The most basic Storybook module can be represented as:
 
@@ -101,15 +101,15 @@ Any ModuleScript with a `.story` extension will be picked up as a Story when it 
 
 The only required member of a Story definition is the `story` property.
 
-| **Property** | **Type**                        | **Description**                                                                                                                                                                                                                             |
-| ------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `story`      | `<T>((props: StoryProps) -> T)` |                                                                                                                                                                                                                                             |
-| `id`         | `string?`                       | A stable identifier used to select the Story when its module contains multiple Stories.                                                                                                                                                    |
-| `name`       | `string?`                       | The name of the Story as it appears in Flipbook. Defaults to the name of the Story module. i.e. `Sample.story` becomes `Sample`                                                                                                             |
-| `summary`    | `string?`                       | A description of the Story that will appear above the rendered preview in Flipbook.                                                                                                                                                         |
-| `controls`   | `{ [string]: any }?`            | Controls allow for on-the-fly configuration of your rendered UI. Read more about how to define and use controls [here](https://flipbook-labs.github.io/flipbook/docs/creating-stories/controls).                                            |
-| `packages`   | `{ [string]: any }?`            | An optional dictionary used for supplying the Story with the packages to use when rendering. The Story inherits the packages defined by the Storybook, so this is mostly used in cases where Story needs to deviate from the usual renderer |
-| `props`      | `{ [string]: any }?`            | Static properties merged into `StoryProps` when the Story renders.                                                                                                                                                                         |
+| **Property** | **Type** | **Description** |
+| --- | --- | --- |
+| `story` | `<T>((props: StoryProps) -> T)` |  |
+| `id` | `string?` | A stable identifier used to select the Story when its module contains multiple Stories. |
+| `name` | `string?` | The name of the Story as it appears in Flipbook. Defaults to the name of the Story module. i.e. `Sample.story` becomes `Sample` |
+| `summary` | `string?` | A description of the Story that will appear above the rendered preview in Flipbook. |
+| `controls` | `{ [string]: any }?` | Controls allow for on-the-fly configuration of your rendered UI. Read more about how to define and use controls [here](https://flipbook-labs.github.io/flipbook/docs/creating-stories/controls). |
+| `packages` | `{ [string]: any }?` | An optional dictionary used for supplying the Story with the packages to use when rendering. The Story inherits the packages defined by the Storybook, so this is mostly used in cases where Story needs to deviate from the usual renderer |
+| `props` | `{ [string]: any }?` | Static properties merged into `StoryProps` when the Story renders. |
 
 The type of the `story` property is dependent on what kind of Story is being rendered. Storyteller does not prescribe one particular way of writing Stories, or even a particular UI library that must be used.
 
@@ -158,18 +158,20 @@ Use `loadStoriesFromModule` to load every Story. `loadStoryModule` continues to 
 
 A Story's `story` function is passed in a `StoryProps` object that contains the following.
 
-| **Property** | **Type**        | **Description**                                        |
-| ------------ | --------------- | ------------------------------------------------------ |
-| `container`  | `Instance`      |                                                        |
-| `theme`      | `string`        | A string representing the current Roblox Studio theme. |
-| `controls`   | `StoryControls` | Defaults to an empty table.                            |
+| **Property** | **Type** | **Description** |
+| --- | --- | --- |
+| `container` | `Instance` |  |
+| `theme` | `string` | A string representing the current Roblox Studio theme. |
+| `controls` | `StoryControls` | Defaults to an empty table. |
 
 If `props` is supplied on the Story, then the key/value pairs will be merged with `StoryProps`.
 
 ## Legacy package support
 
 :::warning
+
 A future version of Storyteller may remove this compatibility layer. It is recommended to migrate to `packages` in the meantime.
+
 :::
 
 UI libraries used to be supplied by attaching them as properties to a Story or Storybook. This has been superseded by the `packages` object, which acts as a dedicated location to supply the packages used for rendering Stories.
