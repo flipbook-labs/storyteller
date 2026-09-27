@@ -6,7 +6,7 @@ local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local types = require("@root/types")
 
-type RequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
+type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StoryRequest = types.StoryRequest
 export type StoryModuleRecord = types.StoryModuleRecord
@@ -17,7 +17,7 @@ export type CleanupFn = () -> ()
 export type StoryModuleRecordStore = {
 	getRecord: (request: StoryRequest) -> StoryModuleRecord?,
 	getRecords: () -> StoryModuleRecords,
-	request: (priority: RequestPriority, storyRequest: StoryRequest) -> CleanupFn,
+	request: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 	clear: () -> (),
 	destroy: () -> (),
 }
@@ -39,7 +39,7 @@ type RequestEntry = {
 	isLoading: boolean,
 	-- Which queue the entry currently sits in, if any. Dedupes queueing and
 	-- lets an Interactive request upgrade a queued Background entry.
-	queuedPriority: RequestPriority?,
+	queuedPriority: StoryModuleRequestPriority?,
 	-- Replaces the shared loader after this entry's module changes, so a
 	-- reload evaluates fresh without clearing sibling entries' caches.
 	reloadLoader: ModuleLoader.ModuleLoader?,
@@ -96,9 +96,9 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local isProcessingRequests = false
 
 	local processPendingRequests: () -> ()
-	local queueRequest: (RequestEntry, RequestPriority, boolean) -> ()
-	local invalidateRequest: (RequestEntry, RequestPriority) -> ()
-	local cleanupRequestEntry: (RequestEntry) -> ()
+	local queueRequest: (entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean) -> ()
+	local invalidateRequest: (entry: RequestEntry, priority: StoryModuleRequestPriority) -> ()
+	local cleanupRequestEntry: (entry: RequestEntry) -> ()
 
 	local function getRecord(request: StoryRequest): StoryModuleRecord?
 		local recordsForStorybook = getRecords()[request.storybook.source]
@@ -171,7 +171,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		requestQueue.items[requestQueue.tail] = entry
 	end
 
-	local function popQueue(requestQueue: RequestQueue, priority: RequestPriority): RequestEntry?
+	local function popQueue(requestQueue: RequestQueue, priority: StoryModuleRequestPriority): RequestEntry?
 		while requestQueue.head <= requestQueue.tail do
 			local index = requestQueue.head
 			local entry = requestQueue.items[index]
@@ -253,7 +253,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end
 	end
 
-	cleanupRequestEntry = function(entry: RequestEntry)
+	function cleanupRequestEntry(entry: RequestEntry)
 		local storyRequest = entry.request
 		local storybookSource = storyRequest.storybook.source
 		entry.refCount = 0
@@ -311,7 +311,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		}
 	end
 
-	processPendingRequests = function()
+	function processPendingRequests()
 		if isProcessingRequests or isDestroyed then
 			return
 		end
@@ -357,7 +357,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	queueRequest = function(entry: RequestEntry, priority: RequestPriority, invalidate: boolean)
+	function queueRequest(entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -379,7 +379,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		processPendingRequests()
 	end
 
-	invalidateRequest = function(entry: RequestEntry, priority: RequestPriority)
+	function invalidateRequest(entry: RequestEntry, priority: StoryModuleRequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -405,7 +405,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		queueRequest(entry, priority, true)
 	end
 
-	local function request(priority: RequestPriority, storyRequest: StoryRequest): CleanupFn
+	local function request(priority: StoryModuleRequestPriority, storyRequest: StoryRequest): CleanupFn
 		if isDestroyed then
 			return function() end
 		end
