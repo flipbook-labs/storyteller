@@ -10,75 +10,117 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type LoadedStorybook = types.LoadedStorybook
 type ModuleLoader = ModuleLoader.ModuleLoader
-type Story<T> = types.Story<T>
+type StoryControlsSchema = types.StoryControlsSchema
+type StoryDefinitionSource = types.StoryDefinitionSource
+type StoryGroupSource = types.StoryGroupSource
 type StoryProps = types.StoryProps
+type UnknownDict = types.UnknownDict
 
 export type LoadedStoryModuleData<T> = {
 	name: string,
 	stories: { LoadedStory<T> },
 }
 
-type RawStory = { [string]: any }
+-- A Story entry after validation and defaults inheritance.
+type NormalizedStory = {
+	id: string,
+	name: string,
+	story: unknown,
+	summary: string?,
+	controls: UnknownDict?,
+	packages: UnknownDict?,
+	props: UnknownDict?,
+	-- Every field the Story source defines, copied onto the loaded Story so
+	-- Storybook middleware such as `mapDefinition` can read custom fields.
+	-- This passthrough is not a supported contract and may be removed, so
+	-- don't build features on it. Fields Storyteller supports belong in the
+	-- typed fields above.
+	legacyPassthroughFields: UnknownDict,
+}
 
-local function getOptionalString(story: RawStory, field: string): string?
-	local value = story[field]
-	if value ~= nil and typeof(value) ~= "string" then
-		error(`Story is malformed. \`{field}\` must be a string`)
-	end
-	return value
-end
+type NormalizedStoryModule = {
+	name: string,
+	stories: { NormalizedStory },
+}
 
-local function mergeField(defaults: RawStory?, overrides: RawStory?): RawStory?
-	if not defaults and not overrides then
+local function mergeOrNil(defaults: UnknownDict?, overrides: UnknownDict?): UnknownDict?
+	if defaults == nil and overrides == nil then
 		return nil
 	end
 	return Sift.Dictionary.merge(defaults, overrides)
 end
 
-local function toRawStory(entry: any): RawStory
-	if typeof(entry) == "table" then
-		return table.clone(entry)
-	end
-	return { story = entry }
-end
-
-local function inheritDefaults(entry: RawStory, defaults: RawStory, id: string, name: string): RawStory
-	local story = Sift.Dictionary.merge(defaults, entry)
-	story.controls = mergeField(defaults.controls, entry.controls)
-	story.packages = mergeField(defaults.packages, entry.packages)
-	story.props = mergeField(defaults.props, entry.props)
-	story.id = id
-	story.name = name
-	return story
-end
-
-local function validateStoryDefinition(story: RawStory, storyModule: ModuleScript, id: string)
-	local isValid, message = types.IStoryDefinition(story)
-	if not isValid or story.story == nil then
-		local problem = if story.story == nil then "`story` is required" else message
+-- Parses one entry of a Story group's `stories`. Entries that are not tables are
+-- shorthand for `{ story = entry }`.
+--
+-- `fallbackDescription` identifies the entry when it has no usable id or name,
+-- such as `at index 2` for an array entry.
+local function parseStoryEntry(
+	entry: unknown,
+	storyModule: ModuleScript,
+	fallbackDescription: string
+): StoryDefinitionSource
+	local definition: unknown = if typeof(entry) == "table" then entry else { story = entry }
+	local isValid, message = types.IStoryDefinitionSource(definition)
+	if not isValid then
+		local fields = definition :: UnknownDict
+		local label = fields.id or fields.name
+		local description = if typeof(label) == "string" then `"{label}"` else fallbackDescription
 		error(
-			`Story "{id}" is malformed. Check the source of {storyModule:GetFullName()} and make sure its `
-				.. `properties are correct. Error: {problem}`
+			`Story {description} is malformed. Check the source of {storyModule:GetFullName()} and make sure its `
+				.. `properties are correct. Error: {message}`
 		)
 	end
+	-- The schema check above guarantees this shape.
+	return definition :: StoryDefinitionSource
 end
 
-local function normalizeStoryModule(requiredStory: any, storyModule: ModuleScript): (string, { RawStory }, boolean)
+local function inheritDefaults(
+	entry: StoryDefinitionSource,
+	defaults: StoryGroupSource?,
+	id: string,
+	name: string
+): NormalizedStory
+	local source: UnknownDict = Sift.Dictionary.merge(defaults, entry, { stories = Sift.None })
+	return {
+		id = id,
+		name = name,
+		story = entry.story,
+		summary = entry.summary or (defaults and defaults.summary),
+		controls = mergeOrNil(defaults and defaults.controls, entry.controls),
+		-- Legacy fields such as `react` migrate into `packages`. That migration is
+		-- supported and does not depend on `legacyPassthroughFields`.
+		packages = mergeOrNil(defaults and defaults.packages, entry.packages) or migrateLegacyPackages(source),
+		props = mergeOrNil(defaults and defaults.props, entry.props),
+		legacyPassthroughFields = source,
+	}
+end
+
+local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleScript): NormalizedStoryModule
 	local moduleName = storyModule.Name:gsub(constants.STORY_NAME_PATTERN, "")
 
+	-- Hoarcekat Stories are a bare function that mounts into the container and
+	-- returns a cleanup callback. They manage their own rendering, so they get
+	-- empty packages instead of inheriting the Storybook's.
 	if typeof(requiredStory) == "function" then
-		local callback = requiredStory
-		local story: RawStory = {
-			id = "default",
+		local callback = requiredStory :: (container: Instance, props: StoryProps) -> unknown
+		return {
 			name = moduleName,
-			story = function(props: StoryProps)
-				return callback(props.container, props)
-			end,
+			stories = {
+				{
+					id = "default",
+					name = moduleName,
+					story = function(props: StoryProps)
+						return callback(props.container, props)
+					end,
+					packages = {},
+					legacyPassthroughFields = {},
+				},
+			},
 		}
-		return moduleName, { story }, true
 	end
 
-	local isValid, message = types.IStory(requiredStory)
+	local isValid, message = types.IStoryModuleSource(requiredStory)
 	if not isValid then
 		error(
 			`Story is malformed. Check the source of {storyModule:GetFullName()} and make sure its properties are `
@@ -86,59 +128,48 @@ local function normalizeStoryModule(requiredStory: any, storyModule: ModuleScrip
 		)
 	end
 
-	local module = requiredStory
-	if module.story ~= nil and module.stories ~= nil then
+	-- The schema check above guarantees a table matching one of the Story
+	-- module shapes, and the checks below decide which one.
+	local fields = requiredStory :: UnknownDict
+	if fields.story ~= nil and fields.stories ~= nil then
 		error("Story is malformed. A Story module cannot define both `story` and `stories`")
 	end
 
-	if module.stories == nil then
-		local id = getOptionalString(module, "id") or getOptionalString(module, "name") or "default"
-		local name = getOptionalString(module, "name") or moduleName
-		return moduleName, { inheritDefaults(module, {}, id, name) }, false
+	if fields.stories == nil then
+		local definition = requiredStory :: StoryDefinitionSource
+		local id = definition.id or definition.name or "default"
+		return {
+			name = moduleName,
+			stories = { inheritDefaults(definition, nil, id, definition.name or moduleName) },
+		}
 	end
 
-	local defaults = table.clone(module)
-	defaults.id = nil
-	defaults.name = nil
-	defaults.story = nil
-	defaults.stories = nil
+	local group = requiredStory :: StoryGroupSource
+	local normalized: { NormalizedStory } = {}
 
-	local stories = module.stories
-	local normalized: { RawStory } = {}
-
-	if Sift.Array.is(stories) then
-		for index, entry in stories do
-			local raw = toRawStory(entry)
+	if Sift.Array.is(group.stories) then
+		for index, entry in group.stories do
 			local fallback = tostring(index)
-			local name = getOptionalString(raw, "name")
-			local id = getOptionalString(raw, "id") or name or fallback
-			validateStoryDefinition(raw, storyModule, id)
-			table.insert(normalized, inheritDefaults(raw, defaults, id, name or fallback))
+			local definition = parseStoryEntry(entry, storyModule, `at index {index}`)
+			local id = definition.id or definition.name or fallback
+			table.insert(normalized, inheritDefaults(definition, group, id, definition.name or fallback))
 		end
 	else
-		local keys = Sift.Dictionary.keys(stories)
-		if not Sift.Array.every(keys, function(key)
-			return typeof(key) == "string"
-		end) then
-			error("Story is malformed. `stories` must be an array or a dictionary with string keys")
+		local keys: { string } = {}
+		for key in group.stories do
+			if typeof(key) ~= "string" then
+				error("Story is malformed. `stories` must be an array or a dictionary with string keys")
+			end
+			table.insert(keys, key)
 		end
 
-		local sortedKeys = Sift.Array.sort(keys, function(a, b)
+		table.sort(keys, function(a, b)
 			local lowerA, lowerB = a:lower(), b:lower()
 			return if lowerA == lowerB then a < b else lowerA < lowerB
 		end)
-		for _, key in sortedKeys do
-			local raw = toRawStory(stories[key])
-			validateStoryDefinition(raw, storyModule, key)
-			table.insert(
-				normalized,
-				inheritDefaults(
-					raw,
-					defaults,
-					getOptionalString(raw, "id") or key,
-					getOptionalString(raw, "name") or key
-				)
-			)
+		for _, key in keys do
+			local definition = parseStoryEntry(group.stories[key], storyModule, `"{key}"`)
+			table.insert(normalized, inheritDefaults(definition, group, definition.id or key, definition.name or key))
 		end
 	end
 
@@ -146,7 +177,18 @@ local function normalizeStoryModule(requiredStory: any, storyModule: ModuleScrip
 		error("Story is malformed. `stories` must contain at least one story")
 	end
 
-	return getOptionalString(module, "name") or moduleName, normalized, false
+	local seenIds: { [string]: boolean } = {}
+	for _, story in normalized do
+		if seenIds[story.id] then
+			error(`Story is malformed. Story id "{story.id}" is duplicated in {storyModule:GetFullName()}`)
+		end
+		seenIds[story.id] = true
+	end
+
+	return {
+		name = group.name or moduleName,
+		stories = normalized,
+	}
 end
 
 local function loadStoryModuleData<T>(
@@ -162,7 +204,7 @@ local function loadStoryModuleData<T>(
 	end)
 	local loadedStorybook = freshStorybook or storybook
 
-	local requiredStory: any
+	local requiredStory: unknown
 	local success, err = pcall(function()
 		requiredStory = loader:require(storyModule)
 	end)
@@ -170,50 +212,31 @@ local function loadStoryModuleData<T>(
 		error(`Failed to load story {storyModule:GetFullName()}. Error: {err}`)
 	end
 
-	local groupName, normalizedStories, isLegacyStory = normalizeStoryModule(requiredStory, storyModule)
+	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)
 	local loadedStories: { LoadedStory<T> } = {}
-	local seenIds: { [string]: boolean } = {}
 
-	for _, raw in normalizedStories do
-		local id = raw.id
-		if seenIds[id] then
-			error(`Story is malformed. Story id "{id}" is duplicated in {storyModule:GetFullName()}`)
-		end
-		seenIds[id] = true
-
-		validateStoryDefinition(raw, storyModule, id)
-		local story: Story<T> = {
-			id = id,
-			name = raw.name,
-			story = raw.story,
-			summary = raw.summary,
-			controls = raw.controls,
-			packages = raw.packages,
-			props = raw.props,
-		}
-		if story.controls then
-			story.controls = migrateControlsSchema(story.controls)
+	for _, normalizedStory in storyModuleData.stories do
+		local controls = normalizedStory.controls :: StoryControlsSchema?
+		if controls then
+			controls = migrateControlsSchema(controls)
 		end
 
-		local packages = if isLegacyStory
-			then {}
-			else story.packages or migrateLegacyPackages(raw) or loadedStorybook.packages
-
-		table.insert(loadedStories, {
-			id = id,
-			name = story.name or id,
+		local loadedStory: LoadedStory<T> = {
+			id = normalizedStory.id,
+			name = normalizedStory.name,
 			storybook = loadedStorybook,
 			source = storyModule,
-			story = story.story,
-			packages = packages,
-			summary = story.summary,
-			controls = story.controls,
-			props = story.props,
-		})
+			story = normalizedStory.story :: T | (props: StoryProps) -> T,
+			packages = normalizedStory.packages or loadedStorybook.packages,
+			summary = normalizedStory.summary,
+			controls = controls,
+			props = normalizedStory.props,
+		}
+		table.insert(loadedStories, Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory))
 	end
 
 	return {
-		name = groupName,
+		name = storyModuleData.name,
 		stories = loadedStories,
 	}
 end

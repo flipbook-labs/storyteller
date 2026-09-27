@@ -2,6 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local loadStoriesFromModule = require("./loadStoriesFromModule")
 local loadStoryModule = require("./loadStoryModule")
+local render = require("@root/render")
 local types = require("@root/types")
 
 local describe = JestGlobals.describe
@@ -81,21 +82,30 @@ test("load a story module as a table", function()
 	})
 end)
 
-test("wraps Hoarcekat function stories to receive the container from props", function()
+test("handle Hoarcekat stories", function()
 	local storyModule = createMockStoryModule([[
 		return function(target)
-			return { mountedTo = target }
+			local gui = Instance.new("TextLabel")
+			gui.Parent = target
+
+			return function()
+				gui:Destroy()
+			end
 		end
 	]])
 
 	local story = loadStoryModule(storyModule, mockPlainStorybook)
 
+	expect(story).toBeDefined()
 	expect(story.id).toBe("default")
 	expect(story.name).toBe("Foo")
 
 	local container = Instance.new("Folder")
-	local result = (story.story :: any)({ container = container })
-	expect(result.mountedTo).toBe(container)
+	local lifecycle = render(container, story)
+	expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+	lifecycle.unmount()
+	expect(#container:GetChildren()).toBe(0)
 end)
 
 test("legacy function stories never inherit storybook packages", function()
@@ -447,6 +457,8 @@ describe("multiple stories", function()
 	end)
 
 	test("story packages merge with module defaults and fall back to the storybook's", function()
+		-- Real packages are libraries such as React. These marker tables only
+		-- make the merge result easy to inspect.
 		local storybook: types.LoadedStorybook = {
 			name = "Storybook",
 			storyRoots = {},
@@ -506,7 +518,7 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow("`id` must be a string")
+		end).toThrow("Story at index 1 is malformed")
 	end)
 
 	test("rejects stories tables with non-string keys", function()
@@ -522,6 +534,100 @@ describe("multiple stories", function()
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
 		end).toThrow("`stories` must be an array or a dictionary with string keys")
+	end)
+end)
+
+describe("legacy passthrough", function()
+	-- Loaded Stories carry every field their source defines. That passthrough
+	-- is not a supported contract and may be removed. Update or delete these
+	-- tests if it is.
+	test("keeps custom fields from a single Story's source", function()
+		local storyModule = createMockStoryModule([[
+				return {
+					customField = "single",
+					story = function() end,
+				}
+			]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		expect(story).toMatchObject({ customField = "single" })
+	end)
+
+	test("keeps custom fields from grouped Stories and their module defaults", function()
+		local storyModule = createMockStoryModule([[
+				return {
+					groupField = "group",
+					stories = {
+						{ name = "First", entryField = "entry", story = function() end },
+						{ name = "Second", groupField = "override", story = function() end },
+					},
+				}
+			]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+
+		expect(stories[1]).toMatchObject({ groupField = "group", entryField = "entry" })
+		expect(stories[1]).never.toHaveProperty("stories")
+		expect(stories[2]).toMatchObject({ groupField = "override" })
+	end)
+end)
+
+describe("storybook middleware", function()
+	test("mapDefinition receives the loaded Story", function()
+		local receivedSummary: unknown
+		mockPlainStorybook.mapDefinition = function(storyDefinition)
+			receivedSummary = storyDefinition.summary
+			return storyDefinition
+		end
+
+		local storyModule = createMockStoryModule([[
+			return {
+				summary = "From the source",
+				story = function(props)
+					local label = Instance.new("TextLabel")
+					label.Parent = props.container
+				end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+
+		expect(receivedSummary).toBe("From the source")
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+		lifecycle.unmount()
+	end)
+
+	test("mapStory wraps the loaded Story", function()
+		mockPlainStorybook.mapStory = function(originalStory)
+			return function(props)
+				local wrapper = Instance.new("Frame")
+				wrapper.Name = "Wrapper"
+				wrapper.Parent = props.container
+				return originalStory(props)
+			end
+		end
+
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function(props)
+					local label = Instance.new("TextLabel")
+					label.Parent = props.container
+				end,
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+
+		expect(container:FindFirstChild("Wrapper")).toBeDefined()
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+		lifecycle.unmount()
 	end)
 end)
 
