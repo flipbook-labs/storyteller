@@ -8,7 +8,7 @@ local useStorytellerStore = require("@root/react/useStorytellerStore")
 local useEffect = React.useEffect
 local useSignalState = ReactCharm.useSignalState
 
-local function useStoriesForModule(
+local function useStories(
 	module: ModuleScript,
 	storybook: types.LoadedStorybook
 ): ({ types.LoadedStory<unknown> }?, string?)
@@ -27,4 +27,4 @@ local function useStoriesForModule(
 	return if record then record.stories else nil, if record then record.problem else nil
 end
 
-return useStoriesForModule
+return useStories

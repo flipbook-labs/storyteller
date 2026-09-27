@@ -28,13 +28,7 @@ local function StorytellerProvider(storytellerProviderProps: StorytellerProvider
 	end, { store })
 
 	useEffect(function()
-		task.spawn(function()
-			store.start()
-		end)
-
-		return function()
-			store.stop()
-		end
+		return store.acquire()
 	end, { store })
 
 	return React.createElement(StorytellerContext.Provider, {
