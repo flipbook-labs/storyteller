@@ -36,8 +36,7 @@ local function createRequest(name: string): StoryRequest
 end
 
 local function getRecord(request: StoryRequest)
-	local recordsForStorybook = recordStore.getRecords()[request.storybook.source]
-	return if recordsForStorybook then recordsForStorybook[request.storyModule] else nil
+	return recordStore.getRecord(request)
 end
 
 -- Builds a batch of story modules that stamp the order they were evaluated in,

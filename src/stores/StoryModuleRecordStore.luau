@@ -15,6 +15,7 @@ export type StoryModuleRecords = types.StoryModuleRecords
 export type CleanupFn = () -> ()
 
 export type StoryModuleRecordStore = {
+	getRecord: (storyRequest: StoryRequest) -> StoryModuleRecord?,
 	getRecords: () -> StoryModuleRecords,
 	request: (priority: RequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 	clear: () -> (),
@@ -98,6 +99,11 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local queueRequest: (RequestEntry, RequestPriority, boolean) -> ()
 	local invalidateRequest: (RequestEntry, RequestPriority) -> ()
 	local cleanupRequestEntry: (RequestEntry) -> ()
+
+	local function getRecord(storyRequest: StoryRequest): StoryModuleRecord?
+		local recordsForStorybook = getRecords()[storyRequest.storybook.source]
+		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
+	end
 
 	local function getRequestEntry(storyModule: ModuleScript, storybookSource: ModuleScript): RequestEntry?
 		local loaderEntry = loaderEntries[storybookSource]
@@ -449,8 +455,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			entry.interactiveRefCount += 1
 		end
 
-		local recordsForStorybook = getRecords()[storybookSource]
-		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
+		local record = getRecord(storyRequest)
 		if hasStorybookChanged then
 			invalidateRequest(entry, priority)
 		elseif not record and not entry.isLoading then
@@ -524,6 +529,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	return {
+		getRecord = getRecord,
 		getRecords = getRecords,
 		request = request,
 		clear = clear,

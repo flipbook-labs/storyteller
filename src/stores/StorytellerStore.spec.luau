@@ -138,8 +138,7 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	local firstRecord = next(store.getStoryModuleRecords())
-	expect(firstRecord).toBeUndefined()
+	expect((next(store.getStoryModuleRecords()))).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -627,11 +626,6 @@ describe("requesting story modules", function()
 		}
 	end
 
-	local function getRecord(request: StoryRequest)
-		local recordsForStorybook = store.getStoryModuleRecords()[request.storybook.source]
-		return if recordsForStorybook then recordsForStorybook[request.storyModule] else nil
-	end
-
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
 		local request = createRequest("Delegated")
@@ -639,7 +633,7 @@ describe("requesting story modules", function()
 		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			local record = getRecord(request)
+			local record = store.getStoryModuleRecord(request)
 			assert(record and record.stories, "expected a loaded record for the requested story module")
 			expect(record.stories[1].name).toBe("Delegated")
 		end)
@@ -652,12 +646,11 @@ describe("requesting story modules", function()
 		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			expect(getRecord(request)).toBeDefined()
+			expect(store.getStoryModuleRecord(request)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		local firstKey = next(store.getStoryModuleRecords())
-		expect(firstKey).toBeUndefined()
+		expect(store.getStoryModuleRecord(request)).toBeUndefined()
 	end)
 end)

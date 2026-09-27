@@ -157,23 +157,13 @@ local function createStorybook(): types.LoadedStorybook
 	}
 end
 
--- Each benchmark uses a single Storybook, so the first record found for a
--- module is the only one.
-local function findRecord(currentStore: StorytellerStore, storyModule: ModuleScript): types.StoryModuleRecord?
-	for _, recordsForStorybook in currentStore.getStoryModuleRecords() do
-		local record = recordsForStorybook[storyModule]
-		if record then
-			return record
-		end
-	end
-	return nil
-end
-
 local function countRecords(currentStore: StorytellerStore, storyModules: { ModuleScript }): number
 	local count = 0
-	for _, storyModule in storyModules do
-		if findRecord(currentStore, storyModule) then
-			count += 1
+	for _, recordsForStorybook in currentStore.getStoryModuleRecords() do
+		for _, storyModule in storyModules do
+			if recordsForStorybook[storyModule] then
+				count += 1
+			end
 		end
 	end
 	return count
@@ -214,7 +204,7 @@ describeEach({
 		expect(#store.getStoryModules()).toBe(#storyModules)
 		-- Discovery must never evaluate a module: no records should exist until
 		-- something explicitly requests them.
-		expect(findRecord(store, storyModules[1])).toBeUndefined()
+		expect((next(store.getStoryModuleRecords()))).toBeUndefined()
 
 		root:Destroy()
 	end, TIMEOUT_MS)
@@ -254,7 +244,7 @@ describeEach({
 			framesToAll = firstFrames + allFrames,
 		})
 
-		local sampleRecord = findRecord(store, storyModules[1])
+		local sampleRecord = store.getStoryModuleRecord(requests[1])
 		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
 
 		-- The work budget must spread large batches across frames rather than
@@ -300,7 +290,7 @@ test("loads every Story from multi-Story modules", function()
 		framesToAll = frames,
 	})
 
-	local sampleRecord = findRecord(store, storyModules[1])
+	local sampleRecord = store.getStoryModuleRecord(requests[1])
 	assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
 	expect(#sampleRecord.stories).toBe(3)
 
@@ -335,7 +325,7 @@ test("interactive requests are serviced ahead of background backlog", function()
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
-		return findRecord(store, interactiveRequest.storyModule) ~= nil
+		return store.getStoryModuleRecord(interactiveRequest) ~= nil
 	end)
 	local backgroundDoneAt = countRecords(store, storyModules)
 
@@ -429,13 +419,13 @@ test("republishes a single edited story at scale without reloading siblings", fu
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = findRecord(store, editedModule)
+	local recordBefore = store.getStoryModuleRecord(requests[1])
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
 	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = findRecord(store, editedModule)
+		local record = store.getStoryModuleRecord(requests[1])
 		return record ~= nil and record ~= recordBefore and record.problem == nil
 	end)
 
@@ -638,7 +628,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		return findRecord(store, storyModule)
+		return store.getStoryModuleRecord({ storyModule = storyModule, storybook = storybook })
 	end
 
 	-- Cold select-while-loading: the whole sidebar batch is queued background

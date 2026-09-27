@@ -23,11 +23,12 @@ local types = require("@root/types")
 
 type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
-type LoadedStory<T> = types.LoadedStory<T>
 
+type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
+type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
 type StoryRequest = StoryModuleRecordStore.StoryRequest
 type CleanupFn = StoryModuleRecordStore.CleanupFn
-type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
+type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StorytellerStore = {
 	acquire: () -> CleanupFn,
@@ -42,11 +43,9 @@ export type StorytellerStore = {
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
 
+	getStoryModuleRecord: (storyRequest: StoryRequest) -> StoryModuleRecord?,
 	getStoryModuleRecords: () -> StoryModuleRecords,
-	requestStoryModule: (
-		priority: StoryModuleRequestPriority.StoryModuleRequestPriority,
-		storyRequest: StoryRequest
-	) -> CleanupFn,
+	requestStoryModule: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 }
 
 local IS_SANDBOXED = ModuleLoader.isSandboxed()
@@ -82,6 +81,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
 	local recordStore = StoryModuleRecordStore.new()
+	self.getStoryModuleRecord = recordStore.getRecord
 	self.getStoryModuleRecords = recordStore.getRecords
 	self.requestStoryModule = recordStore.request
 
