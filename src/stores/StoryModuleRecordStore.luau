@@ -439,13 +439,16 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			}
 			local loaderEntry = ensureLoaderEntry(storybookSource)
 			loaderEntry.requests[storyModule] = entry
-			entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
-				invalidateRequest(
-					entry,
-					if entry.interactiveRefCount > 0
-						then StoryModuleRequestPriority.Interactive
-						else StoryModuleRequestPriority.Background
-				)
+			-- Source-specific signals require PluginOrOpenCloud in embedded clients.
+			entry.sourceConnection = storyModule.Changed:Connect(function(property)
+				if property == "Source" then
+					invalidateRequest(
+						entry,
+						if entry.interactiveRefCount > 0
+							then StoryModuleRequestPriority.Interactive
+							else StoryModuleRequestPriority.Background
+					)
+				end
 			end)
 			entry.destroyingConnection = storyModule.Destroying:Connect(function()
 				cleanupRequestEntry(entry)
