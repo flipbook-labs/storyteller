@@ -73,6 +73,7 @@ return {
 	StoryContainer = require("@self/react/StoryContainer"),
 	StorytellerProvider = StorytellerContext.StorytellerProvider,
 	useStory = require("@self/react/useStory"),
+	useStoryModuleRecords = require("@self/react/useStoryModuleRecords"),
 	useStorybooks = require("@self/react/useStorybooks"),
 	useOrphanedStoryModules = require("@self/react/useOrphanedStoryModules"),
 
