@@ -479,6 +479,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			end
 			isReleased = true
 
+			if entry.refCount == 0 then
+				return
+			end
+
 			if priority == StoryModuleRequestPriority.Interactive then
 				entry.interactiveRefCount = math.max(0, entry.interactiveRefCount - 1)
 			end

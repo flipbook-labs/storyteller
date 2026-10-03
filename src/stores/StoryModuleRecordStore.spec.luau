@@ -519,6 +519,31 @@ test("clear drops every record and outstanding request", function()
 	end)
 end)
 
+test("releasing a request from before clear preserves its replacement record", function()
+	recordStore = StoryModuleRecordStore.new()
+	local request = createRequest("Replaced")
+	local releaseOld = recordStore.request(StoryModuleRequestPriority.Background, request)
+
+	waitFor(function()
+		expect(getRecord(request)).toBeDefined()
+	end)
+
+	recordStore.clear()
+	local releaseNew = recordStore.request(StoryModuleRequestPriority.Background, request)
+	local replacementRecord: StoryModuleRecordStore.StoryModuleRecord?
+	waitFor(function()
+		replacementRecord = getRecord(request)
+		assert(replacementRecord and replacementRecord.stories, "expected the replacement story to load")
+		expect(replacementRecord.stories[1].name).toBe("Replaced")
+	end)
+
+	releaseOld()
+	expect(getRecord(request)).toBe(replacementRecord)
+
+	releaseNew()
+	expect(getRecord(request)).toBeUndefined()
+end)
+
 test("requests after destroy are no-ops", function()
 	recordStore = StoryModuleRecordStore.new()
 	recordStore.destroy()
