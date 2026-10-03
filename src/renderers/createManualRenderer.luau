@@ -43,7 +43,7 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<ManualStory>
 		end
 
 		currentStory = story

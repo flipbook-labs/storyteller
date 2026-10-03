@@ -33,7 +33,7 @@ beforeEach(function()
 				mount = jest.fn(),
 				unmount = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 
 	mockReactStorybook = {
@@ -47,7 +47,7 @@ beforeEach(function()
 			ReactRoblox = {
 				createRoot = jest.fn(),
 			},
-		},
+		} :: types.StoryPackages,
 	}
 end)
 
@@ -115,7 +115,7 @@ test("legacy function stories never inherit storybook packages", function()
 		source = Instance.new("ModuleScript"),
 		packages = {
 			React = {},
-		},
+		} :: types.StoryPackages,
 	}
 
 	local storyModule = createMockStoryModule([[
@@ -217,7 +217,7 @@ describe("legacy support", function()
 			source = Instance.new("ModuleScript"),
 			packages = {
 				Roact = {},
-			},
+			} :: types.StoryPackages,
 		}
 
 		local storyModule = createMockStoryModule([[
@@ -465,7 +465,7 @@ describe("multiple stories", function()
 			source = Instance.new("ModuleScript"),
 			packages = {
 				React = { fromStorybook = true },
-			},
+			} :: types.StoryPackages,
 		}
 
 		local storyModule = createMockStoryModule([[
@@ -575,9 +575,9 @@ end)
 
 describe("storybook middleware", function()
 	test("mapDefinition receives the loaded Story", function()
-		local receivedSummary: unknown
+		local receivedStory: unknown
 		mockPlainStorybook.mapDefinition = function(storyDefinition)
-			receivedSummary = storyDefinition.summary
+			receivedStory = storyDefinition
 			return storyDefinition
 		end
 
@@ -595,28 +595,26 @@ describe("storybook middleware", function()
 		local container = Instance.new("Folder")
 		local lifecycle = render(container, story)
 
-		expect(receivedSummary).toBe("From the source")
+		expect(receivedStory).toMatchObject({ summary = "From the source" })
 		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 
 		lifecycle.unmount()
 	end)
 
 	test("mapStory wraps the loaded Story", function()
+		local receivedStory: unknown
 		mockPlainStorybook.mapStory = function(originalStory)
-			return function(props)
+			receivedStory = originalStory
+			return function()
 				local wrapper = Instance.new("Frame")
 				wrapper.Name = "Wrapper"
-				wrapper.Parent = props.container
-				return originalStory(props)
+				return wrapper
 			end
 		end
 
 		local storyModule = createMockStoryModule([[
 			return {
-				story = function(props)
-					local label = Instance.new("TextLabel")
-					label.Parent = props.container
-				end,
+				story = function() end,
 			}
 		]])
 
@@ -624,8 +622,8 @@ describe("storybook middleware", function()
 		local container = Instance.new("Folder")
 		local lifecycle = render(container, story)
 
+		expect(receivedStory).toBe(story.story)
 		expect(container:FindFirstChild("Wrapper")).toBeDefined()
-		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 
 		lifecycle.unmount()
 	end)

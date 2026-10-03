@@ -23,6 +23,7 @@ export type ReservedStoryProps = {
 	-- story: LoadedStory<unknown>
 }
 
+-- Story callbacks need to use author-defined controls without a schema-specific type.
 export type StoryProps = {
 	[string]: any,
 }
@@ -40,12 +41,13 @@ export type StoryRenderer<T> = {
 	shouldUpdate: ((props: StoryProps, prevProps: StoryProps?) -> boolean)?,
 }
 
+-- Luau rejects typed package modules against an unknown dictionary indexer.
 export type StoryPackages = {
 	[string]: any,
 }
 
-type MapStoryFn = (story: any) -> (props: StoryProps) -> any
-type MapDefinitionFn = (story: any) -> any
+type MapStoryFn = (story: unknown) -> (props: StoryProps) -> unknown
+type MapDefinitionFn = (story: unknown) -> unknown
 
 export type Storybook = {
 	storyRoots: { Instance },
