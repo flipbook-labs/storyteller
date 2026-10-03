@@ -58,6 +58,16 @@ return {
 }
 ]]
 
+local MULTI_STORY_SOURCE = [[
+return {
+	stories = {
+		{ id = "primary", name = "Primary", story = function() end },
+		{ id = "secondary", name = "Secondary", story = function() end },
+		{ id = "tertiary", name = "Tertiary", story = function() end },
+	},
+}
+]]
+
 local COUNTING_STORY_SOURCE = [[
 script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
 return {
@@ -149,9 +159,11 @@ end
 
 local function countRecords(currentStore: StorytellerStore, storyModules: { ModuleScript }): number
 	local count = 0
-	for _, storyModule in storyModules do
-		if currentStore.getStoryModuleRecord(storyModule) then
-			count += 1
+	for _, recordsForStorybook in currentStore.getStoryModuleRecords() do
+		for _, storyModule in storyModules do
+			if recordsForStorybook[storyModule] then
+				count += 1
+			end
 		end
 	end
 	return count
@@ -192,7 +204,7 @@ describeEach({
 		expect(#store.getStoryModules()).toBe(#storyModules)
 		-- Discovery must never evaluate a module: no records should exist until
 		-- something explicitly requests them.
-		expect(store.getStoryModuleRecord(storyModules[1])).toBeUndefined()
+		expect((next(store.getStoryModuleRecords()))).toBeUndefined()
 
 		root:Destroy()
 	end, TIMEOUT_MS)
@@ -232,8 +244,8 @@ describeEach({
 			framesToAll = firstFrames + allFrames,
 		})
 
-		local sampleRecord = store.getStoryModuleRecord(storyModules[1])
-		assert(sampleRecord and sampleRecord.story, "expected a loaded story for the first story module")
+		local sampleRecord = store.getStoryModuleRecord(requests[1])
+		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
 
 		-- The work budget must spread large batches across frames rather than
 		-- stalling one frame with the entire load. Fast hardware can finish a
@@ -248,6 +260,43 @@ describeEach({
 		storybook.source:Destroy()
 	end, TIMEOUT_MS)
 end)
+
+test("loads every Story from multi-Story modules", function()
+	local root, storyModules = buildSimulatedDataModel(10000, 500, MULTI_STORY_SOURCE)
+	local storybook = createStorybook()
+
+	store = StorytellerStore.new(root)
+	store.start()
+	settle(60, function()
+		return #store.getStoryModules() >= #storyModules
+	end)
+
+	local requests: { StoryRequest } = {}
+	for _, storyModule in storyModules do
+		table.insert(requests, {
+			storyModule = storyModule,
+			storybook = storybook,
+		})
+	end
+
+	local startTime = os.clock()
+	requestStories(store, StoryModuleRequestPriority.Background, requests)
+	local _, frames = settle(120, function()
+		return countRecords(store, storyModules) >= #requests
+	end)
+
+	report(`records {#storyModules} multi-Story modules`, {
+		allRecordsMs = (os.clock() - startTime) * 1000,
+		framesToAll = frames,
+	})
+
+	local sampleRecord = store.getStoryModuleRecord(requests[1])
+	assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
+	expect(#sampleRecord.stories).toBe(3)
+
+	root:Destroy()
+	storybook.source:Destroy()
+end, TIMEOUT_MS)
 
 test("interactive requests are serviced ahead of background backlog", function()
 	local root, storyModules = buildSimulatedDataModel(5000, 300)
@@ -276,7 +325,7 @@ test("interactive requests are serviced ahead of background backlog", function()
 
 	local startTime = os.clock()
 	local interactiveElapsed = settle(60, function()
-		return store.getStoryModuleRecord(interactiveRequest.storyModule) ~= nil
+		return store.getStoryModuleRecord(interactiveRequest) ~= nil
 	end)
 	local backgroundDoneAt = countRecords(store, storyModules)
 
@@ -370,13 +419,13 @@ test("republishes a single edited story at scale without reloading siblings", fu
 	end)
 
 	local editedModule = storyModules[1]
-	local recordBefore = store.getStoryModuleRecord(editedModule)
+	local recordBefore = store.getStoryModuleRecord(requests[1])
 
 	-- Prepend the marker: ModuleLoader wraps sources onto one line, so a
 	-- trailing comment without a newline would swallow the closing tokens.
 	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
-		local record = store.getStoryModuleRecord(editedModule)
+		local record = store.getStoryModuleRecord(requests[1])
 		return record ~= nil and record ~= recordBefore and record.problem == nil
 	end)
 
@@ -579,7 +628,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 	end
 
 	local function getRecord(storyModule: ModuleScript)
-		return store.getStoryModuleRecord(storyModule)
+		return store.getStoryModuleRecord({ storyModule = storyModule, storybook = storybook })
 	end
 
 	-- Cold select-while-loading: the whole sidebar batch is queued background
