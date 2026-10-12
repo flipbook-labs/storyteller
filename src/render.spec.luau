@@ -215,7 +215,7 @@ test("array controls are collapsed to the first item", function()
 	expect(font).toBe(Enum.Font.BuilderSans)
 end)
 
-test("extra props can be supplied for things like the UI theme", function()
+test("extra props can be supplied for things like the color mode and theme", function()
 	local mockMount = jest.fn()
 
 	mockCreateRendererForStory.mockReturnValue({
@@ -223,7 +223,8 @@ test("extra props can be supplied for things like the UI theme", function()
 	})
 
 	render(container, story, {
-		theme = "Light",
+		colorMode = "Light",
+		themeName = "Kids",
 	})
 
 	expect(mockMount).toHaveBeenCalledWith(
@@ -231,9 +232,27 @@ test("extra props can be supplied for things like the UI theme", function()
 		expect.anything(),
 		expect.objectContaining({
 			container = container,
-			theme = "Light",
+			colorMode = "Light",
+			themeName = "Kids",
 		})
 	)
+end)
+
+test("leaves colorMode unset and passes the deprecated Dark theme when the host supplies neither", function()
+	local props: types.StoryProps?
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = function(_otherContainer, _otherStory, initialProps)
+			props = initialProps
+		end,
+	})
+
+	render(container, story)
+
+	assert(props, "story was not mounted")
+	expect(props.colorMode).toBeNil()
+	expect(props.themeName).toBeNil()
+	expect(props.theme).toBe("Dark")
 end)
 
 test("always passes reserved props", function()
