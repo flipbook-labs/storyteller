@@ -30,7 +30,7 @@ return {
 			story = story,
 			controls = props.controls,
 			extraProps = {
-				theme = "Light",
+				colorMode = "Light",
 				locale = "en-us",
 				script = script,
 			},
