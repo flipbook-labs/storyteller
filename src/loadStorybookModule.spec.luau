@@ -7,12 +7,25 @@ local describe = JestGlobals.describe
 local test = JestGlobals.test
 local expect = JestGlobals.expect
 
+type ModuleLoader = ModuleLoader.ModuleLoader
+
 local function createMockStorybookModule(source: string): ModuleScript
 	local storybookModule = Instance.new("ModuleScript")
 	storybookModule.Name = "Foo.storybook"
 	storybookModule.Source = source
 
 	return storybookModule
+end
+
+-- A loader that hands back the same table on every require, like Roblox's
+-- native `require` cache does.
+local function createCachingLoader(result: unknown): ModuleLoader
+	local loader = {
+		require = function()
+			return result
+		end,
+	}
+	return (loader :: any) :: ModuleLoader
 end
 
 test("load a storybook module as a table", function()
@@ -148,5 +161,38 @@ describe("roblox internal", function()
 		local storybook = loadStorybookModule(storybookModule, loader)
 
 		expect(storybook.name).toBe("Group / Foo")
+	end)
+end)
+
+describe("caching loaders", function()
+	test("loading the same module twice prefixes the group once", function()
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = "Foo.storybook"
+		local loader = createCachingLoader({
+			group = "Group",
+			storyRoots = {},
+		})
+
+		loadStorybookModule(storybookModule, loader)
+		local storybook = loadStorybookModule(storybookModule, loader)
+
+		expect(storybook.name).toBe("Group / Foo")
+	end)
+
+	test("leave the table the module returned unchanged", function()
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = "Foo.storybook"
+		local storyRoot = Instance.new("Folder")
+		local result = {
+			group = "Group",
+			storyRoot = storyRoot,
+		}
+
+		loadStorybookModule(storybookModule, createCachingLoader(result))
+
+		expect(result).toEqual({
+			group = "Group",
+			storyRoot = storyRoot,
+		})
 	end)
 end)

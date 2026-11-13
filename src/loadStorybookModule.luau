@@ -31,6 +31,12 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
 
+	-- A loader with a require cache returns the same table on every load, so
+	-- the defaults and migrations below must not write to it.
+	if typeof(result) == "table" then
+		result = table.clone(result)
+	end
+
 	do -- Roblox internal. This behavior may be removed without notice.
 		if not result.storyRoots and result.storyRoot then
 			-- Some storybooks use `storyRoot: Instance` instead of a
