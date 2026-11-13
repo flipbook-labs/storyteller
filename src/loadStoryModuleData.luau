@@ -2,6 +2,8 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local dropUnmigratableControls = require("@root/roblox-internal/dropUnmigratableControls")
+local isFunctionComponentStory = require("@root/roblox-internal/isFunctionComponentStory")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
@@ -212,13 +214,31 @@ local function loadStoryModuleData<T>(
 		error(`Failed to load story {storyModule:GetFullName()}. Error: {err}`)
 	end
 
+	do -- Roblox internal. This behavior may be removed without notice.
+		if
+			typeof(requiredStory) == "function"
+			and isFunctionComponentStory(requiredStory :: (...any) -> ...any, loadedStorybook.packages)
+		then
+			requiredStory = {
+				story = requiredStory,
+			}
+		end
+	end
+
 	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)
 	local loadedStories: { LoadedStory<T> } = {}
 
 	for _, normalizedStory in storyModuleData.stories do
 		local controls = normalizedStory.controls :: StoryControlsSchema?
 		if controls then
-			controls = migrateControlsSchema(controls)
+			local wasMigrated, migratedControls = pcall(migrateControlsSchema, controls)
+			if wasMigrated then
+				controls = migratedControls
+			else
+				do -- Roblox internal. This behavior may be removed without notice.
+					controls = dropUnmigratableControls(controls, storyModule)
+				end
+			end
 		end
 
 		local loadedStory: LoadedStory<T> = {

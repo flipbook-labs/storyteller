@@ -64,6 +64,7 @@ test("generic failures for storybook", function()
 	local loader = ModuleLoader.new()
 	local storybookModule = createMockStorybookModule([[
 		return {
+			packages = "should be a table",
 		}
 	]])
 
@@ -129,6 +130,24 @@ describe("roblox internal", function()
 		local storybook = loadStorybookModule(storybookModule)
 
 		expect(#storybook.storyRoots).toBe(1)
+	end)
+
+	test("default storyRoots to the Instance that holds the storybook", function()
+		local folder = Instance.new("Folder")
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = "Foo.storybook"
+		storybookModule.Parent = folder
+		local loader = {
+			require = function()
+				return {
+					name = "Foo",
+				}
+			end,
+		}
+
+		local storybook = loadStorybookModule(storybookModule, (loader :: any) :: ModuleLoader.ModuleLoader)
+
+		expect(storybook.storyRoots).toEqual({ folder })
 	end)
 
 	test("grouping storybooks", function()

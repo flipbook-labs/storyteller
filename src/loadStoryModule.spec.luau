@@ -1,4 +1,7 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local ModuleLoader = require("@pkg/ModuleLoader")
+local React = require("@pkg/React")
+local ReactRoblox = require("@pkg/ReactRoblox")
 
 local loadStoriesFromModule = require("./loadStoriesFromModule")
 local loadStoryModule = require("./loadStoryModule")
@@ -679,6 +682,136 @@ describe("storybook freshness", function()
 		local story = loadStoryModule(storyModule, staleStorybook)
 
 		expect(story.storybook).toBe(staleStorybook)
+	end)
+end)
+
+describe("roblox internal", function()
+	local reactPackages = {
+		React = React,
+		ReactRoblox = ReactRoblox,
+	}
+
+	-- Requiring a module this loader has no result for fails, the way a
+	-- storybook source that can't load does.
+	local function createStubLoader(results: { [ModuleScript]: unknown }): ModuleLoader.ModuleLoader
+		local loader = {
+			require = function(_self, module: ModuleScript)
+				local result = results[module]
+				if result == nil then
+					error(`no stubbed result for {module:GetFullName()}`)
+				end
+				return result
+			end,
+		}
+		return (loader :: any) :: ModuleLoader.ModuleLoader
+	end
+
+	local function loadStubbedStory(result: unknown, storybook: types.LoadedStorybook)
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = "Foo.story"
+		return loadStoryModule(
+			storyModule,
+			storybook,
+			createStubLoader({
+				[storyModule] = result,
+			})
+		)
+	end
+
+	local function createStorybook(packages: types.StoryPackages?): types.LoadedStorybook
+		return {
+			name = "Storybook",
+			storyRoots = {},
+			source = Instance.new("ModuleScript"),
+			packages = packages,
+		}
+	end
+
+	test("render a bare function that returns an element as a component", function()
+		local story = loadStubbedStory(function()
+			return React.createElement("TextLabel", {
+				Text = "Component",
+			})
+		end, createStorybook(reactPackages))
+
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+		ReactRoblox.act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Component")
+		expect(story.packages).toBe(reactPackages)
+
+		lifecycle.unmount()
+	end)
+
+	test("render a bare function component that reads its props", function()
+		local story = loadStubbedStory(function(props)
+			return React.createElement("TextLabel", {
+				Text = props.theme,
+			})
+		end, createStorybook(reactPackages))
+
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story, {
+			theme = "Light",
+		})
+		ReactRoblox.act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Light")
+
+		lifecycle.unmount()
+	end)
+
+	test("keep a bare function that returns a cleanup callback as a Hoarcekat story", function()
+		local story = loadStubbedStory(function(target)
+			local label = Instance.new("TextLabel")
+			label.Parent = target
+
+			return function()
+				label:Destroy()
+			end
+		end, createStorybook(reactPackages))
+
+		expect(story.packages).toEqual({})
+
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
+
+		lifecycle.unmount()
+		expect(#container:GetChildren()).toBe(0)
+	end)
+
+	test("keep bare functions as Hoarcekat stories when the storybook has no component renderer", function()
+		local story = loadStubbedStory(function()
+			return React.createElement("TextLabel")
+		end, createStorybook(nil))
+
+		expect(story.packages).toEqual({})
+	end)
+
+	test("drop controls that can't be migrated and keep the rest", function()
+		local story = loadStubbedStory({
+			story = function() end,
+			controls = {
+				isEnabled = true,
+				settings = {
+					font = "Gotham",
+				},
+			},
+		}, createStorybook(nil))
+
+		expect(story.controls).toEqual({
+			isEnabled = true,
+		})
 	end)
 end)
 

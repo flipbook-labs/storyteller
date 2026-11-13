@@ -79,6 +79,9 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 			container = container,
 			story = story,
 			controls = hydratedControls,
+			-- Roblox internal. This behavior may be removed without notice.
+			-- Developer Storybook storybooks read the Story as `definition`.
+			definition = story,
 		}
 
 		local props: StoryProps = Sift.Dictionary.join({
