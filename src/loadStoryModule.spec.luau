@@ -798,6 +798,115 @@ describe("roblox internal", function()
 		expect(story.packages).toEqual({})
 	end)
 
+	test("render a module that returns an element", function()
+		local story = loadStubbedStory(
+			React.createElement("TextLabel", {
+				Text = "Element",
+			}),
+			createStorybook(reactPackages)
+		)
+
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+		ReactRoblox.act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Element")
+
+		lifecycle.unmount()
+	end)
+
+	test("render element stories and entries through the storybook's mapStory", function()
+		local storybook = createStorybook(reactPackages)
+		storybook.mapStory = function(component)
+			return function(props)
+				return React.createElement("Frame", {}, {
+					Story = React.createElement(component, props),
+				})
+			end
+		end
+
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = "Foo.story"
+		local stories = loadStoriesFromModule(
+			storyModule,
+			storybook,
+			createStubLoader({
+				[storyModule] = {
+					stories = {
+						Entry = React.createElement("TextLabel", {
+							Text = "Entry",
+						}),
+						Field = {
+							story = React.createElement("TextLabel", {
+								Text = "Field",
+							}),
+						},
+					},
+				},
+			})
+		)
+
+		local texts = {}
+		for _, story in stories do
+			local container = Instance.new("Folder")
+			local lifecycle = render(container, story)
+			ReactRoblox.act(function()
+				task.wait()
+			end)
+
+			local frame = container:FindFirstChildWhichIsA("Frame")
+			local label = frame and frame:FindFirstChildWhichIsA("TextLabel")
+			assert(label, `no TextLabel inside the mapStory Frame for {story.name}`)
+			table.insert(texts, label.Text)
+
+			lifecycle.unmount()
+		end
+		expect(texts).toEqual({ "Entry", "Field" })
+	end)
+
+	test("give a story that sets only some legacy packages the rest from its storybook", function()
+		local storybook = createStorybook(nil)
+		local storybookFields = storybook :: any
+		storybookFields.roact = React
+		storybookFields.reactRoblox = ReactRoblox
+
+		local story = loadStubbedStory({
+			roact = React,
+			story = function()
+				return React.createElement("TextLabel", {
+					Text = "Legacy",
+				})
+			end,
+		}, storybook)
+
+		expect(story.packages).toEqual(reactPackages)
+
+		local container = Instance.new("Folder")
+		local lifecycle = render(container, story)
+		ReactRoblox.act(function()
+			task.wait()
+		end)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Legacy")
+
+		lifecycle.unmount()
+	end)
+
+	test("take ReactRoblox from a storybook's packages for a story that sets roact", function()
+		local story = loadStubbedStory({
+			roact = React,
+			story = function() end,
+		}, createStorybook(reactPackages))
+
+		expect(story.packages).toEqual(reactPackages)
+	end)
+
 	test("drop controls that can't be migrated and keep the rest", function()
 		local story = loadStubbedStory({
 			story = function() end,

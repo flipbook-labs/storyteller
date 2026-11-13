@@ -3,6 +3,7 @@ local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
 local dropUnmigratableControls = require("@root/roblox-internal/dropUnmigratableControls")
+local isElement = require("@root/roblox-internal/isElement")
 local isFunctionComponentStory = require("@root/roblox-internal/isFunctionComponentStory")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
@@ -63,6 +64,11 @@ local function parseStoryEntry(
 	fallbackDescription: string
 ): StoryDefinitionSource
 	local definition: unknown = if typeof(entry) == "table" then entry else { story = entry }
+	do -- Roblox internal. This behavior may be removed without notice.
+		if isElement(entry) then
+			definition = { story = entry }
+		end
+	end
 	local isValid, message = types.IStoryDefinitionSource(definition)
 	if not isValid then
 		local fields = definition :: UnknownDict
@@ -223,6 +229,12 @@ local function loadStoryModuleData<T>(
 				story = requiredStory,
 			}
 		end
+
+		if isElement(requiredStory) then
+			requiredStory = {
+				story = requiredStory,
+			}
+		end
 	end
 
 	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)
@@ -241,13 +253,42 @@ local function loadStoryModuleData<T>(
 			end
 		end
 
+		local story = normalizedStory.story
+		local packages = normalizedStory.packages or loadedStorybook.packages
+		do -- Roblox internal. This behavior may be removed without notice.
+			if isElement(story) then
+				-- `mapStory` wraps a component, so Developer Storybook renders
+				-- an element through a component that returns it.
+				local element = story
+				story = function()
+					return element
+				end
+			end
+
+			-- A Developer Storybook story that sets some of the legacy
+			-- packages takes the rest from its storybook, so a story with only
+			-- `roact = React` still renders with the storybook's ReactRoblox.
+			local fields = normalizedStory.legacyPassthroughFields
+			if fields.packages == nil and (fields.roact or fields.react or fields.reactRoblox) then
+				local storybookFields = loadedStorybook :: any
+				local storybookPackages = loadedStorybook.packages
+				packages = migrateLegacyPackages({
+					roact = fields.roact or storybookFields.roact,
+					react = fields.react or storybookFields.react,
+					reactRoblox = fields.reactRoblox
+						or storybookFields.reactRoblox
+						or (storybookPackages and storybookPackages.ReactRoblox),
+				})
+			end
+		end
+
 		local loadedStory: LoadedStory<T> = {
 			id = normalizedStory.id,
 			name = normalizedStory.name,
 			storybook = loadedStorybook,
 			source = storyModule,
-			story = normalizedStory.story :: T | (props: StoryProps) -> T,
-			packages = normalizedStory.packages or loadedStorybook.packages,
+			story = story :: T | (props: StoryProps) -> T,
+			packages = packages,
 			summary = normalizedStory.summary,
 			controls = controls,
 			props = normalizedStory.props,
