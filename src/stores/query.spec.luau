@@ -1,3 +1,4 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local isStoryModule = require("@root/isStoryModule")
@@ -140,6 +141,53 @@ describe("DataModel behavior", function()
 		waitFor(function()
 			expect(storybookModulesQuery.get()).toEqual({})
 		end)
+	end)
+
+	test("publishes existing matches as soon as it starts", function()
+		local root = Instance.new("Folder")
+		local moduleScript = Instance.new("ModuleScript")
+		moduleScript.Parent = root
+
+		local modulesQuery = query({
+			selector = "ModuleScript",
+			root = root,
+		})
+
+		modulesQuery.start()
+
+		expect(modulesQuery.get()).toEqual({ moduleScript })
+
+		modulesQuery.destroy()
+	end)
+
+	test("publishes nothing while the DataModel is unchanged", function()
+		local root = Instance.new("Folder")
+		local moduleScript = Instance.new("ModuleScript")
+		moduleScript.Parent = root
+
+		local modulesQuery = query({
+			selector = "ModuleScript",
+			root = root,
+		})
+
+		modulesQuery.start()
+
+		waitFor(function()
+			expect(modulesQuery.get()).toEqual({ moduleScript })
+		end)
+
+		local publishCount = 0
+		local disconnect = Charm.subscribe(modulesQuery.get, function()
+			publishCount += 1
+		end)
+
+		-- Long enough to span several polling intervals.
+		task.wait(1)
+
+		disconnect()
+		modulesQuery.destroy()
+
+		expect(publishCount).toBe(0)
 	end)
 end)
 
