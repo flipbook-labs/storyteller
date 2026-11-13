@@ -47,7 +47,7 @@ local function recordSnapshot(snapshot: { Instance })
 	table.insert(snapshots, snapshot)
 end
 
-test("coalesces additions into one snapshot and publishes nothing while idle", function()
+test("publishes immediately, then coalesces additions into one snapshot and stays idle", function()
 	dispose = observeModuleCollection(collection, root, recordSnapshot)
 
 	for _ = 1, 100 do
@@ -59,23 +59,27 @@ test("coalesces additions into one snapshot and publishes nothing while idle", f
 	end
 
 	waitFor(function()
-		expect(#snapshots).toBe(1)
+		expect(#snapshots).toBe(2)
 	end)
-	expect(snapshots[1]).toEqual(members)
+	expect(snapshots[1]).toEqual({})
+	expect(snapshots[2]).toEqual(members)
 
 	task.wait(0.5)
-	expect(#snapshots).toBe(1)
+	expect(#snapshots).toBe(2)
 end)
 
-test("republishes renamed members and removes departed members", function()
+test("ignores replayed members, republishes renames, and removes departed members", function()
 	local module = Instance.new("ModuleScript")
 	module.Parent = root
 	table.insert(members, module)
 	dispose = observeModuleCollection(collection, root, recordSnapshot)
 
-	waitFor(function()
-		expect(#snapshots).toBe(1)
-	end)
+	expect(snapshots).toEqual({ { module } })
+
+	assert(collection.OnAdded, "expected an added callback")
+	collection.OnAdded(module)
+	task.wait(0.5)
+	expect(#snapshots).toBe(1)
 
 	module.Name = "Example.story"
 	assert(collection.OnPropertyChanged.Name, "expected a name callback")
@@ -112,7 +116,7 @@ test("includes a ModuleScript root once and observes its name", function()
 	end)
 end)
 
-test("destroy cancels pending snapshots and ignores late collection callbacks", function()
+test("ignores collection callbacks after destroy", function()
 	local destroy = observeModuleCollection(collection, root, recordSnapshot)
 	dispose = destroy
 	destroy()
@@ -122,6 +126,6 @@ test("destroy cancels pending snapshots and ignores late collection callbacks", 
 	collection.OnAdded(root)
 	task.wait(0.5)
 
-	expect(snapshots).toEqual({})
+	expect(snapshots).toEqual({ {} })
 	expect(destroyCount).toBe(1)
 end)

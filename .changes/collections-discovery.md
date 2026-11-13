@@ -3,4 +3,4 @@ bump: patch
 category: Changes
 ---
 
-Use the Roblox Collections beta for ModuleScript discovery when available, with polling as a fallback.
+Discover ModuleScripts with a Roblox Collection when available, falling back to polling `QueryDescendants`.
