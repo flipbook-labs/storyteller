@@ -13,6 +13,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type LoadedStorybook = types.LoadedStorybook
 type ModuleLoader = ModuleLoader.ModuleLoader
+type StoryControls = types.StoryControls
 type StoryControlsSchema = types.StoryControlsSchema
 type StoryDefinitionSource = types.StoryDefinitionSource
 type StoryGroupSource = types.StoryGroupSource
@@ -242,13 +243,14 @@ local function loadStoryModuleData<T>(
 
 	for _, normalizedStory in storyModuleData.stories do
 		local controls = normalizedStory.controls :: StoryControlsSchema?
+		local legacyControlValues: StoryControls? = nil
 		if controls then
 			local wasMigrated, migratedControls = pcall(migrateControlsSchema, controls)
 			if wasMigrated then
 				controls = migratedControls
 			else
 				do -- Roblox internal. This behavior may be removed without notice.
-					controls = dropUnmigratableControls(controls, storyModule)
+					controls, legacyControlValues = dropUnmigratableControls(controls, storyModule)
 				end
 			end
 		end
@@ -293,7 +295,12 @@ local function loadStoryModuleData<T>(
 			controls = controls,
 			props = normalizedStory.props,
 		}
-		table.insert(loadedStories, Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory))
+		local merged = Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory)
+		do -- Roblox internal. This behavior may be removed without notice.
+			-- `render` passes these to the story alongside the hydrated controls.
+			merged.legacyControlValues = legacyControlValues
+		end
+		table.insert(loadedStories, merged)
 	end
 
 	return {

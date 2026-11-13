@@ -75,6 +75,15 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 			then hydrateControls(story.controls, if controls then controls else {})
 			else {}
 
+		do -- Roblox internal. This behavior may be removed without notice.
+			-- Controls that couldn't be migrated keep the value Developer
+			-- Storybook gives them. See dropUnmigratableControls.
+			local legacyControlValues = (story :: any).legacyControlValues
+			if legacyControlValues then
+				hydratedControls = Sift.Dictionary.join(legacyControlValues, hydratedControls)
+			end
+		end
+
 		local reservedStoryProps: ReservedStoryProps = {
 			container = container,
 			story = story,

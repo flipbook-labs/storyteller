@@ -922,6 +922,38 @@ describe("roblox internal", function()
 			isEnabled = true,
 		})
 	end)
+
+	test("render controls that can't be migrated with the first item of their list", function()
+		local first = { name = "First" }
+		local received: { [string]: any } = {}
+		local story = loadStubbedStory({
+			story = function(props: types.StoryProps)
+				received = props.controls
+			end,
+			controls = {
+				isEnabled = true,
+				mode = { first, { name = "Second" } },
+				settings = {
+					font = "Gotham",
+				},
+			},
+		}, createStorybook(nil))
+
+		expect(story.controls).toEqual({
+			isEnabled = true,
+		})
+
+		local lifecycle = render(Instance.new("Folder"), story)
+		expect(received.isEnabled).toBe(true)
+		expect(received.mode).toBe(first)
+		expect(received.settings).toBeNil()
+
+		lifecycle.update({ isEnabled = false } :: any)
+		expect(received.isEnabled).toBe(false)
+		expect(received.mode).toBe(first)
+
+		lifecycle.unmount()
+	end)
 end)
 
 test("rejects malformed props", function()
