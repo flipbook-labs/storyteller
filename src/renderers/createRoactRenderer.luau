@@ -19,7 +19,7 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local Roact = packages.Roact
 	local tree
 	local currentComponent
-	local currentStory
+	local mappedStory
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
@@ -38,11 +38,13 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 			element = Roact.createElement(currentComponent, props)
 		end
 
-		if mapStory then
-			element = Roact.createElement(mapStory(story.story), props, element)
+		-- `mapStory` usually returns a new component on every call. Mapping once
+		-- keeps the component type stable, so updates don't remount the story.
+		mappedStory = if mapStory then mapStory(story.story) else nil
+		if mappedStory then
+			element = Roact.createElement(mappedStory, props, element)
 		end
 
-		currentStory = story
 		tree = Roact.mount(element, container, "RoactRenderer")
 	end
 
@@ -50,9 +52,8 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 		if tree and currentComponent then
 			local element = Roact.createElement(currentComponent, props)
 
-			local mapStory = if currentStory and currentStory.storybook then currentStory.storybook.mapStory else nil
-			if mapStory then
-				element = Roact.createElement(mapStory(currentStory.story), props, element)
+			if mappedStory then
+				element = Roact.createElement(mappedStory, props, element)
 			end
 
 			Roact.update(tree, element)

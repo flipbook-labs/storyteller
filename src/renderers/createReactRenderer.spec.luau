@@ -240,6 +240,41 @@ describe("middleware", function()
 		expect(element.Text).toBe("Dark")
 	end)
 
+	test("control changes update the mapped story in place", function()
+		local story = createReactStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = false,
+		} :: StoryControlsSchema
+
+		story.storybook.mapStory = function(element)
+			return function(props)
+				return React.createElement(element, props)
+			end
+		end
+
+		local lifecycle = render(container, story)
+
+		act(function()
+			task.wait()
+		end)
+
+		local buttonBefore = container:FindFirstChildWhichIsA("TextButton")
+
+		lifecycle.update({
+			isDisabled = true,
+		} :: StoryControls)
+
+		act(function()
+			task.wait()
+		end)
+
+		local buttonAfter = container:FindFirstChildWhichIsA("TextButton")
+		assert(buttonAfter, "no TextButton found")
+		expect(buttonAfter).toBe(buttonBefore)
+		expect(buttonAfter.Text).toBe("Disabled")
+	end)
+
 	test("mapDefinition is applied exactly once, at mount", function()
 		local applications = 0
 
