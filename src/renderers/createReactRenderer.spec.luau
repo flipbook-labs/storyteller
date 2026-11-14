@@ -240,6 +240,59 @@ describe("middleware", function()
 		expect(element.Text).toBe("Dark")
 	end)
 
+	test("a mapStory that passes its props to the story passes no children", function()
+		local renders = 0
+		local sawChildren = false
+		local function Story(props)
+			renders += 1
+			if props.children ~= nil then
+				sawChildren = true
+			end
+			return React.createElement("TextLabel")
+		end
+
+		local story = createReactStory(Story)
+		story.storybook.mapStory = function(component)
+			return function(props)
+				return React.createElement(component, props)
+			end
+		end
+
+		local lifecycle = render(container, story)
+		act(function()
+			task.wait()
+		end)
+		lifecycle.update({})
+		act(function()
+			task.wait()
+		end)
+
+		expect(renders).toBeGreaterThan(1)
+		expect(sawChildren).toBe(false)
+		expect(#container:GetChildren()).toBe(1)
+	end)
+
+	test("an element story reaches mapStory as children", function()
+		local story = createReactStory(React.createElement("TextLabel", {
+			Text = "Element",
+		}))
+		story.storybook.mapStory = function()
+			return function(props)
+				return React.createElement("Frame", {}, props.children)
+			end
+		end
+
+		render(container, story)
+		act(function()
+			task.wait()
+		end)
+
+		local frame = container:FindFirstChildWhichIsA("Frame")
+		local label = frame and frame:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel inside the mapStory Frame")
+		expect(label.Text).toBe("Element")
+	end)
+
 	test("control changes update the mapped story in place", function()
 		local story = createReactStory(ButtonStory)
 

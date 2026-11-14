@@ -28,12 +28,15 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 		local element
 		if isReactElement(story.story) then
 			element = story.story
+			if mappedStory then
+				element = React.createElement(mappedStory, props, element)
+			end
+		elseif mappedStory then
+			-- The mapped component renders the story itself. Storybooks often
+			-- pass their props on to the story, so children would reach it too.
+			element = React.createElement(mappedStory, props)
 		else
 			element = React.createElement(story.story, props)
-		end
-
-		if mappedStory then
-			element = React.createElement(mappedStory, props, element)
 		end
 
 		currentStory = story

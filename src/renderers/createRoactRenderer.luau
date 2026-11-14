@@ -20,43 +20,41 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local tree
 	local currentComponent
 	local mappedStory
+	local isElementStory = false
+
+	local function createStoryElement(props: StoryProps, storyElement: any?)
+		if not mappedStory then
+			return storyElement or Roact.createElement(currentComponent, props)
+		elseif isElementStory then
+			return Roact.createElement(mappedStory, props, storyElement or Roact.createElement(currentComponent, props))
+		end
+		-- The mapped component renders the story itself. Storybooks often pass
+		-- their props on to the story, so children would reach it too.
+		return Roact.createElement(mappedStory, props)
+	end
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
-		local element
 
 		if mapDefinition then
 			story = mapDefinition(story)
 		end
 
-		if isRoactElement(story.story) then
-			currentComponent = (story.story :: any).component
-			element = story.story
-		else
-			currentComponent = story.story
-			element = Roact.createElement(currentComponent, props)
-		end
+		isElementStory = isRoactElement(story.story)
+		currentComponent = if isElementStory then (story.story :: any).component else story.story
 
 		-- `mapStory` usually returns a new component on every call. Mapping once
 		-- keeps the component type stable, so updates don't remount the story.
 		mappedStory = if mapStory then mapStory(story.story) else nil
-		if mappedStory then
-			element = Roact.createElement(mappedStory, props, element)
-		end
 
+		local element = createStoryElement(props, if isElementStory then story.story else nil)
 		tree = Roact.mount(element, container, "RoactRenderer")
 	end
 
 	local function update(props: StoryProps)
 		if tree and currentComponent then
-			local element = Roact.createElement(currentComponent, props)
-
-			if mappedStory then
-				element = Roact.createElement(mappedStory, props, element)
-			end
-
-			Roact.update(tree, element)
+			Roact.update(tree, createStoryElement(props))
 		end
 	end
 

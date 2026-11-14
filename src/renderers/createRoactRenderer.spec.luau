@@ -198,6 +198,32 @@ describe("middleware", function()
 		expect(element.Text).toBe("Dark")
 	end)
 
+	test("a mapStory that passes its props to the story passes no children", function()
+		local renders = 0
+		local sawChildren = false
+		local function Story(props)
+			renders += 1
+			if props[Roact.Children] ~= nil then
+				sawChildren = true
+			end
+			return Roact.createElement("TextLabel")
+		end
+
+		local story = createRoactStory(Story)
+		story.storybook.mapStory = function(component)
+			return function(props)
+				return Roact.createElement(component, props)
+			end
+		end
+
+		local lifecycle = render(container, story)
+		lifecycle.update({})
+
+		expect(renders).toBe(2)
+		expect(sawChildren).toBe(false)
+		expect(#container:GetChildren()).toBe(1)
+	end)
+
 	test("control changes update the mapped story in place", function()
 		local story = createRoactStory(ButtonStory)
 
