@@ -22,19 +22,21 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 
 	local root
 	local currentStory
+	local mappedStory
 
 	local function reactRender(story: types.LoadedStory<unknown>, props: StoryProps)
-		local mapStory = if story.storybook then story.storybook.mapStory else nil
-
 		local element
 		if isReactElement(story.story) then
 			element = story.story
+			if mappedStory then
+				element = React.createElement(mappedStory, props, element)
+			end
+		elseif mappedStory then
+			-- The mapped component renders the story itself. Storybooks often
+			-- pass their props on to the story, so children would reach it too.
+			element = React.createElement(mappedStory, props)
 		else
 			element = React.createElement(story.story, props)
-		end
-
-		if mapStory then
-			element = React.createElement(mapStory(story.story), props, element)
 		end
 
 		currentStory = story
@@ -47,6 +49,11 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 		if mapDefinition then
 			story = mapDefinition(story)
 		end
+
+		-- `mapStory` usually returns a new component on every call. Mapping once
+		-- keeps the component type stable, so updates don't remount the story.
+		local mapStory = if story.storybook then story.storybook.mapStory else nil
+		mappedStory = if mapStory then mapStory(story.story) else nil
 
 		root = ReactRoblox.createRoot(container)
 		reactRender(story, props)
