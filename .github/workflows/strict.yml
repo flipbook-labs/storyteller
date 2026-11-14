@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # Pull request code stays on this secretless runner. Protected jobs consume
-      # only the built place on fresh runners.
+      # Pull request code runs only on this runner, which gets no secrets. The
+      # tests and benchmarks jobs take just the built place, on fresh runners.
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
@@ -54,12 +54,17 @@ jobs:
       - name: Install packages
         run: lute run install
 
+      # Pull request code controls the build, so `tests-place.rbxl` could be a
+      # directory of files instead of a place. Downloading outside the checkout
+      # keeps any such files from replacing the `.lute/` scripts this job runs
+      # with the API key.
       - uses: actions/download-artifact@v8
         with:
           name: test-place
+          path: ${{ runner.temp }}/test-place
 
       - name: Run tests
-        run: lute run test --run-only --place tests-place.rbxl
+        run: lute run test --run-only --place "$RUNNER_TEMP/test-place/tests-place.rbxl"
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
 
@@ -81,18 +86,21 @@ jobs:
       - name: Install packages
         run: lute run install
 
+      # Downloads outside the checkout for the same reason as the tests job.
       - uses: actions/download-artifact@v8
         with:
           name: test-place
+          path: ${{ runner.temp }}/test-place
 
       - name: Run benchmarks
-        run: lute run test --run-only --benchmarks --place tests-place.rbxl
+        run: lute run test --run-only --benchmarks --place "$RUNNER_TEMP/test-place/tests-place.rbxl"
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
 
-  # Passes the `publish-lock` status on every pull request head except the
-  # publish PR, whose lock the release workflow manages. Fork tokens cannot write
-  # statuses, so this runs here without checking out the pull request.
+  # `publish-lock` is a commit status the release workflow fails on the publish
+  # PR while a release runs, so that PR can't merge mid-release. This job passes
+  # it on every other pull request head. Fork tokens can't write statuses, so it
+  # runs under `pull_request_target` and never checks out the pull request.
   publish-lock:
     if: github.event_name == 'pull_request_target' && github.head_ref != 'publish-next-version'
     runs-on: ubuntu-latest

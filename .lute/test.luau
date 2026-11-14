@@ -1,5 +1,6 @@
 local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local cli = require("@batteries/cli")
+local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
@@ -61,6 +62,14 @@ end
 
 if isBuildOnly then
 	process.exit(0)
+end
+
+-- In the Strict workflow, pull request code builds this place. A missing path or
+-- a directory there means the build didn't produce a place file, so the run
+-- stops here instead of handing that path to Rocale.
+if not fs.exists(placePath) or fs.type(placePath) ~= "file" then
+	print(`err: The test place must be a regular file: {placePath}`)
+	process.exit(1)
 end
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
