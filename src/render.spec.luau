@@ -236,6 +236,24 @@ test("extra props can be supplied for things like the UI theme", function()
 	)
 end)
 
+test("pass the Story as `definition` for Developer Storybook storybooks", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	render(container, story)
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			definition = story,
+		})
+	)
+end)
+
 test("always passes reserved props", function()
 	local mockMount = jest.fn()
 

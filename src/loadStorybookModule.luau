@@ -38,6 +38,12 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 			result.storyRoots = { result.storyRoot }
 			result.storyRoot = nil
 		end
+
+		if typeof(result) == "table" and not result.storyRoots then
+			-- Developer Storybook covers the stories beside a storybook that
+			-- doesn't name its roots.
+			result.storyRoots = { module.Parent }
+		end
 	end
 
 	local isStorybook, message = types.IStorybook(result)
