@@ -245,13 +245,14 @@ local function loadStoryModuleData<T>(
 	for _, normalizedStory in storyModuleData.stories do
 		local controls = normalizedStory.controls :: StoryControlsSchema?
 		local legacyControlValues: StoryControls? = nil
+		local droppedControls: { [string]: unknown }? = nil
 		if controls then
 			local wasMigrated, migratedControls = pcall(migrateControlsSchema, controls)
 			if wasMigrated then
 				controls = migratedControls
 			else
 				do -- Roblox internal. This behavior may be removed without notice.
-					controls, legacyControlValues = dropUnmigratableControls(controls, storyModule)
+					controls, legacyControlValues, droppedControls = dropUnmigratableControls(controls, storyModule)
 				end
 			end
 		end
@@ -300,6 +301,8 @@ local function loadStoryModuleData<T>(
 		do -- Roblox internal. This behavior may be removed without notice.
 			-- `render` passes these to the story alongside the hydrated controls.
 			merged.legacyControlValues = legacyControlValues
+			-- The dropped controls as the story declared them, for a host to report.
+			merged.droppedControls = droppedControls
 		end
 		table.insert(loadedStories, merged)
 	end

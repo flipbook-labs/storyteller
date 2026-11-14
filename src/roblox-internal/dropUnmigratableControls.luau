@@ -13,14 +13,16 @@ type StoryControlsSchema = types.StoryControlsSchema
 	Each control that can't be migrated is dropped from the schema with a
 	warning. The second return value holds the value Developer Storybook gives
 	each of them, the first item of a list, so the story still renders as it
-	did there.
+	did there. The third holds each dropped control as the story declared it,
+	so a host can say which controls it can't offer.
 ]]
 local function dropUnmigratableControls(
 	schema: { [string]: unknown },
 	storyModule: ModuleScript
-): (StoryControlsSchema, StoryControls)
+): (StoryControlsSchema, StoryControls, { [string]: unknown })
 	local migrated: StoryControlsSchema = {}
 	local fixedValues: { [string]: any } = {}
+	local dropped: { [string]: unknown } = {}
 
 	for key, value in schema do
 		local singleControlSchema: any = {
@@ -31,11 +33,12 @@ local function dropUnmigratableControls(
 			migrated[key] = result[key]
 		else
 			fixedValues[key] = if typeof(value) == "table" then (value :: { unknown })[1] else value
+			dropped[key] = value
 			warn(`Dropped the "{key}" control from {storyModule:GetFullName()} because it can't be migrated: {result}`)
 		end
 	end
 
-	return migrated, fixedValues
+	return migrated, fixedValues, dropped
 end
 
 return dropUnmigratableControls

@@ -972,6 +972,22 @@ describe("roblox internal", function()
 		expect(story.controls).toEqual({
 			isEnabled = true,
 		})
+		expect((story :: any).droppedControls).toEqual({
+			settings = {
+				font = "Gotham",
+			},
+		})
+	end)
+
+	test("keep no dropped controls when every control migrates", function()
+		local story = loadStubbedStory({
+			story = function() end,
+			controls = {
+				isEnabled = true,
+			},
+		}, createStorybook(nil))
+
+		expect((story :: any).droppedControls).toBeNil()
 	end)
 
 	test("render controls that can't be migrated with the first item of their list", function()
