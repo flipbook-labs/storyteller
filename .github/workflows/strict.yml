@@ -1,0 +1,107 @@
+name: Strict
+
+on:
+  pull_request_target:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-place:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Pull request code stays on this secretless runner. Protected jobs consume
+      # only the built place on fresh runners.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+
+      - name: Install packages
+        run: lute run install
+
+      - name: Build test place
+        run: lute run test --build-only --place tests-place.rbxl
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: test-place
+          path: tests-place.rbxl
+
+  tests:
+    needs: test-place
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository) && 'luau-execution-gated' || 'luau-execution' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.sha || github.sha }}
+
+      - uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+
+      - name: Install packages
+        run: lute run install
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: test-place
+
+      - name: Run tests
+        run: lute run test --run-only --place tests-place.rbxl
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+
+  benchmarks:
+    needs: test-place
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository) && 'luau-execution-gated' || 'luau-execution' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.sha || github.sha }}
+
+      - uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+
+      - name: Install packages
+        run: lute run install
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: test-place
+
+      - name: Run benchmarks
+        run: lute run test --run-only --benchmarks --place tests-place.rbxl
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+
+  # Passes the `publish-lock` status on every pull request head except the
+  # publish PR, whose lock the release workflow manages. Fork tokens cannot write
+  # statuses, so this runs here without checking out the pull request.
+  publish-lock:
+    if: github.event_name == 'pull_request_target' && github.head_ref != 'publish-next-version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - uses: flipbook-labs/changewrite/publish-lock@v0.7.0
+        with:
+          locked: false
+          sha: ${{ github.event.pull_request.head.sha }}
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
