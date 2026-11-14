@@ -55,9 +55,9 @@ jobs:
         run: lute run install
 
       # Pull request code controls the build, so `tests-place.rbxl` could be a
-      # directory of files instead of a place. Downloading outside the checkout
-      # keeps any such files from replacing the `.lute/` scripts this job runs
-      # with the API key.
+      # directory of files instead of a place, and its files would sit at the
+      # artifact's root. Downloading outside the checkout keeps them from
+      # replacing files this job loads with the API key, like `project.luau`.
       - uses: actions/download-artifact@v8
         with:
           name: test-place
