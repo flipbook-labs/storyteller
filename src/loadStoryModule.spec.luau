@@ -2,6 +2,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
+local Roact = require("@pkg/Roact")
 
 local loadStoriesFromModule = require("./loadStoriesFromModule")
 local loadStoryModule = require("./loadStoryModule")
@@ -817,6 +818,56 @@ describe("roblox internal", function()
 		expect(label.Text).toBe("Element")
 
 		lifecycle.unmount()
+	end)
+
+	test("render a module or a stories entry that is a class component", function()
+		local ReactClass = React.Component:extend("ReactClass")
+		function ReactClass:render()
+			return React.createElement("TextLabel", {
+				Text = "React class",
+			})
+		end
+
+		local RoactClass = Roact.PureComponent:extend("RoactClass")
+		function RoactClass:render()
+			return Roact.createElement("TextLabel", {
+				Text = "Roact class",
+			})
+		end
+
+		local reactStory = loadStubbedStory(ReactClass, createStorybook(reactPackages))
+		local roactStory = loadStubbedStory(RoactClass, createStorybook({ Roact = Roact }))
+
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = "Foo.story"
+		local entries = loadStoriesFromModule(
+			storyModule,
+			createStorybook(reactPackages),
+			createStubLoader({
+				[storyModule] = {
+					stories = {
+						Entry = ReactClass,
+					},
+				},
+			})
+		)
+		expect(#entries).toBe(1)
+
+		local texts = {}
+		for _, story in { reactStory, roactStory, entries[1] } do
+			local container = Instance.new("Folder")
+			local lifecycle = render(container, story)
+			ReactRoblox.act(function()
+				task.wait()
+			end)
+
+			local label = container:FindFirstChildWhichIsA("TextLabel")
+			assert(label, `no TextLabel found for {story.name}`)
+			table.insert(texts, label.Text)
+
+			lifecycle.unmount()
+		end
+		expect(texts).toEqual({ "React class", "Roact class", "React class" })
 	end)
 
 	test("render element stories and entries through the storybook's mapStory", function()

@@ -3,6 +3,7 @@ local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
 local dropUnmigratableControls = require("@root/roblox-internal/dropUnmigratableControls")
+local isComponentClass = require("@root/roblox-internal/isComponentClass")
 local isElement = require("@root/roblox-internal/isElement")
 local isFunctionComponentStory = require("@root/roblox-internal/isFunctionComponentStory")
 local loadStorybookModule = require("@root/loadStorybookModule")
@@ -66,7 +67,7 @@ local function parseStoryEntry(
 ): StoryDefinitionSource
 	local definition: unknown = if typeof(entry) == "table" then entry else { story = entry }
 	do -- Roblox internal. This behavior may be removed without notice.
-		if isElement(entry) then
+		if isElement(entry) or isComponentClass(entry) then
 			definition = { story = entry }
 		end
 	end
@@ -231,7 +232,7 @@ local function loadStoryModuleData<T>(
 			}
 		end
 
-		if isElement(requiredStory) then
+		if isElement(requiredStory) or isComponentClass(requiredStory) then
 			requiredStory = {
 				story = requiredStory,
 			}
