@@ -26,7 +26,7 @@ local function ButtonStory(props: {
 	return button
 end
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")

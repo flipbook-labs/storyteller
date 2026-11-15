@@ -13,7 +13,7 @@ local test = JestGlobals.test
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
-local container
+local container: Folder
 beforeEach(function()
 	container = Instance.new("Folder")
 end)

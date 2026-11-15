@@ -32,7 +32,7 @@ end)
 describeEach(storybookModules)("e2e %s", function(storybookModule)
 	local storybook = loadStorybookModule(storybookModule)
 	local storyModules = findStoryModulesForStorybook(storybook)
-	local container
+	local container: Folder
 
 	beforeEach(function()
 		container = Instance.new("Folder")

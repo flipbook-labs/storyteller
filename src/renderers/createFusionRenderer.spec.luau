@@ -14,7 +14,7 @@ local describe = JestGlobals.describe
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")

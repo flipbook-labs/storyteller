@@ -22,7 +22,7 @@ type StorytellerStore = StorytellerStore.StorytellerStore
 
 local TIMEOUT_MS = 2 * 60 * 1000
 
-local store
+local store: StorytellerStore
 
 afterEach(function()
 	if store then
@@ -468,7 +468,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return countLoads() >= DEPENDENT_COUNT
 	end)
 
-	local elapsed, frames
+	local elapsed: number, frames: number
 	sharedDep.Source = "return { value = 2 }"
 	elapsed, frames = settle(60, function()
 		return countLoads() >= DEPENDENT_COUNT * 2

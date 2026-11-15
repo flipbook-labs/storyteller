@@ -192,7 +192,7 @@ test("reuses the cached record across overlapping requests", function()
 
 	recordStore.request(StoryModuleRequestPriority.Background, request)
 
-	local cachedRecord
+	local cachedRecord: typeof(getRecord(request))
 	waitFor(function()
 		cachedRecord = getRecord(request)
 		expect(cachedRecord).toBeDefined()

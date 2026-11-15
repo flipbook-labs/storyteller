@@ -19,9 +19,9 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local describe = JestGlobals.describe
 
-local container
-local root
-local storyModule
+local container: Folder
+local root: ReactRoblox.RootType
+local storyModule: ModuleScript
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -61,7 +61,7 @@ end)
 
 describe("controls", function()
 	test("controls get overlaid on the ControlsSchema", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			controls = {
@@ -111,7 +111,7 @@ describe("controls", function()
 	end)
 
 	test("component updates when controls change", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			controls = {
@@ -124,7 +124,7 @@ describe("controls", function()
 			end,
 		})
 
-		local setControls
+		local setControls: (controls: StoryControls) -> ()
 
 		local initialControls: StoryControls = {
 			foo = true,
@@ -163,7 +163,7 @@ end)
 
 describe("extraProps", function()
 	test("extraProps get combined to StoryProps", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			story = function(_storyProps)
@@ -197,7 +197,7 @@ describe("extraProps", function()
 	end)
 
 	test("extraProps cannot override certain default props", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			story = function(_storyProps)
@@ -228,7 +228,7 @@ describe("extraProps", function()
 	end)
 
 	test("component updates when extraProps changes", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			story = function(_storyProps)
@@ -237,10 +237,10 @@ describe("extraProps", function()
 			end,
 		})
 
-		local setExtraProps
+		local setExtraProps: (extraProps: types.ExtraStoryProps) -> ()
 
 		local function Wrapper()
-			local extraProps
+			local extraProps: types.ExtraStoryProps
 			extraProps, setExtraProps = React.useState({
 				theme = "Dark",
 				locale = "en-us",
@@ -289,10 +289,10 @@ test("unmounts old story and mounts new story when story changes", function()
 		end,
 	})
 
-	local setStory
+	local setStory: (story: typeof(story1)) -> ()
 
 	local function Wrapper()
-		local story
+		local story: typeof(story1)
 		story, setStory = React.useState(story1)
 
 		return React.createElement(StoryContainer, {
@@ -316,7 +316,7 @@ end)
 
 describe("story props", function()
 	test("props defined on the story get joined with StoryProps", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			props = {
@@ -351,7 +351,7 @@ describe("story props", function()
 	end)
 
 	test("a story's props cannot override reserved props", function()
-		local storyProps
+		local storyProps: types.StoryProps
 
 		local story = createStory({
 			props = {

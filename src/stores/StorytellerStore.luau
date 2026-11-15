@@ -54,9 +54,9 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local self = {}
 
 	local connections: { RBXScriptConnection } = {}
-	local disposeStorybookModuleObserver
-	local disposeModulesSubscription
-	local disposeStoryModuleObserver
+	local disposeStorybookModuleObserver: () -> ()
+	local disposeModulesSubscription: () -> ()
+	local disposeStoryModuleObserver: () -> ()
 
 	local isDestroyed = false
 	local isRunning = false

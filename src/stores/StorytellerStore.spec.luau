@@ -18,7 +18,7 @@ local afterEach = JestGlobals.afterEach
 
 type StoryRequest = StoryModuleRecordStore.StoryRequest
 
-local store
+local store: StorytellerStore.StorytellerStore
 
 afterEach(function()
 	store.destroy()

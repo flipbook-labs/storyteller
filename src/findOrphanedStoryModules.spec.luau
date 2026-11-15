@@ -11,7 +11,7 @@ local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
