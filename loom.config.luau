@@ -14,5 +14,17 @@ return {
 				source = "https://github.com/luau-lang/lute",
 			},
 		},
+		dev_dependencies = {
+			CodeQuality = {
+				rev = "v0.2.0",
+				sourceKind = "github",
+				source = "https://github.com/flipbook-labs/code-quality",
+			},
+			AgentSkills = {
+				rev = "v0.5.0",
+				sourceKind = "github",
+				source = "https://github.com/flipbook-labs/agent-skills",
+			},
+		},
 	},
 }

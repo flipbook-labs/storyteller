@@ -13,7 +13,7 @@ local test = JestGlobals.test
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
-local container
+local container: Folder
 beforeEach(function()
 	container = Instance.new("Folder")
 end)
@@ -91,7 +91,9 @@ describe("Vide", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -193,7 +195,9 @@ describe("Vide", function()
 		assert(button, "no element found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		task.wait()
 

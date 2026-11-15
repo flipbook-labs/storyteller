@@ -1,8 +1,15 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #189 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
+local StoryModuleRecordStore = require("./StoryModuleRecordStore")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
 
 local describe = JestGlobals.describe
@@ -10,10 +17,54 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-local store
+type StoryRequest = StoryModuleRecordStore.StoryRequest
+
+local store: StorytellerStore.StorytellerStore
 
 afterEach(function()
 	store.destroy()
+end)
+
+test("classifies one scan into stable story and storybook snapshots", function()
+	local folder = Instance.new("Folder")
+	local story = new("ModuleScript", { Name = "Example.story", Parent = folder })
+	local storybook = new("ModuleScript", {
+		Name = "Example.storybook",
+		Source = "return { storyRoots = {} }",
+		Parent = folder,
+	})
+	local scanCount = 0
+	local root = (
+		{
+			IsA = function(_self, selector: string)
+				return folder:IsA(selector)
+			end,
+			QueryDescendants = function(_self, selector: string)
+				scanCount += 1
+				expect(selector).toBe("ModuleScript")
+				return folder:QueryDescendants(selector)
+			end,
+			Destroying = folder.Destroying,
+		} :: unknown
+	) :: Instance
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	expect(scanCount).toBe(1)
+	expect(store.getStoryModules()).toEqual({ story })
+	expect(store.getStorybookModules()).toEqual({ storybook })
+
+	local stories = store.getStoryModules()
+	local storybooks = store.getStorybookModules()
+
+	waitFor(function()
+		expect(scanCount >= 2).toBe(true)
+	end)
+
+	expect(store.getStoryModules()).toBe(stories)
+	expect(store.getStorybookModules()).toBe(storybooks)
+	folder:Destroy()
 end)
 
 test("collects all relevant ModuleScripts under the root", function()
@@ -66,6 +117,35 @@ test("collects all relevant ModuleScripts under the root", function()
 	end)
 end)
 
+test("discovers hundreds of story modules without loading them", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	for index = 1, 250 do
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `Story{index}.story`
+		storyModule.Source = [[
+			script.Parent.LoadCount.Value += 1
+			return {
+				story = function() end,
+			}
+		]]
+		storyModule.Parent = root
+	end
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	waitFor(function()
+		expect(#store.getStoryModules()).toBe(250)
+	end)
+
+	expect(loadCount.Value).toBe(0)
+	expect(store.getStoryModuleRecord(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
+end)
+
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
 	local validStorybook = Instance.new("ModuleScript")
 	validStorybook.Source = [[
@@ -97,6 +177,66 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(#store.getUnavailableStorybooks()).toBe(2)
 	end)
+end)
+
+test("evaluates each Storybook once during initial discovery", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local storybookModule = Instance.new("ModuleScript")
+	storybookModule.Name = "Counting.storybook"
+	storybookModule.Source = [[
+		script.Parent.LoadCount.Value += 1
+		return {
+			storyRoots = {},
+		}
+	]]
+	storybookModule.Parent = root
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	waitFor(function()
+		expect(#store.getLoadedStorybooks()).toBe(1)
+	end)
+	expect(loadCount.Value).toBe(1)
+end)
+
+test("defers initial Storybook evaluation until after start returns", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	for index = 1, 3 do
+		local storybookModule = Instance.new("ModuleScript")
+		storybookModule.Name = `Counting{index}.storybook`
+		storybookModule.Source = [[
+			script.Parent.LoadCount.Value += 1
+			return {
+				storyRoots = {},
+			}
+		]]
+		storybookModule.Parent = root
+	end
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	expect(loadCount.Value).toBe(0)
+	waitFor(function()
+		expect(#store.getLoadedStorybooks()).toBe(3)
+	end)
+	expect(loadCount.Value).toBe(3)
+end)
+
+test("get() returns the same shared store on every call", function()
+	local first = StorytellerStore.get()
+	store = first
+
+	expect(StorytellerStore.get()).toBe(first)
 end)
 
 describe("recomputing Story and Storybook modules", function()
@@ -469,5 +609,53 @@ describe("orphaned stories", function()
 			expect(#store.getLoadedStorybooks()).toBe(0)
 			expect(store.getOrphanedStoryModules()).toEqual({ storyA, storyB })
 		end)
+	end)
+end)
+
+describe("requesting story modules", function()
+	-- Request lifecycle behavior (sharing, priority, invalidation, cleanup)
+	-- is covered by StoryModuleRecordStore.spec. These tests pin the
+	-- composition between the store and the record store it delegates to.
+	local function createRequest(name: string): StoryRequest
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `{name}.story`
+		storyModule.Source = `return \{ name = "{name}", story = function() end \}`
+
+		return {
+			storyModule = storyModule,
+			storybook = {
+				name = "Storybook",
+				source = Instance.new("ModuleScript"),
+				storyRoots = {},
+			},
+		}
+	end
+
+	test("serves requests through the record store", function()
+		store = StorytellerStore.new(new("Folder"))
+		local request = createRequest("Delegated")
+
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
+
+		waitFor(function()
+			local record = store.getStoryModuleRecord(request.storyModule)
+			assert(record and record.story, "expected a loaded record for the requested story module")
+			expect(record.story.name).toBe("Delegated")
+		end)
+	end)
+
+	test("clears records when the store is destroyed", function()
+		store = StorytellerStore.new(new("Folder"))
+		local request = createRequest("Ephemeral")
+
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
+
+		waitFor(function()
+			expect(store.getStoryModuleRecord(request.storyModule)).toBeDefined()
+		end)
+
+		store.destroy()
+
+		expect(store.getStoryModuleRecord(request.storyModule)).toBeUndefined()
 	end)
 end)

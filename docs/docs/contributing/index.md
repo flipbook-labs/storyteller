@@ -26,6 +26,14 @@ Run the following to run all unit tests for the project:
 $ lute run test
 ```
 
+The tests run in the cloud through Open Cloud Luau Execution, so `lute run test` needs an API key in the `ROBLOX_API_KEY` environment variable or a `.env` file (see `.env.template`). Without a key, you can still check that the test place builds:
+
+```sh
+$ lute run test --build-only
+```
+
+Pull requests from forks run the tests in CI once a maintainer approves them, so you do not need a key to contribute.
+
 We use jsdotlua's [Jest](https://github.com/jsdotlua/jest-lua) fork for authoring and executing unit tests. [Read the docs](https://jsdotlua.github.io/jest-lua/) and look to our existing `.spec.luau` modules for how to write tests.
 
 :::tip

@@ -14,7 +14,7 @@ local describe = JestGlobals.describe
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -105,9 +105,10 @@ describe("Fusion 0.3.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -172,9 +173,10 @@ describe("Fusion 0.3.0", function()
 		expect(mapped.Text).toBe("Disabled")
 
 		-- Controls must keep working through the middleware
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
@@ -203,9 +205,10 @@ describe("Fusion 0.3.0", function()
 		assert(button, "no TextButton found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
@@ -317,9 +320,10 @@ describe("Fusion 0.2.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -399,9 +403,10 @@ describe("Fusion 0.2.0", function()
 		assert(button, "no TextButton found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
