@@ -16,7 +16,7 @@ There also exist React hooks for ease of integration into storybook apps.
 ## Features
 
 * Discover Storybooks and their Story files
-* Render stories written in React, Roact, Fusion, and any generic Roblox Gui.
+* Render stories written in React, Roact, Fusion, Iris, and any generic Roblox Gui.
 
 ## Installation
 
@@ -37,7 +37,7 @@ API documentation is available on [the official documentation website](https://f
 
 ## Contributing
 
-Contributions welcome! Proper steps on how to get started will come later but feel free to poke around in the meantime.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) to set up your fork and open a pull request.
 
 ## License
 

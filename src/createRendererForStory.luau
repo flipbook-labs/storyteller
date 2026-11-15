@@ -1,4 +1,5 @@
 local createFusionRenderer = require("@root/renderers/createFusionRenderer")
+local createIrisRenderer = require("@root/renderers/createIrisRenderer")
 local createManualRenderer = require("@root/renderers/createManualRenderer")
 local createReactRenderer = require("@root/renderers/createReactRenderer")
 local createRoactRenderer = require("@root/renderers/createRoactRenderer")
@@ -19,21 +20,32 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 	@tag Story
 	@within Storyteller
 ]]
-local function createRendererForStory<T>(story: LoadedStory<T>): StoryRenderer<any>
+local function createRendererForStory<T>(story: LoadedStory<T>): StoryRenderer<T>
 	local packages = if story.packages then story.packages else story.storybook.packages
+	local renderer: unknown
+
 	if packages then
 		if packages.Roact then
-			return createRoactRenderer(packages)
+			renderer = createRoactRenderer(packages)
 		elseif packages.React and packages.ReactRoblox then
-			return createReactRenderer(packages)
+			renderer = createReactRenderer(packages)
 		elseif packages.Fusion then
-			return createFusionRenderer(packages)
+			renderer = createFusionRenderer(packages)
 		elseif packages.Vide then
-			return createVideRenderer(packages)
+			renderer = createVideRenderer(packages)
+		elseif packages.Iris then
+			renderer = createIrisRenderer(packages)
 		end
 	end
 
-	return createManualRenderer()
+	if not renderer then
+		renderer = createManualRenderer()
+	end
+
+	-- The packages a story brings decide its renderer, and each renderer
+	-- expects the kind of story its UI library makes. A story's type can't
+	-- express that pairing, so the renderer is cast to match the story here.
+	return renderer :: StoryRenderer<T>
 end
 
 return createRendererForStory

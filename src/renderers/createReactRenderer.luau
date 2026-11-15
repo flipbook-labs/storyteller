@@ -4,14 +4,26 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 
-type Packages = {
-	React: any,
-	ReactRoblox: any,
+-- Storybooks supply their own copy of React, so these types describe only the
+-- parts of it that this renderer uses.
+type ReactRoot = {
+	render: (self: ReactRoot, element: unknown) -> (),
+	unmount: (self: ReactRoot) -> (),
 }
 
-local function isReactElement(maybeElement: any): boolean
+type Packages = {
+	React: {
+		createElement: (component: unknown, props: unknown?, ...unknown) -> unknown,
+	},
+	ReactRoblox: {
+		createRoot: (container: Instance) -> ReactRoot,
+	},
+}
+
+local function isReactElement(maybeElement: unknown): boolean
 	if typeof(maybeElement) == "table" then
-		return maybeElement["$$typeof"] and maybeElement.props and maybeElement.type
+		local element = maybeElement :: { [string]: unknown }
+		return element["$$typeof"] ~= nil and element.props ~= nil and element.type ~= nil
 	end
 	return false
 end
@@ -20,18 +32,13 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local React = packages.React
 	local ReactRoblox = packages.ReactRoblox
 
-	local root
-	local currentStory
+	local root: ReactRoot?
+	local currentStory: LoadedStory<unknown>?
 
 	local function reactRender(story: types.LoadedStory<unknown>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
-		if mapDefinition then
-			story = mapDefinition(story)
-		end
-
-		local element
+		local element: unknown
 		if isReactElement(story.story) then
 			element = story.story
 		else
@@ -43,10 +50,18 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 		end
 
 		currentStory = story
-		root:render(element)
+		if root then
+			root:render(element)
+		end
 	end
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
+
 		root = ReactRoblox.createRoot(container)
 		reactRender(story, props)
 	end
@@ -58,7 +73,9 @@ local function createReactRenderer<T>(packages: Packages): StoryRenderer<T>
 	end
 
 	local function unmount()
-		root:unmount()
+		if root then
+			root:unmount()
+		end
 	end
 
 	return {

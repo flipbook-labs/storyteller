@@ -8,26 +8,27 @@ type CleanupFn = () -> ()
 type ManualStory = Instance | ((props: StoryProps) -> CleanupFn?)
 
 local function createManualRenderer(): StoryRenderer<ManualStory>
-	local currentContainer
-	local currentStory
+	local currentContainer: Instance?
+	local currentStory: LoadedStory<ManualStory>?
 	local cleanup: (() -> ())?
 
-	local function mount(container: Instance, story: LoadedStory<ManualStory>, props: StoryProps)
-		currentContainer = container
-		currentStory = story
-
+	local function renderStory(story: LoadedStory<ManualStory>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local storyValue: Instance | ((...any) -> unknown) = if mapStory then mapStory(story.story) else story.story
+		local storyValue: unknown = if mapStory then mapStory(story.story) else story.story
 
 		local result: unknown
 
 		if typeof(storyValue) == "Instance" then
 			result = storyValue
 		elseif typeof(storyValue) == "function" then
-			if debug.info(storyValue, "a") >= 2 then
-				result = storyValue(container, props)
+			-- A story function takes either `(props)` or `(container, props)`.
+			-- `debug.info` with "a" returns how many parameters the function
+			-- declares, which tells the two apart.
+			local storyFn = storyValue :: (...unknown) -> unknown
+			if debug.info(storyFn, "a") >= 2 then
+				result = storyFn(currentContainer, props)
 			else
-				result = storyValue(props)
+				result = storyFn(props)
 			end
 		end
 
@@ -35,9 +36,22 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 			cleanup = result :: CleanupFn
 		elseif typeof(result) == "Instance" then
 			if not result.Parent then
-				result.Parent = container
+				result.Parent = currentContainer
 			end
 		end
+	end
+
+	local function mount(container: Instance, story: LoadedStory<ManualStory>, props: StoryProps)
+		currentContainer = container
+
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
+
+		currentStory = story
+		renderStory(story, props)
 	end
 
 	local function unmount()
@@ -46,12 +60,16 @@ local function createManualRenderer(): StoryRenderer<ManualStory>
 			cleanup = nil
 		end
 
-		currentContainer:ClearAllChildren()
+		if currentContainer then
+			currentContainer:ClearAllChildren()
+		end
 	end
 
-	local function update(props)
+	local function update(props: StoryProps)
 		unmount()
-		mount(currentContainer, currentStory, props)
+		if currentStory then
+			renderStory(currentStory, props)
+		end
 	end
 
 	return {

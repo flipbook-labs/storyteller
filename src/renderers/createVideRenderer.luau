@@ -4,8 +4,14 @@ type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
+-- Storybooks supply their own copy of Vide, so these types describe only the
+-- parts of it that this renderer uses.
 type Packages = {
-	Vide: any,
+	Vide: {
+		source: (initialValue: unknown) -> unknown,
+		mount: (component: () -> unknown, target: Instance) -> () -> (),
+		batch: (callback: () -> ()) -> (),
+	},
 }
 
 local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
@@ -35,6 +41,12 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local function mount(container: Instance, story: LoadedStory<Instance>, props: StoryProps)
 		props = transformProps(props)
 		prevProps = props
+
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 

@@ -11,7 +11,7 @@
 	   skipping all the others that came before
 	4. Go to 2
 ]]
-local function debounce(callback: (...any) -> (), debounceMs: number?)
+local function debounce(callback: () -> (), debounceMs: number?)
 	local waitTimeMs = if debounceMs then debounceMs else 500
 	local isReady = true
 	local hasPendingCall = false

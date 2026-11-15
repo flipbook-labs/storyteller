@@ -1,6 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local constants = require("@root/constants")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
@@ -24,7 +25,7 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
 	local loader = if providedLoader then providedLoader else ModuleLoader.new()
 
-	local result
+	local result: { [string]: unknown }
 	local wasRequired, err = pcall(function()
 		result = loader:require(module)
 	end)
@@ -48,7 +49,8 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		result.packages = migrateLegacyPackages(result)
 	end
 
-	if result.packages and getmetatable(result.packages) == nil then
+	local packages = result.packages :: { [unknown]: unknown }?
+	if packages then
 		-- Loaded storybooks get stored in Charm state, which deep-freezes
 		-- everything it can reach in Studio, but skips tables that have a
 		-- metatable. UI libraries mutate their module-level state while
@@ -59,7 +61,9 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		-- The clone matters: when the storybook declares `packages` directly,
 		-- the table belongs to the author's module and may be shared between
 		-- storybooks or frozen, so we must not attach a metatable in place
-		result.packages = setmetatable(table.clone(result.packages), {})
+		local clone = table.clone(packages)
+		excludeFromCharmFreeze(clone)
+		result.packages = clone
 	end
 
 	if not result.name then
@@ -79,7 +83,8 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	result.source = module
 
-	return result
+	-- IStorybook checked the shape above.
+	return (result :: unknown) :: LoadedStorybook
 end
 
 return loadStorybookModule

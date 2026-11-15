@@ -20,8 +20,8 @@ local function StoryContainer(props: {
 	extraProps: ExtraStoryProps?,
 	onError: ((message: string) -> ())?,
 })
-	local ref = useRef(nil :: Frame?)
-	local lifecycle = useRef(nil :: RenderLifecycle?)
+	local ref = useRef<<Frame?>>(nil)
+	local lifecycle = useRef<<RenderLifecycle?>>(nil)
 	local prevStory = usePrevious(props.story)
 	local prevExtraProps = usePrevious(props.extraProps)
 	local prevControls = usePrevious(props.controls)

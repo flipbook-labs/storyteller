@@ -14,7 +14,7 @@ local describe = JestGlobals.describe
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -107,9 +107,10 @@ describe("Fusion 0.3.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -145,13 +146,67 @@ describe("Fusion 0.3.0", function()
 		expect(mapped.Text).toBe("Disabled")
 
 		-- Controls must keep working through the middleware
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
 		expect(mapped.Text).toBe("Enabled")
+	end)
+
+	test("mapDefinition is applied exactly once, at mount", function()
+		local applications = 0
+
+		local story = createFusionStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControlsSchema
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			applications += 1
+			return table.clone(storyDefinition)
+		end
+
+		local lifecycle = render(container, story)
+
+		expect(applications).toBe(1)
+
+		local button = container:FindFirstChildWhichIsA("TextButton")
+		assert(button, "no TextButton found")
+		expect(button.Text).toBe("Disabled")
+
+		local controls: StoryControls = {
+			isDisabled = false,
+		}
+		lifecycle.update(controls)
+
+		task.wait()
+
+		expect(applications).toBe(1)
+		expect(button.Text).toBe("Enabled")
+	end)
+
+	test("mapDefinition can replace the story's component", function()
+		local story = createFusionStory(TextStory)
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			local mapped = table.clone(storyDefinition)
+			mapped.story = function()
+				return scope:New("TextLabel")({
+					Text = "Replaced",
+				})
+			end
+			return mapped
+		end
+
+		render(container, story)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Replaced")
 	end)
 end)
 
@@ -240,9 +295,10 @@ describe("Fusion 0.2.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -269,5 +325,58 @@ describe("Fusion 0.2.0", function()
 		render(container, story)
 
 		expect(container:FindFirstChild("Mapped")).toBeDefined()
+	end)
+
+	test("mapDefinition is applied exactly once, at mount", function()
+		local applications = 0
+
+		local story = createFusionStory(ButtonStory)
+
+		story.controls = {
+			isDisabled = true,
+		} :: StoryControlsSchema
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			applications += 1
+			return table.clone(storyDefinition)
+		end
+
+		local lifecycle = render(container, story)
+
+		expect(applications).toBe(1)
+
+		local button = container:FindFirstChildWhichIsA("TextButton")
+		assert(button, "no TextButton found")
+		expect(button.Text).toBe("Disabled")
+
+		local controls: StoryControls = {
+			isDisabled = false,
+		}
+		lifecycle.update(controls)
+
+		task.wait()
+
+		expect(applications).toBe(1)
+		expect(button.Text).toBe("Enabled")
+	end)
+
+	test("mapDefinition can replace the story's component", function()
+		local story = createFusionStory(TextStory)
+
+		story.storybook.mapDefinition = function(storyDefinition)
+			local mapped = table.clone(storyDefinition)
+			mapped.story = function()
+				return New("TextLabel")({
+					Text = "Replaced",
+				})
+			end
+			return mapped
+		end
+
+		render(container, story)
+
+		local label = container:FindFirstChildWhichIsA("TextLabel")
+		assert(label, "no TextLabel found")
+		expect(label.Text).toBe("Replaced")
 	end)
 end)

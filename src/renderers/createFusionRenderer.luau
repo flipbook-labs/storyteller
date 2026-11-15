@@ -6,23 +6,37 @@ type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
+-- Storybooks supply their own copy of Fusion, so these types describe only the
+-- parts of it that this renderer uses. Fusion v3 creates values on a scope,
+-- while earlier versions create them straight from the package.
+type FusionValue = unknown
+
+type FusionScope = {
+	Value: (self: FusionScope, initialValue: unknown) -> FusionValue,
+	doCleanup: (self: FusionScope) -> (),
+}
+
 type Packages = {
-	Fusion: any,
+	Fusion: {
+		scoped: ((self: unknown) -> FusionScope)?,
+		Value: (initialValue: unknown) -> FusionValue,
+	},
 }
 
 local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local Fusion = packages.Fusion
 
 	local handle: Instance?
-	local scope
+	local scope: FusionScope?
 	local prevProps: StoryProps?
 
 	local function transformProps(props: StoryProps)
 		local transformed = table.clone(props)
 
-		if not scope and rawget(Fusion, "scoped") then
+		local scoped = rawget(Fusion, "scoped")
+		if not scope and scoped then
 			-- Fusion V3
-			scope = Fusion:scoped()
+			scope = scoped(Fusion)
 		end
 
 		transformed.controls = Sift.Dictionary.map(props.controls, function(arg, key)
@@ -41,6 +55,12 @@ local function createFusionRenderer(packages: Packages): StoryRenderer<Instance>
 	local function mount(container: Instance, story: LoadedStory<Instance>, props: StoryProps)
 		props = transformProps(props)
 		prevProps = props
+
+		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
+
+		if mapDefinition then
+			story = mapDefinition(story)
+		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 

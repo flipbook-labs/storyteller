@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #186 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlTypes = require("@root/controls/ControlTypes")
@@ -22,7 +27,7 @@ local function ButtonStory(props: {
 	return button
 end
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -116,13 +121,54 @@ test("update the GuiObject on arg changes", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	button = container:FindFirstChildWhichIsA("TextButton")
 
 	expect(button.Text).toBe("Enabled")
+end)
+
+test("update re-renders a story that manages its own cleanup", function()
+	local cleanups = 0
+
+	local story = createStory({
+		story = function(props)
+			local label = Instance.new("TextLabel")
+			label.Text = if props.controls.isDisabled then "Disabled" else "Enabled"
+			label.Parent = props.container
+
+			return function()
+				cleanups += 1
+				label:Destroy()
+			end
+		end,
+	})
+
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControlsSchema
+
+	local lifecycle = render(container, story)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Disabled")
+
+	local controls: StoryControls = {
+		isDisabled = false,
+	}
+	lifecycle.update(controls)
+
+	-- The previous render is cleaned up and a fresh one is mounted, just as a
+	-- full remount would do
+	expect(cleanups).toBe(1)
+
+	label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Enabled")
 end)
 
 test("lifecycle", function()
@@ -144,9 +190,10 @@ test("lifecycle", function()
 	assert(element, "no TextButton found")
 	expect(element.Text).toBe("Enabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = true,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -179,4 +226,64 @@ test("mapStory middleware wraps the story", function()
 	render(container, story)
 
 	expect(container:FindFirstChild("Mapped")).toBeDefined()
+end)
+
+test("mapDefinition is applied exactly once, at mount", function()
+	local applications = 0
+
+	local story = createStory({
+		story = ButtonStory,
+	})
+
+	story.controls = {
+		isDisabled = true,
+	} :: StoryControlsSchema
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		applications += 1
+		return table.clone(storyDefinition)
+	end
+
+	local lifecycle = render(container, story)
+
+	expect(applications).toBe(1)
+
+	local button = container:FindFirstChildWhichIsA("TextButton")
+	assert(button, "no TextButton found")
+	expect(button.Text).toBe("Disabled")
+
+	local controls: StoryControls = {
+		isDisabled = false,
+	}
+	lifecycle.update(controls)
+
+	expect(applications).toBe(1)
+
+	button = container:FindFirstChildWhichIsA("TextButton")
+	assert(button, "no TextButton found")
+	expect(button.Text).toBe("Enabled")
+end)
+
+test("mapDefinition can replace the story's component", function()
+	local story = createStory({
+		story = function()
+			return Instance.new("TextButton")
+		end,
+	})
+
+	story.storybook.mapDefinition = function(storyDefinition)
+		local mapped = table.clone(storyDefinition)
+		mapped.story = function()
+			local label = Instance.new("TextLabel")
+			label.Text = "Replaced"
+			return label
+		end
+		return mapped
+	end
+
+	render(container, story)
+
+	local label = container:FindFirstChildWhichIsA("TextLabel")
+	assert(label, "no TextLabel found")
+	expect(label.Text).toBe("Replaced")
 end)

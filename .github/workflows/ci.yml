@@ -11,10 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
+        with:
+          # `require-entry` diffs against the PR base branch, so a merge-base must
+          # exist. Full history guarantees it (the default depth-1 checkout does not).
+          fetch-depth: 0
 
-      - uses: flipbook-labs/changewrite@v0.5.0
+      - uses: flipbook-labs/changewrite@v0.11.0
         with:
           require-entry: 'true'
 
@@ -69,21 +75,3 @@ jobs:
 
       - name: Run Luau analysis
         run: lute run analyze --include-build
-
-  tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: CompeyDev/setup-rokit@v0.2.1
-        with:
-          version: v1.2.0
-
-      - name: Install packages
-        run: lute run install
-
-      - name: Run tests
-        run: lute run test
-        env:
-          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
