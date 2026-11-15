@@ -6,29 +6,33 @@ local UILabsV242Migration = require("@root/controls/migrations/ui-labs-v2.4.2")
 
 type StoryControls = ControlTypes.StoryControls
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
-type AnySchema = {
-	[any]: any,
-}
+type UILabsControlsSchema = UILabsV242Migration.StoryControlsSchema
+type StorytellerV140ControlsSchema = StorytellerV140Migration.StoryControlsSchema
 
 type Migration = {
-	matcher: (schema: AnySchema) -> (boolean, gt.Cause?),
-	migrator: (schema: AnySchema) -> StoryControlsSchema,
+	matcher: (schema: unknown) -> (boolean, gt.Cause?),
+	migrator: (schema: unknown) -> StoryControlsSchema,
 }
 
 -- Migrations happen in order from top to bottom and only the first match will
--- be applied to a schema
+-- be applied to a schema. A migrator only runs on a schema its matcher
+-- accepted, so each one casts the schema to the format its matcher checks for.
 local migrations: { Migration } = {
 	{
 		matcher = UILabsV242Migration.isUILabsControlsSchema,
-		migrator = UILabsV242Migration.migrateUILabsControlsSchema,
+		migrator = function(schema)
+			return UILabsV242Migration.migrateUILabsControlsSchema(schema :: UILabsControlsSchema)
+		end,
 	},
 	{
 		matcher = StorytellerV140Migration.isStorytellerControlsSchema,
-		migrator = StorytellerV140Migration.migrateStorytellerControlsSchema,
+		migrator = function(schema)
+			return StorytellerV140Migration.migrateStorytellerControlsSchema(schema :: StorytellerV140ControlsSchema)
+		end,
 	},
 }
 
-local function applyMigration(schema: { [any]: any }): StoryControlsSchema?
+local function applyMigration(schema: unknown): StoryControlsSchema?
 	for _, migration in migrations do
 		if migration.matcher(schema) then
 			return migration.migrator(schema)
@@ -38,7 +42,7 @@ local function applyMigration(schema: { [any]: any }): StoryControlsSchema?
 end
 
 local function migrateControlsSchema(
-	schema: StoryControlsSchema | UILabsV242Migration.StoryControlsSchema | StorytellerV140Migration.StoryControlsSchema
+	schema: StoryControlsSchema | UILabsControlsSchema | StorytellerV140ControlsSchema
 ): StoryControlsSchema
 	if ControlTypes.StoryControlsSchema(schema) then
 		return schema :: StoryControlsSchema

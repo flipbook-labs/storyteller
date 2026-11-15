@@ -24,7 +24,7 @@ type ModuleLoader = ModuleLoader.ModuleLoader
 local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleLoader?): LoadedStorybook
 	local loader = if providedLoader then providedLoader else ModuleLoader.new()
 
-	local result
+	local result: { [string]: unknown }
 	local wasRequired, err = pcall(function()
 		result = loader:require(module)
 	end)
@@ -65,7 +65,8 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	result.source = module
 
-	return result
+	-- IStorybook checked the shape above.
+	return (result :: unknown) :: LoadedStorybook
 end
 
 return loadStorybookModule
