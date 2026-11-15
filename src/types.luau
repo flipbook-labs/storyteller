@@ -28,7 +28,6 @@ export type ReservedStoryProps = {
 	-- story: LoadedStory<unknown>
 }
 
--- Story callbacks need to use author-defined controls without a schema-specific type.
 -- Stories read their props directly, as in `props.controls.text`. With
 -- `unknown` values, every story would need a cast to use a prop, and Luau's old
 -- solver, which Storyteller type checks with, would reject the tables of props
@@ -52,7 +51,9 @@ export type StoryRenderer<T> = {
 	shouldUpdate: ((props: StoryProps, prevProps: StoryProps?) -> boolean)?,
 }
 
--- Luau rejects typed package modules against an unknown dictionary indexer.
+-- Storyteller type checks with Luau's old solver, which rejects a table like
+-- `{ React = React }` where `{ [string]: unknown }` is expected. With `unknown`
+-- here, storybooks that annotate their packages would stop type checking.
 -- #195 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 export type StoryPackages = {
