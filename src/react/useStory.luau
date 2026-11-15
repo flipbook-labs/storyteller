@@ -27,7 +27,7 @@ local useStories = require("@root/react/useStories")
 		storybook: Storybook,
 		storyId: string?,
 	})
-		local ref = useRef(nil :: Frame?)
+		local ref = useRef<<Frame?>>(nil)
 
 		local story = Storyteller.useStory(props.storyModule, props.storybook, props.storyId)
 

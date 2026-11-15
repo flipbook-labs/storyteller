@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #189 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -14,7 +19,7 @@ local afterEach = JestGlobals.afterEach
 
 type StoryRequest = types.StoryRequest
 
-local store
+local store: StorytellerStore.StorytellerStore
 
 afterEach(function()
 	store.destroy()
@@ -138,8 +143,8 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	local firstRecord = next(store.getStoryModuleRecords())
-	expect(firstRecord).toBeUndefined()
+	local recordKey = next(store.getStoryModuleRecords())
+	expect(recordKey).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -627,19 +632,14 @@ describe("requesting story modules", function()
 		}
 	end
 
-	local function getRecord(storyRequest: StoryRequest)
-		local recordsForStorybook = store.getStoryModuleRecords()[storyRequest.storybook.source]
-		return if recordsForStorybook then recordsForStorybook[storyRequest.storyModule] else nil
-	end
-
 	test("serves requests through the record store", function()
 		store = StorytellerStore.new(new("Folder"))
-		local storyRequest = createRequest("Delegated")
+		local request = createRequest("Delegated")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			local record = getRecord(storyRequest)
+			local record = store.getStoryModuleRecord(request)
 			assert(record and record.stories, "expected a loaded record for the requested story module")
 			expect(record.stories[1].name).toBe("Delegated")
 		end)
@@ -647,17 +647,16 @@ describe("requesting story modules", function()
 
 	test("clears records when the store is destroyed", function()
 		store = StorytellerStore.new(new("Folder"))
-		local storyRequest = createRequest("Ephemeral")
+		local request = createRequest("Ephemeral")
 
-		store.requestStoryModule(StoryModuleRequestPriority.Background, storyRequest)
+		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			expect(getRecord(storyRequest)).toBeDefined()
+			expect(store.getStoryModuleRecord(request)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		local firstKey = next(store.getStoryModuleRecords())
-		expect(firstKey).toBeUndefined()
+		expect(store.getStoryModuleRecord(request)).toBeUndefined()
 	end)
 end)
