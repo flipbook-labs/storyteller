@@ -1,5 +1,5 @@
 local types = require("@root/types")
-local useStoriesForModule = require("@root/react/useStoriesForModule")
+local useStories = require("@root/react/useStories")
 
 --[=[
 	This hook triggers a rerender when the Story module or any of its required
@@ -27,7 +27,7 @@ local useStoriesForModule = require("@root/react/useStoriesForModule")
 		storybook: Storybook,
 		storyId: string?,
 	})
-		local ref = useRef(nil :: Frame?)
+		local ref = useRef<<Frame?>>(nil)
 
 		local story = Storyteller.useStory(props.storyModule, props.storybook, props.storyId)
 
@@ -57,7 +57,7 @@ local function useStory(
 	storybook: types.LoadedStorybook,
 	storyId: string?
 ): (types.LoadedStory<unknown>?, string?)
-	local stories, err = useStoriesForModule(module, storybook)
+	local stories, err = useStories(module, storybook)
 	if not stories then
 		return nil, err
 	end

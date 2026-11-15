@@ -67,7 +67,7 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 	end
 	local stableRequests = stableRequestsRef.current
 
-	local activeRequestsRef = useRef({} :: ActiveRequests)
+	local activeRequestsRef = useRef<<ActiveRequests>>({})
 	local requestStoreRef = useRef(storytellerStore)
 	useEffect(function()
 		return function()
@@ -82,7 +82,7 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 			requestStoreRef.current = storytellerStore
 		end
 
-		local currentRequests = {} :: { [ModuleScript]: { [ModuleScript]: boolean } }
+		local currentRequests: { [ModuleScript]: { [ModuleScript]: boolean } } = {}
 		for _, request in stableRequests do
 			local storyModule = request.storyModule
 			local storybookSource = request.storybook.source
@@ -128,7 +128,7 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 	end, { storytellerStore, stableRequests } :: { unknown })
 
 	return useMemo(function()
-		local result = {} :: StoryModuleRecords
+		local result: StoryModuleRecords = {}
 		for _, request in stableRequests do
 			local storybookSource = request.storybook.source
 			local recordsForStorybook = records[storybookSource]

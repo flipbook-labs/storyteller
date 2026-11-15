@@ -10,13 +10,19 @@ type ColorControl = ControlTypes.ColorControl
 
 local migrateUILabsControl = require("./migrateUILabsControl")
 
+-- UI Labs returns controls typed by its own package, and those types don't
+-- match the ones in UILabsTypes, so specs convert them here.
+local function toUILabsControl(control: unknown): UILabsControl
+	return control :: UILabsControl
+end
+
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 describe("UILabs.Boolean", function()
 	test("maps to ControlType.Boolean", function()
-		local control = (UILabs.Boolean(true) :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.Boolean(true))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Boolean,
@@ -27,7 +33,7 @@ end)
 
 describe("UILabs.Number", function()
 	test("maps to ControlType.Number", function()
-		local control = (UILabs.Number(100) :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.Number(100))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Number,
@@ -36,7 +42,7 @@ describe("UILabs.Number", function()
 	end)
 
 	test("copies range (min/max) and step", function()
-		local control = (UILabs.Number(100, 0, 100, 1) :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.Number(100, 0, 100, 1))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Number,
@@ -51,7 +57,7 @@ describe("UILabs.String", function()
 	-- TODO: Should we support the "Filters" key?
 
 	test("maps to ControlType.String", function()
-		local control = (UILabs.String("Hello, World!") :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.String("Hello, World!"))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.String,
@@ -62,11 +68,11 @@ end)
 
 describe("UILabs.Choose", function()
 	test("maps to ControlType.Select", function()
-		local control = (UILabs.Choose({
+		local control = toUILabsControl(UILabs.Choose({
 			"Option 1",
 			"Option 2",
 			"Option 3",
-		}) :: any) :: UILabsControl
+		}))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
@@ -79,11 +85,11 @@ describe("UILabs.Choose", function()
 	end)
 
 	test("includes the default choice", function()
-		local control = (UILabs.Choose({
+		local control = toUILabsControl(UILabs.Choose({
 			"Option 1",
 			"Option 2",
 			"Option 3",
-		}, 2) :: any) :: UILabsControl
+		}, 2))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
@@ -99,7 +105,7 @@ describe("UILabs.Choose", function()
 	test("preserves non-string item types", function()
 		local control = UILabs.Choose({ 10, 20, 30 })
 
-		expect(migrateUILabsControl(control :: any)).toMatchObject({
+		expect(migrateUILabsControl(toUILabsControl(control))).toMatchObject({
 			type = ControlType.Select,
 			items = { 10, 20, 30 },
 			default = 10,
@@ -109,13 +115,11 @@ end)
 
 describe("UILabs.EnumList", function()
 	test("uses keys as items and the default key as default", function()
-		local control = (
-			UILabs.EnumList({
-				Option1 = "Option 1",
-				Option2 = "Option 2",
-				Option3 = "Option 3",
-			}, "Option1") :: any
-		) :: UILabsControl
+		local control = toUILabsControl(UILabs.EnumList({
+			Option1 = "Option 1",
+			Option2 = "Option 2",
+			Option3 = "Option 3",
+		}, "Option1"))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
@@ -129,13 +133,11 @@ describe("UILabs.EnumList", function()
 	end)
 
 	test("works when values are non-string types", function()
-		local control = (
-			UILabs.EnumList({
-				Mobile = 500,
-				Tablet = 1000,
-				Desktop = 1500,
-			}, "Mobile") :: any
-		) :: UILabsControl
+		local control = toUILabsControl(UILabs.EnumList({
+			Mobile = 500,
+			Tablet = 1000,
+			Desktop = 1500,
+		}, "Mobile"))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Select,
@@ -151,25 +153,25 @@ end)
 
 describe("UILabs.Object", function()
 	test("maps to nothing for now", function()
-		local control = (UILabs.Object("ModuleScript") :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.Object("ModuleScript"))
 		expect(migrateUILabsControl(control)).toBeUndefined()
 	end)
 end)
 
 describe("UILabs.RGBA", function()
 	test("maps to ControlType.Color", function()
-		local control = (UILabs.RGBA(Color3.fromRGB(255, 0, 200), 0.2) :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.RGBA(Color3.fromRGB(255, 0, 200), 0.2))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Color,
-			default = (control :: any).ControlValue.Color,
+			default = (control :: UILabsTypes.RGBAControl).ControlValue.Color,
 		})
 	end)
 end)
 
 describe("UILabs.Slider", function()
 	test("maps to ControlType.Slider", function()
-		local control = (UILabs.Slider(50, 0, 100, 5) :: any) :: UILabsControl
+		local control = toUILabsControl(UILabs.Slider(50, 0, 100, 5))
 
 		expect(migrateUILabsControl(control)).toMatchObject({
 			type = ControlType.Slider,

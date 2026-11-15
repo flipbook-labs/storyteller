@@ -112,7 +112,7 @@ local flipbookRoot = if requestedFlipbookRoot
 if flipbookRoot and fs.exists(flipbookRoot) then
 	print(`using Flipbook at {flipbookRoot}`)
 else
-	error(`could not find Flipbook at {tostring(flipbookRoot)}. Pass an explicit checkout with --flipbook <path>`)
+	error(`could not find Flipbook at {flipbookRoot}. Pass an explicit checkout with --flipbook <path>`)
 end
 flipbookRoot = path.resolve(flipbookRoot :: path.Path)
 

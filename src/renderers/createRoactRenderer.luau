@@ -4,35 +4,53 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 
+type RoactTree = unknown
+
+-- Storybooks supply their own copy of Roact, so these types describe only the
+-- parts of it that this renderer uses.
 type Packages = {
-	Roact: any,
+	Roact: {
+		createElement: (component: unknown, props: unknown?, ...unknown) -> unknown,
+		mount: (element: unknown, container: Instance, name: string) -> RoactTree,
+		update: (tree: RoactTree, element: unknown) -> RoactTree,
+		unmount: (tree: RoactTree) -> (),
+	},
 }
 
-local function isRoactElement(maybeElement: any): boolean
+type RoactElement = {
+	component: unknown,
+	props: unknown,
+}
+
+local function toRoactElement(maybeElement: unknown): RoactElement?
 	if typeof(maybeElement) == "table" then
-		return maybeElement.component and maybeElement.props
+		local element = maybeElement :: { [string]: unknown }
+		if element.component ~= nil and element.props ~= nil then
+			return element :: RoactElement
+		end
 	end
-	return false
+	return nil
 end
 
 local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 	local Roact = packages.Roact
-	local tree
-	local currentComponent
-	local currentStory
+	local tree: RoactTree?
+	local currentComponent: unknown
+	local currentStory: LoadedStory<T>?
 
 	local function mount(container: Instance, story: LoadedStory<T>, props: StoryProps)
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
-		local element
+		local element: unknown
 
 		if mapDefinition then
 			story = mapDefinition(story)
 		end
 
-		if isRoactElement(story.story) then
-			currentComponent = (story.story :: any).component
-			element = story.story
+		local roactElement = toRoactElement(story.story)
+		if roactElement then
+			currentComponent = roactElement.component
+			element = roactElement
 		else
 			currentComponent = story.story
 			element = Roact.createElement(currentComponent, props)
@@ -51,7 +69,7 @@ local function createRoactRenderer<T>(packages: Packages): StoryRenderer<T>
 			local element = Roact.createElement(currentComponent, props)
 
 			local mapStory = if currentStory and currentStory.storybook then currentStory.storybook.mapStory else nil
-			if mapStory then
+			if currentStory and mapStory then
 				element = Roact.createElement(mapStory(currentStory.story), props, element)
 			end
 

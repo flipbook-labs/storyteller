@@ -11,14 +11,14 @@ jest.useFakeTimers()
 type WaitForState = {
 	done: boolean,
 	success: boolean?,
-	error: any,
+	err: unknown,
 }
 
 local function startWaitFor(callback: () -> (), options: { timeout: number?, interval: number? }?): WaitForState
 	local state: WaitForState = {
 		done = false,
 		success = nil,
-		error = nil,
+		err = nil,
 	}
 
 	task.spawn(function()
@@ -28,7 +28,7 @@ local function startWaitFor(callback: () -> (), options: { timeout: number?, int
 
 		state.done = true
 		state.success = success
-		state.error = result
+		state.err = result
 	end)
 
 	return state
@@ -101,9 +101,9 @@ test("rethrows the last callback error when it times out", function()
 	})
 
 	jest.advanceTimersByTime(200)
-	local errorMessage = tostring(state.error)
+	local errorMessage = tostring(state.err)
 	local exactFinalAttempt = string.format("boom %d", attempts)
-	local matchStart = string.find(errorMessage, exactFinalAttempt)
+	local matchStart = errorMessage:find(exactFinalAttempt)
 
 	expect(state.done).toBe(true)
 	expect(state.success).toBe(false)
