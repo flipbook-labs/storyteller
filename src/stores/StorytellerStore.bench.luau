@@ -14,7 +14,11 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
-local describeEach = describe.each :: any
+-- JestGlobals types `describe.each` as a union that can't be called, so it's
+-- cast to the form used here: a list of cases, then a name and a callback that
+-- runs once per case.
+type DescribeEach = <T>(cases: { T }) -> (name: string, fn: (case: T) -> ()) -> ()
+local describeEach = (describe.each :: unknown) :: DescribeEach
 
 type StoryRequest = StoryModuleRecordStore.StoryRequest
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority

@@ -10,7 +10,11 @@ local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
-local describeEach = describe.each :: any
+-- JestGlobals types `describe.each` as a union that can't be called, so it's
+-- cast to the form used here: a list of cases, then a name and a callback that
+-- runs once per case.
+type DescribeEach = <T>(cases: { T }) -> (name: string, fn: (case: T) -> ()) -> ()
+local describeEach = (describe.each :: unknown) :: DescribeEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 
@@ -38,7 +42,7 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 		container = Instance.new("Folder")
 	end)
 
-	local function afterRender(story: types.Story<any>)
+	local function afterRender<T>(story: types.Story<T>)
 		local packages = if story then story.packages else storybook.packages
 
 		if packages and packages.React and packages.ReactRoblox then

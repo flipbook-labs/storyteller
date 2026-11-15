@@ -11,7 +11,7 @@ jest.useFakeTimers()
 type WaitForState = {
 	done: boolean,
 	success: boolean?,
-	err: any,
+	err: unknown,
 }
 
 local function startWaitFor(callback: () -> (), options: { timeout: number?, interval: number? }?): WaitForState

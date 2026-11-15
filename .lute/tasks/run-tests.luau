@@ -1,13 +1,13 @@
 --!nocheck
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Jest = (require :: any)(ReplicatedStorage.Packages.Jest)
+local Jest = require(ReplicatedStorage.Packages.Jest)
 -- Lute's unused_variable lint doesn't count writing a property as a use.
 -- lute-lint-ignore(unused_variable)
-local Charm = (require :: any)(ReplicatedStorage.Packages.Charm)
+local Charm = require(ReplicatedStorage.Packages.Charm)
 -- Lute's unused_variable lint doesn't count writing a property as a use.
 -- lute-lint-ignore(unused_variable)
-local Vide = (require :: any)(ReplicatedStorage.Packages.Vide)
+local Vide = require(ReplicatedStorage.Packages.Vide)
 
 local root = ReplicatedStorage.Packages.Storyteller
 
