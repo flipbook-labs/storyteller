@@ -187,9 +187,10 @@ test("mapStory continues to wrap the story on updates", function()
 		expect(findTextLabelWithText(wrapper, "FromMiddleware")).toBeDefined()
 	end)
 
-	lifecycle.update({
+	local nextControls: StoryControls = {
 		value = "Second",
-	} :: StoryControls)
+	}
+	lifecycle.update(nextControls)
 
 	-- The middleware wraps the story once at mount, but immediate-mode reads
 	-- controls every frame, so the wrapper must keep applying as controls change

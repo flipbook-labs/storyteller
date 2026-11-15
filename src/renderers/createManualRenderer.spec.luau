@@ -225,8 +225,8 @@ test("mounts and unmounts a story that is an Instance", function()
 end)
 
 test("a story function with two parameters receives the container first", function()
-	local receivedTarget
-	local receivedProps
+	local receivedTarget: Instance?
+	local receivedProps: unknown
 
 	local story = createStory({
 		story = function(target, props)
@@ -269,9 +269,10 @@ test("the previous render is cleaned up exactly once per update", function()
 
 	expect(cleanups).toBe(0)
 
-	lifecycle.update({
+	local nextControls: StoryControls = {
 		isDisabled = true,
-	} :: StoryControls)
+	}
+	lifecycle.update(nextControls)
 
 	-- The update remounts from scratch, cleaning up the previous render
 	expect(cleanups).toBe(1)

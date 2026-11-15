@@ -317,9 +317,10 @@ describe("middleware", function()
 		assert(element, "no TextLabel found")
 		expect(element.Text).toBe("Dark Enabled")
 
-		lifecycle.update({
+		local nextControls: StoryControls = {
 			isDisabled = true,
-		} :: StoryControls)
+		}
+		lifecycle.update(nextControls)
 
 		act(function()
 			task.wait()

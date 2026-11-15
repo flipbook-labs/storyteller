@@ -23,7 +23,7 @@ local mockCreateFusionRenderer = jest.fn()
 local mockCreateVideRenderer = jest.fn()
 local mockCreateManualRenderer = jest.fn()
 
-local createRendererForStory
+local createRendererForStory: typeof(require("./createRendererForStory"))
 
 beforeEach(function()
 	mockCreateRoactRenderer.mockReturnValue(ROACT_RENDERER)
@@ -57,7 +57,7 @@ afterEach(function()
 	jest.resetAllMocks()
 end)
 
-local function createStoryWithPackages(packages: types.StoryPackages?): LoadedStory<any>
+local function createStoryWithPackages(packages: types.StoryPackages?): LoadedStory<unknown>
 	return createStory({
 		story = function() end,
 		packages = packages,
