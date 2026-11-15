@@ -14,7 +14,7 @@ local function validateListControlHasControlValue(
 	end
 
 	if typeof(controlValueOrDefault) == "table" then
-		for _, nestedControlValue in pairs(controlValueOrDefault) do
+		for _, nestedControlValue in controlValueOrDefault :: { InputStoryControlValue } do
 			validateListControlHasControlValue(controlSchema, nestedControlValue)
 		end
 	else

@@ -8,7 +8,7 @@ local isStoryModule = require("@root/isStoryModule")
 	@tag Discovery
 ]=]
 local function findStoryModules(parent: Instance): { ModuleScript }
-	local candidates = (parent:QueryDescendants("ModuleScript") :: any) :: { ModuleScript }
+	local candidates = (parent:QueryDescendants("ModuleScript") :: unknown) :: { ModuleScript }
 	local storyModules: { ModuleScript } = {}
 
 	for _, candidate in candidates do

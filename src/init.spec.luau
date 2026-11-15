@@ -5,7 +5,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 
 test("Storyteller can be required", function()
-	local Storyteller
+	local Storyteller: unknown
 	expect(function()
 		Storyteller = require("@self")
 	end).never.toThrow()
@@ -24,7 +24,7 @@ end)
 test("Storyteller can be required in a ModuleLoader context", function()
 	local loader = ModuleLoader.new()
 
-	local Storyteller
+	local Storyteller: unknown
 	expect(function()
 		Storyteller = loader:require(script.Parent)
 	end).never.toThrow()

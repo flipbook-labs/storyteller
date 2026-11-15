@@ -74,14 +74,15 @@ test("loads a story module", function()
 
 	flushStoryLoad()
 
-	local story
+	local story: types.LoadedStory<unknown>?
 	waitFor(function()
-		local err
+		local err: string?
 		story, err = get()
 		expect(err).toBeUndefined()
 		expect(story).toBeDefined()
 	end)
 	expect(story).toEqual({
+		id = "default",
 		name = "Sample",
 		story = expect.any("function"),
 		source = storyModule,
@@ -150,7 +151,7 @@ test("reloads on dependency changes", function()
 
 	flushStoryLoad()
 
-	local story
+	local story: types.LoadedStory<unknown>?
 	waitFor(function()
 		story = get()
 		expect(story).toBeDefined()

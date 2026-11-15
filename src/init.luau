@@ -64,6 +64,7 @@ return {
 	getOrphanedStoryModules = require("@self/getOrphanedStoryModules"),
 
 	-- Module loading
+	loadStoriesFromModule = require("@self/loadStoriesFromModule"),
 	loadStoryModule = require("@self/loadStoryModule"),
 	loadStorybookModule = require("@self/loadStorybookModule"),
 
