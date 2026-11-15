@@ -4,7 +4,7 @@ local observeModuleCollection = require("./observeModuleCollection")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local testEach = test.each :: ({ number }) -> (string, (number) -> (), number) -> ()
+local testEach = test.each :: (cases: { number }) -> (name: string, fn: (count: number) -> (), timeout: number) -> ()
 
 testEach({ 1000, 10000, 100000 })("measures game-root discovery with %s distractors", function(count: number)
 	local root = Instance.new("Folder")
@@ -12,14 +12,16 @@ testEach({ 1000, 10000, 100000 })("measures game-root discovery with %s distract
 	root.Parent = game:GetService("Workspace")
 
 	for index = 1, count do
-		local instance = Instance.new("Folder")
-		instance.Parent = root
+		Instance.new("Folder").Parent = root
 		if index % 1000 == 0 then
 			task.wait()
 		end
 	end
 
 	for index = 1, 40 do
+		-- Lute's unused_variable lint doesn't count writing a property as a use.
+		-- #177 tracks removing this ignore.
+		-- lute-lint-ignore(unused_variable)
 		local module = Instance.new("ModuleScript")
 		module.Name = if index % 2 == 0 then `Example{index}.story` else `Example{index}.storybook`
 		module.Parent = root

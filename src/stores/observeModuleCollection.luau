@@ -1,17 +1,17 @@
 export type ModuleCollection = {
-	OnAdded: ((Instance) -> ())?,
-	OnRemoved: ((Instance) -> ())?,
+	OnAdded: ((instance: Instance) -> ())?,
+	OnRemoved: ((instance: Instance) -> ())?,
 	OnPropertyChanged: {
-		Name: ((Instance) -> ())?,
+		Name: ((instance: Instance) -> ())?,
 	},
-	ForEach: (ModuleCollection, (Instance) -> ()) -> (),
-	Destroy: (ModuleCollection) -> (),
+	ForEach: (self: ModuleCollection, callback: (instance: Instance) -> ()) -> (),
+	Destroy: (self: ModuleCollection) -> (),
 }
 
 local function observeModuleCollection(
 	collection: ModuleCollection,
 	root: Instance,
-	onSnapshot: ({ Instance }) -> ()
+	onSnapshot: (modules: { Instance }) -> ()
 ): () -> ()
 	local isDestroyed = false
 	local isScheduled = false
