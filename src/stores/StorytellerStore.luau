@@ -66,16 +66,16 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	local isProcessingStorybookModules = false
 	local storybookLoadGeneration = 0
 
-	local getStoryModules, setStoryModules = Charm.signal({} :: { ModuleScript })
+	local getStoryModules, setStoryModules = Charm.signal<<{ ModuleScript }>>({})
 	self.getStoryModules = getStoryModules
 
-	local getStorybookModules, setStorybookModules = Charm.signal({} :: { ModuleScript })
+	local getStorybookModules, setStorybookModules = Charm.signal<<{ ModuleScript }>>({})
 	self.getStorybookModules = getStorybookModules
 
-	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal({} :: { LoadedStorybook })
+	local getLoadedStorybooks, setLoadedStorybooks = Charm.signal<<{ LoadedStorybook }>>({})
 	self.getLoadedStorybooks = getLoadedStorybooks
 
-	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal({} :: { UnavailableStorybook })
+	local getUnavailableStorybooks, setUnavailableStorybooks = Charm.signal<<{ UnavailableStorybook }>>({})
 	self.getUnavailableStorybooks = getUnavailableStorybooks
 
 	local recordStore = StoryModuleRecordStore.new()

@@ -74,7 +74,7 @@ local StoryModuleRecordStore = {}
 function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local isDestroyed = false
 
-	local getRecordMap, setRecords = Charm.signal({} :: StoryModuleRecords)
+	local getRecordMap, setRecords = Charm.signal<<StoryModuleRecords>>({})
 
 	local requestEntries: { [ModuleScript]: RequestEntry } = {}
 	local loaderEntries: { [ModuleScript]: LoaderEntry } = {}
