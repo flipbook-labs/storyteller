@@ -421,7 +421,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			setRequestEntry(entry)
 
 			-- Lute's unused_variable lint doesn't count writing a property as a use.
-			-- #177 tracks removing this ignore.
+			-- #180 tracks removing this ignore.
 			-- lute-lint-ignore(unused_variable)
 			local loaderEntry = ensureLoaderEntry(storyRequest.storybook.source)
 			loaderEntry.requests[storyRequest.storyModule] = entry

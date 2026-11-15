@@ -16,7 +16,7 @@ export type StudioTheme = "Light" | "Dark"
 -- Hosts pass extra props that stories read directly. With `unknown` values,
 -- every story would need a cast to use one, and Luau's old solver, which
 -- Storyteller type checks with, would reject the tables of props hosts pass.
--- #177 tracks removing this ignore.
+-- #193 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 export type ExtraStoryProps = {
 	[string]: any,
@@ -32,7 +32,7 @@ export type ReservedStoryProps = {
 -- `unknown` values, every story would need a cast to use a prop, and Luau's old
 -- solver, which Storyteller type checks with, would reject the tables of props
 -- that callers pass.
--- #177 tracks removing this ignore.
+-- #194 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 export type StoryProps = {
 	[string]: any,
@@ -54,7 +54,7 @@ export type StoryRenderer<T> = {
 -- Storyteller type checks with Luau's old solver, which rejects a table like
 -- `{ React = React }` where `{ [string]: unknown }` is expected. With `unknown`
 -- here, storybooks that annotate their packages would stop type checking.
--- #177 tracks removing this ignore.
+-- #195 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 export type StoryPackages = {
 	[string]: any,
@@ -63,10 +63,10 @@ export type StoryPackages = {
 -- A storybook's mapStory and mapDefinition receive stories made with whatever
 -- UI library the storybook uses, and return values that library understands.
 -- With `unknown`, a storybook couldn't use the story it's given without a cast.
--- #177 tracks removing this ignore.
+-- #196 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 type MapStoryFn = (story: any) -> (props: StoryProps) -> any
--- #177 tracks removing this ignore.
+-- #197 tracks removing this ignore.
 -- lute-lint-ignore(no_any)
 type MapDefinitionFn = (story: any) -> any
 

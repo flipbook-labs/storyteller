@@ -1,6 +1,6 @@
 -- Lute's unused_variable lint doesn't count writing a property as a use, and
 -- these tests set up instances that way.
--- #177 tracks removing this ignore.
+-- #181 tracks removing this ignore.
 -- lute-lint-global-ignore(unused_variable)
 
 local JestGlobals = require("@pkg/JestGlobals")
