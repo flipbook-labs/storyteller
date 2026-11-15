@@ -59,39 +59,15 @@ if not fs.exists(CODE_QUALITY_RULES_PATH) then
 	process.exit(1)
 end
 
--- `lute lint` exits with an error when it reports any warning, and the
--- codebase doesn't pass every rule yet. Until it does, warnings are printed
--- without failing this script. The JSON output tells warnings apart from a real
--- failure, because `lute lint --json` exits cleanly when all it found was
--- warnings.
---
--- Both runs lint one file at a time. Lute's parallel linting can crash at
--- random, which fails lint for no reason.
-local lintArgs = {
-	"lute",
+-- Lute's parallel linting can crash at random, which fails lint for no reason,
+-- so files are linted one at a time.
+run("lute", {
 	"lint",
 	"--sequential",
 	"--rules",
 	path.format(CODE_QUALITY_RULES_PATH),
 	table.unpack(project.FOLDERS_TO_LINT),
-}
-
-local lintResult = process.run(lintArgs, {
-	stdio = "inherit",
 })
-if not lintResult.ok then
-	local jsonArgs = table.clone(lintArgs)
-	table.insert(jsonArgs, 3, "--json")
-
-	local jsonResult = process.run(jsonArgs)
-	if not jsonResult.ok then
-		print("[err] lute lint failed")
-		print(jsonResult.stderr)
-		process.exit(1)
-	end
-
-	print("[warn] lute lint reported warnings. They don't fail lint yet")
-end
 
 local files = findLuaFiles()
 if #files > 0 then
