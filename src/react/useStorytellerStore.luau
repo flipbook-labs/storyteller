@@ -11,9 +11,7 @@ local function useStorytellerStore()
 	local store = storytellerContext.store
 
 	useEffect(function()
-		task.spawn(function()
-			store.start()
-		end)
+		return store.acquire()
 	end, { store })
 
 	return store

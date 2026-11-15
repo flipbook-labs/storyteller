@@ -17,7 +17,8 @@ type StoryControlsSchema = ControlTypes.StoryControlsSchema
 local container: Instance
 local story: types.LoadedStory<TextLabel>
 local mockCreateRendererForStory = jest.fn()
-local render
+-- Required in beforeEach, after createRendererForStory is mocked.
+local render: typeof(require("./render"))
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -67,7 +68,7 @@ test("returns a function to trigger a re-render", function()
 end)
 
 test("current props and prev props are passed to shouldUpdate", function()
-	local props, prevProps
+	local props: types.StoryProps?, prevProps: types.StoryProps?
 
 	mockCreateRendererForStory.mockReturnValue({
 		mount = function() end,
@@ -90,7 +91,7 @@ test("current props and prev props are passed to shouldUpdate", function()
 end)
 
 test("props are passed to shouldUpdate", function()
-	local props
+	local props: types.StoryProps?
 
 	local schema: StoryControlsSchema = {
 		foo = true,
@@ -157,8 +158,6 @@ test("destroy all children of the container when rerendering if shouldUpdate is 
 end)
 
 test("prevProps is nil on the first render", function()
-	local renders = 0
-
 	local mockShouldUpdate = jest.fn().mockImplementation(function()
 		return true
 	end)
@@ -166,7 +165,6 @@ test("prevProps is nil on the first render", function()
 	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = mockShouldUpdate,
 		mount = function()
-			renders += 1
 			return Instance.new("Folder")
 		end,
 	})

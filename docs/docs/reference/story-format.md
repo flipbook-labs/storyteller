@@ -152,7 +152,7 @@ Module-level `summary`, `controls`, `packages`, and `props` values become defaul
 
 Each Story should declare a stable `id`. When it is omitted, Storyteller uses the Story name, the dictionary key, or the array position. Duplicate IDs and modules that define both `story` and `stories` are rejected.
 
-Use `loadStoriesFromModule` to load every Story. `loadStoryModule` continues to return the first Story, and `useStory` accepts an optional Story ID as its third argument. When that ID does not exist, `useStory` returns a problem instead of rendering another Story.
+Use [`loadStoriesFromModule`](/api/Storyteller#loadStoriesFromModule) to load every Story. [`loadStoryModule`](/api/Storyteller#loadStoryModule) continues to return the first Story.
 
 ## StoryProps
 

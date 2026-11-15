@@ -15,7 +15,7 @@ export type StorytellerProviderProps = {
 	children: React.ReactNode,
 }
 
-local StorytellerContext = React.createContext(nil :: StorytellerContext?)
+local StorytellerContext = React.createContext<<StorytellerContext?>>(nil)
 StorytellerContext.displayName = "StorytellerContext"
 
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
@@ -28,13 +28,7 @@ local function StorytellerProvider(storytellerProviderProps: StorytellerProvider
 	end, { store })
 
 	useEffect(function()
-		task.spawn(function()
-			store.start()
-		end)
-
-		return function()
-			store.stop()
-		end
+		return store.acquire()
 	end, { store })
 
 	return React.createElement(StorytellerContext.Provider, {

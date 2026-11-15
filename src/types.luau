@@ -1,4 +1,5 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
+local gt = require("@pkg/GreenTea")
 local t = require("@pkg/t")
 
 local ControlTypes = require("@root/controls/ControlTypes")
@@ -12,6 +13,11 @@ local types = {}
 
 export type StudioTheme = "Light" | "Dark"
 
+-- Hosts pass extra props that stories read directly. With `unknown` values,
+-- every story would need a cast to use one, and Luau's old solver, which
+-- Storyteller type checks with, would reject the tables of props hosts pass.
+-- #193 tracks removing this ignore.
+-- lute-lint-ignore(no_any)
 export type ExtraStoryProps = {
 	[string]: any,
 }
@@ -22,6 +28,12 @@ export type ReservedStoryProps = {
 	-- story: LoadedStory<unknown>
 }
 
+-- Stories read their props directly, as in `props.controls.text`. With
+-- `unknown` values, every story would need a cast to use a prop, and Luau's old
+-- solver, which Storyteller type checks with, would reject the tables of props
+-- that callers pass.
+-- #194 tracks removing this ignore.
+-- lute-lint-ignore(no_any)
 export type StoryProps = {
 	[string]: any,
 }
@@ -39,11 +51,23 @@ export type StoryRenderer<T> = {
 	shouldUpdate: ((props: StoryProps, prevProps: StoryProps?) -> boolean)?,
 }
 
+-- Storyteller type checks with Luau's old solver, which rejects a table like
+-- `{ React = React }` where `{ [string]: unknown }` is expected. With `unknown`
+-- here, storybooks that annotate their packages would stop type checking.
+-- #195 tracks removing this ignore.
+-- lute-lint-ignore(no_any)
 export type StoryPackages = {
 	[string]: any,
 }
 
+-- A storybook's mapStory and mapDefinition receive stories made with whatever
+-- UI library the storybook uses, and return values that library understands.
+-- With `unknown`, a storybook couldn't use the story it's given without a cast.
+-- #196 tracks removing this ignore.
+-- lute-lint-ignore(no_any)
 type MapStoryFn = (story: any) -> (props: StoryProps) -> any
+-- #197 tracks removing this ignore.
+-- lute-lint-ignore(no_any)
 type MapDefinitionFn = (story: any) -> any
 
 export type Storybook = {
@@ -85,15 +109,21 @@ export type Story<T> = {
 	summary: string?,
 	props: ExtraStoryProps?,
 }
-types.IStoryDefinition = t.interface({
-	story = t.any,
-	id = t.optional(t.string),
-	name = t.optional(t.string),
-	summary = t.optional(t.string),
-	controls = t.optional(t.map(t.string, t.any)),
-	packages = t.optional(t.map(t.string, t.any)),
-	props = t.optional(t.map(t.string, t.any)),
+-- A dictionary read from Story source before its values have been checked.
+local UnknownDict = gt.dictionary(gt.string(), gt.unknown())
+export type UnknownDict = typeof(UnknownDict)
+
+local StoryDefinitionSource = gt.struct({
+	story = gt.unknown(),
+	id = gt.optional(gt.string()),
+	name = gt.optional(gt.string()),
+	summary = gt.optional(gt.string()),
+	controls = gt.optional(UnknownDict),
+	packages = gt.optional(UnknownDict),
+	props = gt.optional(UnknownDict),
 })
+types.IStoryDefinitionSource = gt.build(StoryDefinitionSource)
+export type StoryDefinitionSource = typeof(StoryDefinitionSource)
 
 export type StoryEntry<T> = Story<T> | (props: StoryProps) -> T
 
@@ -106,20 +136,24 @@ export type StoryGroup<T> = {
 	packages: StoryPackages?,
 	props: ExtraStoryProps?,
 }
-types.IStoryGroup = t.interface({
+local StoryGroupSource = gt.struct({
 	-- Key discipline (array or string-keyed dictionary) is enforced by
 	-- normalizeStoryModule so mixed keys surface an actionable error instead
 	-- of a generic union failure.
-	stories = t.table,
-	name = t.optional(t.string),
-	summary = t.optional(t.string),
-	controls = t.optional(t.map(t.string, t.any)),
-	packages = t.optional(t.map(t.string, t.any)),
-	props = t.optional(t.map(t.string, t.any)),
+	stories = gt.table({ [gt.unknown()] = gt.unknown() }),
+	name = gt.optional(gt.string()),
+	summary = gt.optional(gt.string()),
+	controls = gt.optional(UnknownDict),
+	packages = gt.optional(UnknownDict),
+	props = gt.optional(UnknownDict),
 })
+types.IStoryGroupSource = gt.build(StoryGroupSource)
+export type StoryGroupSource = typeof(StoryGroupSource)
 
 export type StoryModule<T> = Story<T> | StoryGroup<T>
-types.IStory = t.union(types.IStoryDefinition, types.IStoryGroup)
+local StoryModuleSource = gt.union(StoryDefinitionSource, StoryGroupSource)
+types.IStoryModuleSource = gt.build(StoryModuleSource)
+export type StoryModuleSource = typeof(StoryModuleSource)
 
 export type LoadedStory<T> = {
 	id: string,

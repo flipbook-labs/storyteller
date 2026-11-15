@@ -8,12 +8,17 @@ local useStorytellerStore = require("@root/react/useStorytellerStore")
 local useEffect = React.useEffect
 local useSignalState = ReactCharm.useSignalState
 
-local function useStoriesForModule(
+local function useStories(
 	module: ModuleScript,
 	storybook: types.LoadedStorybook
 ): ({ types.LoadedStory<unknown> }?, string?)
 	local storytellerStore = useStorytellerStore()
-	local records = useSignalState(storytellerStore.getStoryModuleRecords)
+	local record = useSignalState(function()
+		return storytellerStore.getStoryModuleRecord({
+			storyModule = module,
+			storybook = storybook,
+		})
+	end, { storytellerStore, module, storybook.source } :: { unknown })
 
 	useEffect(function()
 		return storytellerStore.requestStoryModule(StoryModuleRequestPriority.Interactive, {
@@ -22,9 +27,7 @@ local function useStoriesForModule(
 		})
 	end, { module, storytellerStore, storybook } :: { unknown })
 
-	local recordsForStorybook = records[storybook.source]
-	local record = if recordsForStorybook then recordsForStorybook[module] else nil
 	return if record then record.stories else nil, if record then record.problem else nil
 end
 
-return useStoriesForModule
+return useStories
