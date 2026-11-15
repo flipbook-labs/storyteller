@@ -3,7 +3,7 @@ local types = require("@root/types")
 
 type StoryPackages = types.StoryPackages
 
-local function migrateLegacyPackages(storyOrStorybook: { [string]: any }): StoryPackages?
+local function migrateLegacyPackages(storyOrStorybook: { [string]: unknown }): StoryPackages?
 	if storyOrStorybook.roact or storyOrStorybook.react or storyOrStorybook.reactRoblox then
 		do -- Roblox internal. This behavior may be removed without notice.
 			if storyOrStorybook.roact and storyOrStorybook.reactRoblox and isReact(storyOrStorybook.roact) then

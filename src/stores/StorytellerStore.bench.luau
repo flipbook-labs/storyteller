@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #188 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local StoryModuleRecordStore = require("@root/stores/StoryModuleRecordStore")
@@ -10,7 +15,11 @@ local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
-local describeEach = describe.each :: any
+-- JestGlobals types `describe.each` as a union that can't be called, so it's
+-- cast to the form used here: a list of cases, then a name and a callback that
+-- runs once per case.
+type DescribeEach = <T>(cases: { T }) -> (name: string, fn: (case: T) -> ()) -> ()
+local describeEach = (describe.each :: unknown) :: DescribeEach
 
 type StoryRequest = StoryModuleRecordStore.StoryRequest
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
@@ -18,7 +27,7 @@ type StorytellerStore = StorytellerStore.StorytellerStore
 
 local TIMEOUT_MS = 2 * 60 * 1000
 
-local store
+local store: StorytellerStore
 
 afterEach(function()
 	if store then
@@ -464,7 +473,7 @@ test("invalidates every dependent story when a shared dependency changes", funct
 		return countLoads() >= DEPENDENT_COUNT
 	end)
 
-	local elapsed, frames
+	local elapsed: number, frames: number
 	sharedDep.Source = "return { value = 2 }"
 	elapsed, frames = settle(60, function()
 		return countLoads() >= DEPENDENT_COUNT * 2
