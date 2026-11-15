@@ -73,7 +73,7 @@ type LintReport = {
 -- It only prints an error and moves on. So the findings go to a JSON file
 -- instead of the terminal, and anything `lute lint` still prints counts as a
 -- failure. It lints one file at a time because Lute's parallel linting can
--- crash at random.
+-- crash at random (flipbook-labs/code-quality#27).
 local reportPath = path.join(system.tmpdir(), "storyteller-lint.json")
 local lintResult = process.run({
 	"lute",

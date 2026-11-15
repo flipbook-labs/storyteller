@@ -3,9 +3,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Jest = require(ReplicatedStorage.Packages.Jest)
 -- Lute's unused_variable lint doesn't count writing a property as a use.
+-- #177 tracks removing this ignore.
 -- lute-lint-ignore(unused_variable)
 local Charm = require(ReplicatedStorage.Packages.Charm)
 -- Lute's unused_variable lint doesn't count writing a property as a use.
+-- #177 tracks removing this ignore.
 -- lute-lint-ignore(unused_variable)
 local Vide = require(ReplicatedStorage.Packages.Vide)
 
