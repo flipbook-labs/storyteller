@@ -14,7 +14,7 @@ local run = FlipbookBatteries.run
 -- the home folder rather than in this repo, so the rules are read from there.
 -- The version in this path has to match the CodeQuality `rev` in
 -- loom.config.luau.
-local CODE_QUALITY_RULES_PATH = path.join(process.homedir(), ".loom", "store", "CodeQuality@v0.1.0", "src", "rules")
+local CODE_QUALITY_RULES_PATH = path.join(process.homedir(), ".loom", "store", "CodeQuality@v0.2.0", "src", "rules")
 
 local function findLuaFiles()
 	local matches = {}
@@ -73,7 +73,7 @@ type LintReport = {
 -- It only prints an error and moves on. So the findings go to a JSON file
 -- instead of the terminal, and anything `lute lint` still prints counts as a
 -- failure. It lints one file at a time because Lute's parallel linting can
--- crash at random.
+-- crash at random (flipbook-labs/code-quality#27).
 local reportPath = path.join(system.tmpdir(), "storyteller-lint.json")
 local lintResult = process.run({
 	"lute",
@@ -104,10 +104,9 @@ for _, file in report.items do
 	end
 end
 
--- The codebase doesn't pass every rule yet, so findings are printed without
--- failing this script.
 if findingCount > 0 then
-	print(`[warn] lute lint reported {findingCount} finding(s). They don't fail lint yet`)
+	print(`[err] lute lint reported {findingCount} finding(s)`)
+	process.exit(1)
 end
 
 local files = findLuaFiles()

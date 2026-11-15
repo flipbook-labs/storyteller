@@ -33,7 +33,7 @@ local useSignalState = ReactCharm.useSignalState
 		storyModule: ModuleScript,
 		storybook: Storybook,
 	})
-		local ref = useRef(nil :: Frame?)
+		local ref = useRef<<Frame?>>(nil)
 
 		local story = Storyteller.useStory(props.storyModule, props.storybook)
 

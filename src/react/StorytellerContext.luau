@@ -15,7 +15,7 @@ export type StorytellerProviderProps = {
 	children: React.ReactNode,
 }
 
-local StorytellerContext = React.createContext(nil :: StorytellerContext?)
+local StorytellerContext = React.createContext<<StorytellerContext?>>(nil)
 StorytellerContext.displayName = "StorytellerContext"
 
 local function StorytellerProvider(storytellerProviderProps: StorytellerProviderProps)
