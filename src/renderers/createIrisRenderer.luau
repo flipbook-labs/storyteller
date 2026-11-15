@@ -6,8 +6,21 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 
 type IrisStory = (props: StoryProps) -> ()
 
+-- Storybooks supply their own copy of Iris, so this type describes only the
+-- parts of it that this renderer uses.
+type Iris = {
+	Init: (parentInstance: Instance, eventConnection: nil, allowMultipleInits: boolean) -> (),
+	ForceRefresh: () -> (),
+	Connect: (self: Iris, callback: () -> ()) -> () -> (),
+	Disabled: boolean,
+	Internal: {
+		_started: boolean,
+		parentInstance: Instance,
+	},
+}
+
 type Packages = {
-	Iris: any,
+	Iris: Iris,
 }
 
 --[[
@@ -62,7 +75,7 @@ local function createIrisRenderer(packages: Packages): StoryRenderer<IrisStory>
 		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
-		local storyFn: (props: StoryProps) -> any = if mapStory then mapStory(story.story) else story.story
+		local storyFn: (props: StoryProps) -> () = if mapStory then mapStory(story.story) else story.story
 
 		disconnect = Iris:Connect(function()
 			if typeof(storyFn) == "function" then

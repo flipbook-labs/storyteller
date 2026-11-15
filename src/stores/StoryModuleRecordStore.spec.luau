@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #187 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
@@ -188,7 +193,7 @@ test("reuses the cached record across overlapping requests", function()
 
 	recordStore.request(StoryModuleRequestPriority.Background, request)
 
-	local cachedRecord
+	local cachedRecord: typeof(getRecord(request))
 	waitFor(function()
 		cachedRecord = getRecord(request)
 		expect(cachedRecord).toBeDefined()

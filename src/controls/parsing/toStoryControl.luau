@@ -4,7 +4,7 @@ type StoryControl = ControlTypes.StoryControl
 
 local function toStoryControl<T>(value: T): StoryControl?
 	if typeof(value) == "table" and rawget(value, "type") then
-		return (value :: any) :: StoryControl
+		return (value :: unknown) :: StoryControl
 	end
 	return nil
 end

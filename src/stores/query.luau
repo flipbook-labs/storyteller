@@ -29,7 +29,7 @@ export type QueryResult = {
 }
 
 local function query(options: QueryOptions): QueryResult
-	local getMatches, setMatches = Charm.signal({} :: { Instance })
+	local getMatches, setMatches = Charm.signal<<{ Instance }>>({})
 
 	local isDestroyed = false
 	local isRunning = false
