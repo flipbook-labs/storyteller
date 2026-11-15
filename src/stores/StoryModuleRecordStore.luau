@@ -104,14 +104,12 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	end
 
 	local function setRequestEntry(entry: RequestEntry)
-		local storyModule = entry.request.storyModule
-		requestEntries[storyModule] = entry
+		requestEntries[entry.request.storyModule] = entry
 	end
 
 	local function removeRequestEntry(entry: RequestEntry)
-		local storyModule = entry.request.storyModule
-		if requestEntries[storyModule] == entry then
-			requestEntries[storyModule] = nil
+		if requestEntries[entry.request.storyModule] == entry then
+			requestEntries[entry.request.storyModule] = nil
 		end
 	end
 
@@ -243,7 +241,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end
 	end
 
-	function cleanupRequestEntry(entry: RequestEntry)
+	cleanupRequestEntry = function(entry: RequestEntry)
 		entry.refCount = 0
 		entry.interactiveRefCount = 0
 		entry.generation += 1
@@ -299,7 +297,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			}
 	end
 
-	function processPendingRequests()
+	processPendingRequests = function()
 		if isProcessingRequests or isDestroyed then
 			return
 		end
@@ -339,7 +337,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	function queueRequest(entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
+	queueRequest = function(entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -361,7 +359,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		processPendingRequests()
 	end
 
-	function invalidateRequest(entry: RequestEntry, priority: StoryModuleRequestPriority)
+	invalidateRequest = function(entry: RequestEntry, priority: StoryModuleRequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -392,10 +390,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			return function() end
 		end
 
-		local storyModule = storyRequest.storyModule
-		local storybookSource = storyRequest.storybook.source
-		local existingEntry = getRequestEntry(storyModule)
-		if existingEntry and existingEntry.loaderSource ~= storybookSource then
+		local existingEntry = getRequestEntry(storyRequest.storyModule)
+		if existingEntry and existingEntry.loaderSource ~= storyRequest.storybook.source then
 			cleanupRequestEntry(existingEntry)
 			existingEntry = nil
 		end
@@ -411,7 +407,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		else
 			entry = {
 				request = storyRequest,
-				loaderSource = storybookSource,
+				loaderSource = storyRequest.storybook.source,
 				refCount = 0,
 				interactiveRefCount = 0,
 				generation = 1,
@@ -424,9 +420,11 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			}
 			setRequestEntry(entry)
 
-			local loaderEntry = ensureLoaderEntry(storybookSource)
-			loaderEntry.requests[storyModule] = entry
-			entry.sourceConnection = storyModule:GetPropertyChangedSignal("Source"):Connect(function()
+			-- Lute's unused_variable lint doesn't count writing a property as a use.
+			-- lute-lint-ignore(unused_variable)
+			local loaderEntry = ensureLoaderEntry(storyRequest.storybook.source)
+			loaderEntry.requests[storyRequest.storyModule] = entry
+			entry.sourceConnection = storyRequest.storyModule:GetPropertyChangedSignal("Source"):Connect(function()
 				invalidateRequest(
 					entry,
 					if entry.interactiveRefCount > 0
@@ -434,7 +432,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 						else StoryModuleRequestPriority.Background
 				)
 			end)
-			entry.destroyingConnection = storyModule.Destroying:Connect(function()
+			entry.destroyingConnection = storyRequest.storyModule.Destroying:Connect(function()
 				cleanupRequestEntry(entry)
 			end)
 		end
@@ -444,7 +442,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			entry.interactiveRefCount += 1
 		end
 
-		local record = getRecord(storyModule)
+		local record = getRecord(storyRequest.storyModule)
 		if hasStorybookChanged then
 			invalidateRequest(entry, priority)
 		elseif not record and not entry.isLoading then

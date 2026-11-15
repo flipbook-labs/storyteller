@@ -157,8 +157,6 @@ test("destroy all children of the container when rerendering if shouldUpdate is 
 end)
 
 test("prevProps is nil on the first render", function()
-	local renders = 0
-
 	local mockShouldUpdate = jest.fn().mockImplementation(function()
 		return true
 	end)
@@ -166,7 +164,6 @@ test("prevProps is nil on the first render", function()
 	mockCreateRendererForStory.mockReturnValue({
 		shouldUpdate = mockShouldUpdate,
 		mount = function()
-			renders += 1
 			return Instance.new("Folder")
 		end,
 	})
