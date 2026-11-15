@@ -16,7 +16,7 @@ type StoryControls = ControlTypes.StoryControls
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 
-local container
+local container: Folder
 beforeEach(function()
 	container = Instance.new("Folder")
 end)
@@ -94,7 +94,9 @@ describe("Vide", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -111,7 +113,7 @@ describe("Vide", function()
 		local story = createVideStory(TextStory)
 
 		story.storybook.mapStory = function(originalStory)
-			local storyFn = originalStory :: (StoryProps) -> Instance
+			local storyFn = originalStory :: (props: StoryProps) -> Instance
 			return function(props)
 				local instance = storyFn(props)
 				instance.Name = "Mapped"
@@ -143,7 +145,9 @@ describe("Vide", function()
 		assert(button, "no element found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		task.wait()
 

@@ -17,7 +17,7 @@ type StoryControls = ControlTypes.StoryControls
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -110,9 +110,10 @@ describe("Fusion 0.3.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -133,7 +134,7 @@ describe("Fusion 0.3.0", function()
 		} :: StoryControlsSchema
 
 		story.storybook.mapStory = function(originalStory)
-			local storyFn = originalStory :: (StoryProps) -> Instance
+			local storyFn = originalStory :: (props: StoryProps) -> Instance
 			return function(props)
 				local instance = storyFn(props)
 				instance.Name = "Mapped"
@@ -149,9 +150,10 @@ describe("Fusion 0.3.0", function()
 		expect(mapped.Text).toBe("Disabled")
 
 		-- Controls must keep working through the middleware
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
@@ -180,9 +182,10 @@ describe("Fusion 0.3.0", function()
 		assert(button, "no TextButton found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 
@@ -296,9 +299,10 @@ describe("Fusion 0.2.0", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -315,7 +319,7 @@ describe("Fusion 0.2.0", function()
 		local story = createFusionStory(TextStory)
 
 		story.storybook.mapStory = function(originalStory)
-			local storyFn = originalStory :: (StoryProps) -> Instance
+			local storyFn = originalStory :: (props: StoryProps) -> Instance
 			return function(props)
 				local instance = storyFn(props)
 				instance.Name = "Mapped"
@@ -350,9 +354,10 @@ describe("Fusion 0.2.0", function()
 		assert(button, "no TextButton found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = false,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		task.wait()
 

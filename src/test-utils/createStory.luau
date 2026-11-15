@@ -5,7 +5,7 @@ local types = require("@root/types")
 
 local function createStory<T>(partial: {
 	story: T,
-	[string]: any,
+	[string]: unknown,
 }): types.LoadedStory<T>
 	local story: types.LoadedStory<T> = Sift.Dictionary.join({
 		id = "sample",

@@ -16,7 +16,7 @@ type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type LoadedStory<T> = types.LoadedStory<T>
 type StoryProps = types.StoryProps
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -133,7 +133,7 @@ test("mapStory middleware wraps the story", function()
 	end)
 
 	story.storybook.mapStory = function(originalStory)
-		local storyFn = originalStory :: (StoryProps) -> ()
+		local storyFn = originalStory :: (props: StoryProps) -> ()
 		return function(props)
 			storyFn(props)
 
@@ -177,9 +177,10 @@ test("update passes new controls to the story", function()
 
 	expect(rendered.value).toBe("initial")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		value = "updated",
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	task.wait()
 
@@ -215,9 +216,10 @@ test("mapDefinition is applied exactly once, at mount", function()
 	expect(applications).toBe(1)
 	expect(rendered.value).toBe("initial")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		value = "updated",
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	task.wait()
 

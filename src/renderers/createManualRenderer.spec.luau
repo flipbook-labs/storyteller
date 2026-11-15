@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #186 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local ControlTypes = require("@root/controls/ControlTypes")
@@ -25,7 +30,7 @@ local function ButtonStory(props: {
 	return button
 end
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -119,9 +124,10 @@ test("update the GuiObject on arg changes", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	button = container:FindFirstChildWhichIsA("TextButton")
 
@@ -154,9 +160,10 @@ test("update re-renders a story that manages its own cleanup", function()
 	assert(label, "no TextLabel found")
 	expect(label.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	-- The previous render is cleaned up and a fresh one is mounted, just as a
 	-- full remount would do
@@ -186,9 +193,10 @@ test("lifecycle", function()
 	assert(element, "no TextButton found")
 	expect(element.Text).toBe("Enabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = true,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -211,7 +219,7 @@ test("mapStory middleware wraps the story", function()
 	})
 
 	story.storybook.mapStory = function(originalStory)
-		local storyFn = originalStory :: (StoryProps) -> TextLabel
+		local storyFn = originalStory :: (props: StoryProps) -> TextLabel
 		return function(props)
 			local instance = storyFn(props)
 			instance.Name = "Mapped"
@@ -248,9 +256,10 @@ test("mapDefinition is applied exactly once, at mount", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	expect(applications).toBe(1)
 

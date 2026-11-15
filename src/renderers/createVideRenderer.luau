@@ -5,11 +5,17 @@ type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
+-- Storybooks supply their own copy of Vide, so these types describe only the
+-- parts of it that this renderer uses.
 type Packages = {
-	Vide: any,
+	Vide: {
+		source: (initialValue: unknown) -> VideSource,
+		mount: (component: () -> unknown, target: Instance) -> () -> (),
+		batch: (callback: () -> ()) -> (),
+	},
 }
 
-type VideSource = (unknown) -> unknown
+type VideSource = (value: unknown) -> unknown
 type VideSources = { [string]: VideSource }
 
 local function createVideRenderer(packages: Packages): StoryRenderer<Instance>

@@ -47,7 +47,7 @@ function ButtonStoryClassComponent:render()
 	})
 end
 
-local container
+local container: Folder
 
 beforeEach(function()
 	container = Instance.new("Folder")
@@ -137,9 +137,10 @@ test("update the component on arg changes", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	act(function()
 		task.wait()
@@ -185,9 +186,10 @@ test("lifecycle", function()
 	assert(element, "no TextButton found")
 	expect(element.Text).toBe("Enabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = true,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	act(function()
 		task.wait()
@@ -266,9 +268,10 @@ describe("middleware", function()
 
 		expect(applications).toBe(1)
 
-		lifecycle.update({
+		local controls: StoryControls = {
 			isDisabled = true,
-		} :: StoryControls)
+		}
+		lifecycle.update(controls)
 
 		act(function()
 			task.wait()
