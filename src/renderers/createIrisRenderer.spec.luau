@@ -173,9 +173,10 @@ test("update passes new controls to the story", function()
 
 	expect(rendered.value).toBe("initial")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		value = "updated",
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	task.wait()
 
@@ -211,9 +212,10 @@ test("mapDefinition is applied exactly once, at mount", function()
 	expect(applications).toBe(1)
 	expect(rendered.value).toBe("initial")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		value = "updated",
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	task.wait()
 

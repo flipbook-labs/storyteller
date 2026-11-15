@@ -91,7 +91,9 @@ describe("Vide", function()
 		assert(element, "no element found")
 		expect(element.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		expect(#container:GetChildren()).toBe(1)
 
@@ -139,7 +141,9 @@ describe("Vide", function()
 		assert(button, "no element found")
 		expect(button.Text).toBe("Disabled")
 
-		lifecycle.update({ isDisabled = false } :: StoryControls)
+		local controls: StoryControls = { isDisabled = false }
+
+		lifecycle.update(controls)
 
 		task.wait()
 

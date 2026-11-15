@@ -102,9 +102,10 @@ describeEach(storybookModules)("e2e %s", function(storybookModule)
 
 					expect(button.Text).toBe("Enabled")
 
-					lifecycle.update({
+					local controls: StoryControls = {
 						isDisabled = true,
-					} :: StoryControls)
+					}
+					lifecycle.update(controls)
 
 					afterRender(story)
 

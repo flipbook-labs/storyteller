@@ -126,12 +126,14 @@ describe("controls", function()
 
 		local setControls
 
+		local initialControls: StoryControls = {
+			foo = true,
+			bar = "Hello, World!",
+		}
+
 		local function Wrapper()
 			local storyControls: StoryControls
-			storyControls, setControls = React.useState({
-				foo = true,
-				bar = "Hello, World!",
-			} :: StoryControls)
+			storyControls, setControls = React.useState(initialControls)
 
 			return React.createElement(StoryContainer, {
 				story = story,
@@ -146,10 +148,11 @@ describe("controls", function()
 		local snapshot = storyProps
 
 		act(function()
-			setControls({
+			local nextControls: StoryControls = {
 				foo = false,
 				bar = "Goodbye!",
-			} :: StoryControls)
+			}
+			setControls(nextControls)
 		end)
 
 		expect(storyProps).never.toBe(snapshot)

@@ -116,9 +116,10 @@ test("update the GuiObject on arg changes", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	button = container:FindFirstChildWhichIsA("TextButton")
 
@@ -151,9 +152,10 @@ test("update re-renders a story that manages its own cleanup", function()
 	assert(label, "no TextLabel found")
 	expect(label.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	-- The previous render is cleaned up and a fresh one is mounted, just as a
 	-- full remount would do
@@ -183,9 +185,10 @@ test("lifecycle", function()
 	assert(element, "no TextButton found")
 	expect(element.Text).toBe("Enabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = true,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	expect(#container:GetChildren()).toBe(1)
 
@@ -244,9 +247,10 @@ test("mapDefinition is applied exactly once, at mount", function()
 	assert(button, "no TextButton found")
 	expect(button.Text).toBe("Disabled")
 
-	lifecycle.update({
+	local controls: StoryControls = {
 		isDisabled = false,
-	} :: StoryControls)
+	}
+	lifecycle.update(controls)
 
 	expect(applications).toBe(1)
 
