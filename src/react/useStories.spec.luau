@@ -37,9 +37,9 @@ test("loads every story from a module", function()
 		task.wait(0.1)
 	end)
 
-	local stories
+	local stories: { types.LoadedStory<unknown> }?
 	waitFor(function()
-		local err
+		local err: string?
 		stories, err = get()
 		expect(err).toBeUndefined()
 		expect(stories).toBeDefined()

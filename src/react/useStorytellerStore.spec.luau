@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #185 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
@@ -11,7 +16,7 @@ local useStorytellerStore = require("./useStorytellerStore")
 local afterEach = JestGlobals.afterEach
 local expect = JestGlobals.expect
 local test = JestGlobals.test
-local testEach = test.each :: ({ string }) -> (string, (string) -> ()) -> ()
+local testEach = test.each :: (cases: { string }) -> (name: string, fn: (case: string) -> ()) -> ()
 local act = ReactRoblox.act
 
 local roots: { ReactRoblox.RootType } = {}

@@ -13,7 +13,7 @@ export type ControlType =
 	| "Select"
 	| "Slider"
 
-local ControlType = {
+local ControlType = table.freeze({
 	-- Primitives
 	Boolean = "Boolean" :: "Boolean",
 	Number = "Number" :: "Number",
@@ -28,6 +28,6 @@ local ControlType = {
 	Radio = "Radio" :: "Radio",
 	Select = "Select" :: "Select",
 	Slider = "Slider" :: "Slider",
-}
+})
 
 return ControlType

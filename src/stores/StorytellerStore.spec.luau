@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #189 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 
 local new = require("@root/test-utils/new")
@@ -14,7 +19,7 @@ local afterEach = JestGlobals.afterEach
 
 type StoryRequest = types.StoryRequest
 
-local store
+local store: StorytellerStore.StorytellerStore
 
 afterEach(function()
 	store.destroy()
@@ -138,7 +143,8 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	expect((next(store.getStoryModuleRecords()))).toBeUndefined()
+	local recordKey = next(store.getStoryModuleRecords())
+	expect(recordKey).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()

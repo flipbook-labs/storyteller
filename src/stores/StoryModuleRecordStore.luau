@@ -81,8 +81,7 @@ local StoryModuleRecordStore = {}
 function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local isDestroyed = false
 
-	local initialRecords: StoryModuleRecords = {}
-	local getRecords, setRecords = Charm.signal(initialRecords)
+	local getRecords, setRecords = Charm.signal<<StoryModuleRecords>>({})
 
 	local loaderEntries: { [ModuleScript]: LoaderEntry } = {}
 	local backgroundQueue: RequestQueue = {
@@ -255,9 +254,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end
 	end
 
-	function cleanupRequestEntry(entry: RequestEntry)
-		local storyRequest = entry.request
-		local storybookSource = storyRequest.storybook.source
+	cleanupRequestEntry = function(entry: RequestEntry)
+		local storybookSource = entry.request.storybook.source
 		entry.refCount = 0
 		entry.interactiveRefCount = 0
 		entry.generation += 1
@@ -281,22 +279,21 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		entry.reloadLoader = nil
 
 		local loaderEntry = loaderEntries[storybookSource]
-		if loaderEntry and loaderEntry.requests[storyRequest.storyModule] == entry then
-			loaderEntry.requests[storyRequest.storyModule] = nil
+		if loaderEntry and loaderEntry.requests[entry.request.storyModule] == entry then
+			loaderEntry.requests[entry.request.storyModule] = nil
 		end
 
-		removeRecord(storyRequest.storyModule, storybookSource)
+		removeRecord(entry.request.storyModule, storybookSource)
 		cleanupLoaderEntry(storybookSource)
 	end
 
 	local function createRecord(entry: RequestEntry): StoryModuleRecord
-		local storyRequest = entry.request
-		local loaderEntry = loaderEntries[storyRequest.storybook.source]
+		local loaderEntry = loaderEntries[entry.request.storybook.source]
 		assert(loaderEntry, "Story module loader was cleaned up while a story module was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
 		local success, result = pcall(function()
-			return loadStoryModuleData(storyRequest.storyModule, storyRequest.storybook, loader)
+			return loadStoryModuleData(entry.request.storyModule, entry.request.storybook, loader)
 		end)
 
 		if not success then
@@ -313,7 +310,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		}
 	end
 
-	function processPendingRequests()
+	processPendingRequests = function()
 		if isProcessingRequests or isDestroyed then
 			return
 		end
@@ -359,7 +356,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 	end
 
-	function queueRequest(entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
+	queueRequest = function(entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -381,7 +378,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		processPendingRequests()
 	end
 
-	function invalidateRequest(entry: RequestEntry, priority: StoryModuleRequestPriority)
+	invalidateRequest = function(entry: RequestEntry, priority: StoryModuleRequestPriority)
 		if isDestroyed or entry.refCount == 0 then
 			return
 		end
@@ -412,10 +409,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			return function() end
 		end
 
-		local storyModule = storyRequest.storyModule
-		local storybookSource = storyRequest.storybook.source
-
-		local existingEntry = getRequestEntry(storyModule, storybookSource)
+		local existingEntry = getRequestEntry(storyRequest.storyModule, storyRequest.storybook.source)
 		local entry: RequestEntry
 		local hasStorybookChanged = false
 		if existingEntry then
@@ -437,10 +431,13 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				sourceConnection = nil,
 				destroyingConnection = nil,
 			}
-			local loaderEntry = ensureLoaderEntry(storybookSource)
-			loaderEntry.requests[storyModule] = entry
+			-- Lute's unused_variable lint doesn't count writing a property as a use.
+			-- #180 tracks removing this ignore.
+			-- lute-lint-ignore(unused_variable)
+			local loaderEntry = ensureLoaderEntry(storyRequest.storybook.source)
+			loaderEntry.requests[storyRequest.storyModule] = entry
 			-- Source-specific signals require PluginOrOpenCloud in embedded clients.
-			entry.sourceConnection = storyModule.Changed:Connect(function(property)
+			entry.sourceConnection = storyRequest.storyModule.Changed:Connect(function(property)
 				if property == "Source" then
 					invalidateRequest(
 						entry,
@@ -450,7 +447,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 					)
 				end
 			end)
-			entry.destroyingConnection = storyModule.Destroying:Connect(function()
+			entry.destroyingConnection = storyRequest.storyModule.Destroying:Connect(function()
 				cleanupRequestEntry(entry)
 			end)
 		end
