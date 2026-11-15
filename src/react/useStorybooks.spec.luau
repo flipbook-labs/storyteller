@@ -1,3 +1,8 @@
+-- Lute's unused_variable lint doesn't count writing a property as a use, and
+-- these tests set up instances that way.
+-- #184 tracks removing this ignore.
+-- lute-lint-global-ignore(unused_variable)
+
 local JestGlobals = require("@pkg/JestGlobals")
 local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
@@ -26,6 +31,15 @@ local function Wrapper(props): React.ReactNode
 	return React.createElement(StorytellerContext.StorytellerProvider, {
 		store = store,
 	}, props.children)
+end
+
+local function waitForRender(callback: () -> ())
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		callback()
+	end)
 end
 
 beforeEach(function()
@@ -59,7 +73,7 @@ test("loads storybook modules", function()
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
+	waitForRender(function()
 		local storybooks = get()
 
 		expect(#storybooks.available).toBe(1)
@@ -89,7 +103,7 @@ test("storybooks with syntax errors are marked unavailable", function()
 		wrapper = Wrapper,
 	})
 
-	waitFor(function()
+	waitForRender(function()
 		local storybooks = get()
 
 		expect(#storybooks.available).toBe(0)
@@ -203,6 +217,9 @@ test("removing a storybook from the DM triggers a re-render", function()
 		wrapper = Wrapper,
 	})
 
+	waitForRender(function()
+		expect(#get().available).toBe(1)
+	end)
 	local storybooks = get()
 
 	expect(#storybooks.available).toBe(1)

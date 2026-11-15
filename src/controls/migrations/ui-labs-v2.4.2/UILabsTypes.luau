@@ -49,7 +49,7 @@ export type ChooseControl<T> = BaseControl<T> & {
 export type EnumListControl<T> = BaseControl<T> & {
 	Type: "EnumList",
 	EntryType: "Control",
-	List: { [string]: any },
+	List: { [string]: unknown },
 	DefIndex: string,
 }
 
