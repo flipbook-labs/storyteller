@@ -6,18 +6,19 @@ For each renderer, Storyteller provides a mounting point, context, and lifecycle
 
 ## Supported renderers
 
-| **Name**            | **Format**                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| React               | Result of `React.createElement` or a function that takes `props` as the first argument and creates an element                           |
-| Roact               | Result of `Roact.createElement` or a function that takes `props` as the first argument and creates an element                           |
-| Fusion              | Result of `Fusion.New` or a function that takes `props` as the first argument and creates an Instance                                   |
-| Iris                | A function that takes `props` as the first argument and issues Iris widget calls (immediate-mode)                                       |
-| Vide                | A function that takes `props` as the first argument and returns an Instance, or a pre-created Instance                                  |
-| Manual              | A function that takes `props` as the first argument and returns an Instance                                                             |
+| **Name** | **Format** |
+| --- | --- |
+| React | Result of `React.createElement` or a function that takes `props` as the first argument and creates an element |
+| Roact | Result of `Roact.createElement` or a function that takes `props` as the first argument and creates an element |
+| Fusion | Result of `Fusion.New` or a function that takes `props` as the first argument and creates an Instance |
+| Iris | A function that takes `props` as the first argument and issues Iris widget calls (immediate-mode) |
+| Vide | A function that takes `props` as the first argument and returns an Instance, or a pre-created Instance |
+| Manual | A function that takes `props` as the first argument and returns an Instance |
 | Functional (Legacy) | A function that takes `target` as the first argument, `props` as the second, and optionally returns a function for manually cleaning up |
-| Hoarcekat (Legacy)  | Same as `Functional (Legacy)` but the story file itself is represented by a function                                                    |
+| Hoarcekat (Legacy) | Same as `Functional (Legacy)` but the story file itself is represented by a function |
 
 Future:
+
 - [Blend](https://quenty.github.io/NevermoreEngine/api/Blend/)
 - Developer Storybook (Roblox internal)
 

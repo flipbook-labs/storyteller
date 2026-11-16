@@ -8,9 +8,9 @@ Storyteller is a package for the discovery and rendering of UI stories and power
 
 ## Features
 
-* Discover Storybooks and their Story modules
-* Render stories written in [React](https://github.com/jsdotlua/react-lua), [Fusion](https://elttob.uk/Fusion/), [Roact](https://github.com/Roblox/roact/), and any generic Roblox Gui.
-* Partial compatibility with [UI Labs](https://pepeeltoro41.github.io/ui-labs/) and [Hoarcekat](https://github.com/Kampfkarren/hoarcekat/)
+- Discover Storybooks and their Story modules
+- Render stories written in [React](https://github.com/jsdotlua/react-lua), [Fusion](https://elttob.uk/Fusion/), [Roact](https://github.com/Roblox/roact/), and any generic Roblox Gui.
+- Partial compatibility with [UI Labs](https://pepeeltoro41.github.io/ui-labs/) and [Hoarcekat](https://github.com/Kampfkarren/hoarcekat/)
 
 ## Installation
 

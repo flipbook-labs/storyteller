@@ -47,6 +47,8 @@ run("stylua", {
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
+run("npm", { "run", "format:markdown:check" })
+
 if not fs.exists(CODE_QUALITY_RULES_PATH) then
 	print(
 		`[err] CodeQuality rules not found at {path.format(CODE_QUALITY_RULES_PATH)}. Run 'lute run install' and try again`

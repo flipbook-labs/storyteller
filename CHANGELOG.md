@@ -2,7 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-
 ## v1.12.0
 
 ### Changes
@@ -12,8 +11,6 @@ All notable changes to this project will be documented in this file.
 - Bump FlipbookBatteries and Lute versions (#121) ([50c69d2](https://github.com/flipbook-labs/storyteller/commit/50c69d28c95fed70c547ee7d8c369a992ff90fba))
 
 - Adopt Changewrite release workflow (#119) ([7d269ee](https://github.com/flipbook-labs/storyteller/commit/7d269ee8d0a4b78b18abdaf1f443433a758db38e))
-
-
 
 ## v1.11.0
 
@@ -33,8 +30,6 @@ All notable changes to this project will be documented in this file.
 
 - Run tests with rocale-cli (#111) ([85212ab](https://github.com/flipbook-labs/storyteller/commit/85212abb9e6d743f9523fa6a8b320fce788d7e51))
 
-
-
 ## v1.10.0
 
 ### Changes
@@ -42,8 +37,6 @@ All notable changes to this project will be documented in this file.
 - Bump to 1.10.0 (#110) ([b1dd167](https://github.com/flipbook-labs/storyteller/commit/b1dd167a183f01d7bcd9a901f9abebc2598381fb))
 
 - Properly sandbox Story environment (#81) ([5c28354](https://github.com/flipbook-labs/storyteller/commit/5c28354436576093f3eb572c2080d8545cd665ff))
-
-
 
 ## v1.9.0
 
@@ -59,8 +52,6 @@ All notable changes to this project will be documented in this file.
 
 - Move Lute scripts to the `.lute` folder (#102) ([5616e36](https://github.com/flipbook-labs/storyteller/commit/5616e36a73e324f99a6520eaaeb3308ef7d47969))
 
-
-
 ## v1.8.1
 
 ### Changes
@@ -68,8 +59,6 @@ All notable changes to this project will be documented in this file.
 - Bump version to 1.8.1 (#101) ([a8e4d2b](https://github.com/flipbook-labs/storyteller/commit/a8e4d2b4747370f6b7c32553e7509ab39d015649))
 
 - Initialize StorytellerStore lazily (#99) ([3c0ed08](https://github.com/flipbook-labs/storyteller/commit/3c0ed082098865cdf97d7134869f3cfdb8d0236a))
-
-
 
 ## v1.8.0
 
@@ -81,8 +70,6 @@ All notable changes to this project will be documented in this file.
 
 - Port Signals to Charm (#95) ([930295d](https://github.com/flipbook-labs/storyteller/commit/930295d70f9c67794baae459fb2774590263adbb))
 
-
-
 ## v1.7.1
 
 ### Changes
@@ -93,8 +80,6 @@ All notable changes to this project will be documented in this file.
 
 - Fix transformations for list-based controls (#89) ([8852568](https://github.com/flipbook-labs/storyteller/commit/8852568148858a1d449d5ffda22c2f694e6f4814))
 
-
-
 ## v1.7.0
 
 ### Changes
@@ -102,8 +87,6 @@ All notable changes to this project will be documented in this file.
 - Bump to 1.7.0 (#88) ([673401c](https://github.com/flipbook-labs/storyteller/commit/673401cffd1942c444758bbaea290bcc58448878))
 
 - Export `hydrateControls` on the public API (#87) ([4d4f411](https://github.com/flipbook-labs/storyteller/commit/4d4f4110a1d2719aa2d7b6e4a0e9bd0fbe1a4b09))
-
-
 
 ## v1.6.0
 
@@ -129,8 +112,6 @@ All notable changes to this project will be documented in this file.
 
 - Bump tool versions (#75) ([b63e38a](https://github.com/flipbook-labs/storyteller/commit/b63e38a2d0ab9e1457d7907e02b875488c0b305e))
 
-
-
 ## v1.5.0
 
 ### Changes
@@ -147,8 +128,6 @@ All notable changes to this project will be documented in this file.
 
 - Update createStory to take an arbitrary object (#70) ([2289d92](https://github.com/flipbook-labs/storyteller/commit/2289d92248410e3b508b509314814956ccb41177))
 
-
-
 ## v1.4.0
 
 ### Changes
@@ -156,8 +135,6 @@ All notable changes to this project will be documented in this file.
 - Bump to 1.4.0 (#68) ([17d47e2](https://github.com/flipbook-labs/storyteller/commit/17d47e28f6042e7f4aeed61694e8f23c7d18f099))
 
 - Performance improvements for collections (#67) ([459a53e](https://github.com/flipbook-labs/storyteller/commit/459a53e20dbd99c06f703ebd61abb511cf3da5b2))
-
-
 
 ## v1.3.0
 
@@ -173,8 +150,6 @@ All notable changes to this project will be documented in this file.
 
 - Add a flag to filter which tests get run (#62) ([a7cd4a9](https://github.com/flipbook-labs/storyteller/commit/a7cd4a995e57497d7be615b2b0ae253b0d3766f8))
 
-
-
 ## v1.2.0
 
 ### Changes
@@ -185,15 +160,11 @@ All notable changes to this project will be documented in this file.
 
 - Port scripts to Lute (#58) ([63a18b5](https://github.com/flipbook-labs/storyteller/commit/63a18b5678ede60a718c497ddc36ff759e07d8b2))
 
-
-
 ## v1.1.1
 
 ### Changes
 
 - Bump ModuleLoader version to 0.7.0 (#54) ([bab67bd](https://github.com/flipbook-labs/storyteller/commit/bab67bd42797b4dc17d374db17b409354a770871))
-
-
 
 ## v1.1.0
 
@@ -215,8 +186,6 @@ All notable changes to this project will be documented in this file.
 
 - Orphan story discovery (#44) ([ca928a2](https://github.com/flipbook-labs/storyteller/commit/ca928a2186247ca24f06a67705e6b6ca00341876))
 
-
-
 ## v1.0.0
 
 ### Changes
@@ -231,8 +200,6 @@ All notable changes to this project will be documented in this file.
 
 - Add Fusion V3 support to controls (#39) ([a780818](https://github.com/flipbook-labs/storyteller/commit/a780818f954d8d94096e5f8b7001bc739e9497a8))
 
-
-
 ## v0.7.0
 
 ### Changes
@@ -245,8 +212,6 @@ All notable changes to this project will be documented in this file.
 
 - Run unit tests in CI (#36) ([33b2de9](https://github.com/flipbook-labs/storyteller/commit/33b2de92061a9a27a482c504273a0aa8d032ba42))
 
-
-
 ## v0.6.0
 
 ### Changes
@@ -257,8 +222,6 @@ All notable changes to this project will be documented in this file.
 
 - Add support for nameless Storybooks (#28) ([ea274c3](https://github.com/flipbook-labs/storyteller/commit/ea274c386fd98717c1fb112aa09dc2a8ceb7d947))
 
-
-
 ## v0.5.0
 
 ### Changes
@@ -267,15 +230,11 @@ All notable changes to this project will be documented in this file.
 
 - Fix support for legacy stories when packages are supplied on the storybook (#25) ([9732f3e](https://github.com/flipbook-labs/storyteller/commit/9732f3e6a0d786c4c99bb8510f1d77658e719e8d))
 
-
-
 ## v0.4.3
 
 ### Changes
 
 - Accommodate analysis errors in flipbook's recent PR (#24) ([248fc07](https://github.com/flipbook-labs/storyteller/commit/248fc072de47699cb714187fbefc793ce5cd06b0))
-
-
 
 ## v0.4.2
 
@@ -283,23 +242,17 @@ All notable changes to this project will be documented in this file.
 
 - Deploy to Wally from CI (#23) ([1e89a66](https://github.com/flipbook-labs/storyteller/commit/1e89a6673700ea6407d2a5964df47f22cff5a7ce))
 
-
-
 ## v0.4.1
 
 ### Changes
 
 - Control updates dont collapse tables (#21) ([faa1625](https://github.com/flipbook-labs/storyteller/commit/faa1625632cd90c9c444a40974cdcabb73f9b730))
 
-
-
 ## v0.4.0
 
 ### Changes
 
 - Fix Roact element rendering (#18) ([c443806](https://github.com/flipbook-labs/storyteller/commit/c44380636a517ad46b0c4298fac0d9b69b85e43c))
-
-
 
 ## v0.3.0
 
@@ -317,8 +270,6 @@ All notable changes to this project will be documented in this file.
 
 - Implicit renderer (#6) ([cc7d3a3](https://github.com/flipbook-labs/storyteller/commit/cc7d3a30f3e858d802fdbe1343c7d697a51f8a6a))
 
-
-
 ## v0.2.1
 
 ### Changes
@@ -328,8 +279,6 @@ All notable changes to this project will be documented in this file.
 - Attempt to fix release workflow (#11) ([eed6bfa](https://github.com/flipbook-labs/storyteller/commit/eed6bfa24babc26694603cf6b5fb042d50da3041))
 
 - Fix StreamingService crashing Story/Storybook discovery (#10) ([4d81e5e](https://github.com/flipbook-labs/storyteller/commit/4d81e5ee15ed3d960342fc18838304fe8d8e4ec4))
-
-
 
 ## v0.2.0
 
@@ -351,15 +300,11 @@ All notable changes to this project will be documented in this file.
 
 - Rokit, not Foreman ([cd8448e](https://github.com/flipbook-labs/storyteller/commit/cd8448e7074201a93b720787e012a30365464db9))
 
-
-
 ## v0.1.1
 
 ### Changes
 
 - Fix Wally build ([cc57e15](https://github.com/flipbook-labs/storyteller/commit/cc57e153c4b988f1ac6cf53613a1c47464ea73f7))
-
-
 
 ## v0.1.0
 
@@ -384,4 +329,3 @@ All notable changes to this project will be documented in this file.
 - Fix path to render() ([abd500f](https://github.com/flipbook-labs/storyteller/commit/abd500f5cf821a128eddb17d989e043c85f54194))
 
 - Initial commit ([e3d84ad](https://github.com/flipbook-labs/storyteller/commit/e3d84ad464468015855acb126038c0424aa61467))
-
