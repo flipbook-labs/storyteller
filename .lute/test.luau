@@ -5,6 +5,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
@@ -47,7 +48,7 @@ args:parse({ ... })
 local isBuildOnly = args:has("build-only")
 local isRunOnly = args:has("run-only")
 if isBuildOnly and isRunOnly then
-	print("err: --build-only and --run-only cannot be used together")
+	logger.err("--build-only and --run-only cannot be used together")
 	process.exit(1)
 end
 
@@ -55,9 +56,10 @@ local placePath = args:get("place")
 assert(typeof(placePath) == "string", `bad value for place (string expected, got {typeof(placePath)})`)
 
 if not isRunOnly then
+	logger.info("building the dev channel for testing")
 	run("lute", { "run", "build", "--channel", "dev" })
 	run("rojo", { "build", project.ROJO_TESTS_PROJECT, "--output", placePath })
-	print(`Built test place: {placePath}`)
+	logger.info(`built test place: {placePath}`)
 end
 
 if isBuildOnly then
@@ -68,19 +70,25 @@ end
 -- a directory there means the build didn't produce a place file, so the run
 -- stops here instead of handing that path to Rocale.
 if not fs.exists(placePath) or fs.type(placePath) ~= "file" then
-	print(`err: The test place must be a regular file: {placePath}`)
+	logger.err(`the test place must be a regular file: {placePath}`)
 	process.exit(1)
 end
 
 local apiKey = process.env.ROBLOX_API_KEY or args:get("apiKey")
 if not apiKey or apiKey == "" then
-	print(
-		"err: A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
+	logger.err(
+		"A valid Open Cloud API key must be supplied with either the --apiKey flag or the ROBLOX_API_KEY environment variable"
 	)
 	process.exit(1)
 end
 
 local filter = args:get("filter")
+if filter then
+	logger.debug(`filtering tests by "{filter}"`)
+end
+if args:has("benchmarks") then
+	logger.warn("running benchmarks; this run will take longer than usual")
+end
 
 local function createTestRunnerScript()
 	local testRunnerPath = path.join(system.tmpdir(), "run-tests.luau")
@@ -97,6 +105,7 @@ local function createTestRunnerScript()
 	return testRunnerPath
 end
 
+logger.info("running tests")
 local success, err = pcall(function()
 	local testRunnerPath = createTestRunnerScript()
 
@@ -120,6 +129,8 @@ local success, err = pcall(function()
 end)
 
 if not success then
-	print(err)
+	logger.err(err)
 	process.exit(1)
 end
+
+logger.info("tests passed")

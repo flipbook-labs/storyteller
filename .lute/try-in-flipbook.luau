@@ -8,6 +8,8 @@ local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
 local fs = require("@std/fs")
 local path = require("@std/path")
 
+local logger = require("@repo/.lute/lib/logger")
+
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
 local find = FlipbookBatteries.find
@@ -53,7 +55,7 @@ local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
 local flipbookRoot = findFlipbookRoot(path.dirname(repoRoot))
 
 if flipbookRoot then
-	print(`using Flipbook at {flipbookRoot}`)
+	logger.info(`using Flipbook at {flipbookRoot}`)
 else
 	error(
 		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
@@ -70,11 +72,13 @@ end
 
 local dest = path.join(packageInstallation, BUNDLE_DIR_NAME)
 
+logger.debug(`removing the existing install at {dest}`)
 fs.removeDirectory(dest, {
 	recursive = true,
 })
 
+logger.info("building Storyteller")
 run("lute", { "run", "build" })
 copyInto(src, dest)
 
-print(`successfully installed to {dest}`)
+logger.info(`successfully installed to {dest}`)

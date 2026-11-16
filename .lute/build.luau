@@ -3,6 +3,7 @@ local cli = require("@batteries/cli")
 local fs = require("@std/fs")
 local process = require("@std/process")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
@@ -49,6 +50,7 @@ local PRUNED_FILE_PATTERNS = {
 }
 
 local function buildWallyPackage()
+	logger.debug("packaging for Wally")
 	rmdir(WALLY_BUILD_DIR)
 	mkdir(WALLY_BUILD_DIR)
 
@@ -63,6 +65,9 @@ local function buildWallyPackage()
 end
 
 local function build()
+	logger.info(`building for the {channel} channel`)
+
+	logger.debug("resetting the build directory")
 	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
 		rmdir(project.BUILD_PATH)
 	end
@@ -82,6 +87,7 @@ local function build()
 	})
 
 	if channel == "prod" then
+		logger.debug("pruning test and story files from the prod build")
 		rmdir(`{project.BUILD_PATH}/test-utils`)
 		rmdir(`{project.BUILD_PATH}/e2e`)
 
@@ -96,11 +102,14 @@ local function build()
 	run("rojo", { "build", "-o", output })
 
 	buildWallyPackage()
+
+	logger.info(`built {output}`)
 end
 
 build()
 
 if args:has("watch") then
+	logger.info("watching for changes")
 	watch({
 		roots = {
 			`{process.cwd()}/src`,

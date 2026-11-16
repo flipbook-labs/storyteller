@@ -5,6 +5,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local run = FlipbookBatteries.run
@@ -40,16 +41,18 @@ local function findLuaFiles()
 	return matches
 end
 
+logger.info("linting with selene")
 run("selene", { table.unpack(project.FOLDERS_TO_LINT) })
 
+logger.info("checking formatting with stylua")
 run("stylua", {
 	"--check",
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
 if not fs.exists(CODE_QUALITY_RULES_PATH) then
-	print(
-		`[err] CodeQuality rules not found at {path.format(CODE_QUALITY_RULES_PATH)}. Run 'lute run install' and try again`
+	logger.err(
+		`CodeQuality rules not found at {path.format(CODE_QUALITY_RULES_PATH)}. Run 'lute run install' and try again`
 	)
 	process.exit(1)
 end
@@ -89,7 +92,7 @@ local lintResult = process.run({
 
 local lintOutput = lintResult.stdout .. lintResult.stderr
 if not lintResult.ok or lintOutput:find("%S") then
-	print("[err] lute lint failed")
+	logger.err("lute lint failed")
 	print(lintOutput)
 	process.exit(1)
 end
@@ -100,18 +103,21 @@ for _, file in report.items do
 	for _, finding in file.items do
 		findingCount += 1
 		local start = finding.range.start
-		print(`{file.uri}:{start.line + 1}:{start.character + 1}: [{finding.code or "lint"}] {finding.message}`)
+		logger.err(`{file.uri}:{start.line + 1}:{start.character + 1}: [{finding.code or "lint"}] {finding.message}`)
 	end
 end
 
 if findingCount > 0 then
-	print(`[err] lute lint reported {findingCount} finding(s)`)
+	logger.err(`lute lint reported {findingCount} finding(s)`)
 	process.exit(1)
 end
 
+logger.debug("checking for files using the '.lua' extension")
 local files = findLuaFiles()
 if #files > 0 then
-	print("[err] the following file(s) are using the '.lua' extension. Please change to '.luau' and try again")
-	print(`{table.concat(files, "\n")}`)
+	logger.err("the following file(s) are using the '.lua' extension. Please change to '.luau' and try again")
+	logger.err(table.concat(files, "\n"))
 	process.exit(1)
 end
+
+logger.info("lint passed")
