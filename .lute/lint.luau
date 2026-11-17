@@ -7,15 +7,11 @@ local system = require("@std/system")
 
 local project = require("@repo/project")
 
-local getStoreFolder = require("./lib/getStoreFolder")
-
 local run = FlipbookBatteries.run
 
 -- CodeQuality is the org's shared package of Luau lint rules, which `lute lint`
--- runs alongside its own. `lute run install` puts Loom packages in a store under
--- the home folder rather than in this repo, so the rules are read from there.
-local CODE_QUALITY_RULES_PATH =
-	path.join(process.homedir(), ".loom", "store", getStoreFolder("CodeQuality"), "src", "rules")
+-- runs alongside its own. `lute run install` vendors it into `LuauPackages/`.
+local CODE_QUALITY_RULES_PATH = path.join("LuauPackages", "CodeQuality", "src", "rules")
 
 local function findLuaFiles()
 	local matches = {}

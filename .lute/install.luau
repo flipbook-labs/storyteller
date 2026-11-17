@@ -1,11 +1,10 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
+local luau = require("@std/luau")
 local path = require("@std/path")
 local process = require("@std/process")
 
 local project = require("@repo/project")
-
-local getStoreFolder = require("./lib/getStoreFolder")
 
 local function getDescendants(dirPath: path.Pathlike): { path.Path }
 	if fs.type(dirPath) ~= "dir" then
@@ -27,41 +26,67 @@ local function getDescendants(dirPath: path.Pathlike): { path.Path }
 	return reduce(path.resolve(dirPath), {})
 end
 
-local CONFIG_PATH = ".config.luau"
+local LOCKFILE_PATH = "pkg.lock.luau"
+local VENDOR_PATH = "LuauPackages"
 
--- `lute check`, editors, and the requires in these scripts find Loom packages
--- through aliases in `.config.luau`. After `lute pkg install`, this points each
--- alias at its dependency's folder in the store. Keys are aliases in
--- `.config.luau`, and values are dependency names in `pkg.luau`.
-local DEPENDENCY_ALIASES: { [string]: string } = {
-	batteries = "Lute",
-	["flipbook-batteries"] = "FlipbookBatteries",
+-- `lute pkg install` puts each dependency in the Loom store, `~/.loom/store`,
+-- under a folder whose name includes hashes of its source and rev. Requires
+-- resolve only through aliases in `.config.luau`, which can't name a dependency
+-- from the lockfile. So after installing, this copies each dependency into
+-- `LuauPackages/<name>`, using its name from `pkg.luau`, and `.config.luau`
+-- aliases those folders. https://github.com/flipbook-labs/flipbook/issues/689
+-- tracks removing this once Lute resolves dependencies by name.
+--
+-- The folder isn't `Packages/` because Wally installs the Roblox runtime
+-- dependencies there.
+
+type Lockfile = {
+	dependencies: { [string]: string },
+	devDependencies: { [string]: string }?,
+	packages: { [string]: { installPath: string } },
 }
 
+-- The lockfile writes `@pkg/` for the store, and the path of a dependency
+-- without a `target` ends in `/.`.
+local function getStorePath(lockfile: Lockfile, key: string): path.Path
+	local installPath = lockfile.packages[key].installPath
+	local relative = installPath:gsub("^@pkg/", ""):gsub("/%.$", "")
+	return path.join(process.homedir(), ".loom", "store", relative)
+end
+
+local function copyDirectory(src: path.Path, dest: path.Path)
+	fs.createDirectory(dest, { makeParents = true })
+	for _, entry in fs.listDirectory(src) do
+		local from = path.join(src, entry.name)
+		local to = path.join(dest, entry.name)
+		if entry.type == "dir" then
+			copyDirectory(from, to)
+		else
+			fs.copy(from, to)
+		end
+	end
+end
+
 -- The Wally steps below use helpers from FlipbookBatteries, which they require
--- through its alias. So the Loom dependencies are installed and the aliases
--- written first.
+-- through its vendored alias. So the Loom dependencies are vendored first.
 do
-	local res = process.run({ "lute", "pkg", "install" }, {
-		stdio = "inherit",
-	})
-	assert(res.ok, res.stderr)
+	local result = process.run({ "lute", "pkg", "install" }, { stdio = "inherit" })
+	assert(result.ok, "lute pkg install failed")
 
-	local config = fs.readFileToString(CONFIG_PATH)
+	local lockfile: Lockfile = luau.loadModule(LOCKFILE_PATH)
 
-	for alias, name in DEPENDENCY_ALIASES do
-		local storePath = `~/.loom/store/{getStoreFolder(name)}`
-		-- Matches both `alias = "..."` and `["alias"] = "..."`. The frontier
-		-- keeps `batteries` from matching the end of `flipbook-batteries`.
-		local escapedAlias = alias:gsub("%-", "%%-")
-		local pattern = `(%f[%w%-]{escapedAlias}"?%]?%s*=%s*")[^"]*(")`
-		local updated, count = config:gsub(pattern, `%1{storePath}%2`)
-		assert(count == 1, `Expected one "{alias}" alias in {CONFIG_PATH}, found {count}`)
-		config = updated
+	-- Clearing the folder first drops dependencies that `pkg.luau` no longer lists.
+	if fs.exists(VENDOR_PATH) then
+		fs.removeDirectory(VENDOR_PATH, { recursive = true })
 	end
 
-	fs.writeStringToFile(CONFIG_PATH, config)
-	print(`wrote dependency aliases to {CONFIG_PATH}`)
+	for _, dependencies in { lockfile.dependencies, lockfile.devDependencies or {} } do
+		for name, key in dependencies do
+			copyDirectory(getStorePath(lockfile, key), path.join(VENDOR_PATH, name))
+		end
+	end
+
+	print(`Vendored dependencies into {VENDOR_PATH}`)
 end
 
 do
