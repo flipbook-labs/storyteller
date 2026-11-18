@@ -1,7 +1,7 @@
+local CodeQuality = require("@code-quality")
 local FlipbookBatteries = require("@flipbook-batteries")
 local fs = require("@std/fs")
 local json = require("@std/json")
-local luau = require("@std/luau")
 local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
@@ -9,20 +9,6 @@ local system = require("@std/system")
 local project = require("@repo/project")
 
 local run = FlipbookBatteries.run
-
--- CodeQuality is the org's shared package of Luau lint rules, which `lute lint`
--- runs alongside its own. It lives in the Loom store, and `lute run install`
--- writes its folder into the `code-quality` alias in `.config.luau`. Lute
--- resolves the alias's leading `~`, but `lute lint --rules` takes a plain path,
--- so this expands it.
-local function getCodeQualityRulesPath(): path.Path
-	local config = luau.loadModule(".config.luau")
-	local alias: string = config.luau.aliases["code-quality"]
-	assert(alias:sub(1, 2) == "~/", `Expected the code-quality alias to start with "~/", got "{alias}"`)
-	return path.join(process.homedir(), alias:sub(3), "src", "rules")
-end
-
-local CODE_QUALITY_RULES_PATH = getCodeQualityRulesPath()
 
 local function findLuaFiles()
 	local matches = {}
@@ -55,13 +41,6 @@ run("stylua", {
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
-if not fs.exists(CODE_QUALITY_RULES_PATH) then
-	print(
-		`[err] CodeQuality rules not found at {path.format(CODE_QUALITY_RULES_PATH)}. Run 'lute run install' and try again`
-	)
-	process.exit(1)
-end
-
 type LintReport = {
 	items: {
 		{
@@ -77,6 +56,9 @@ type LintReport = {
 	},
 }
 
+-- CodeQuality is the org's shared package of Luau lint rules, which `lute lint`
+-- runs alongside its own.
+--
 -- `lute lint` exits cleanly even when a rule throws or a file can't be parsed.
 -- It only prints an error and moves on. So the findings go to a JSON file
 -- instead of the terminal, and anything `lute lint` still prints counts as a
@@ -91,7 +73,7 @@ local lintResult = process.run({
 	"--output",
 	path.format(reportPath),
 	"--rules",
-	path.format(CODE_QUALITY_RULES_PATH),
+	CodeQuality.RULES_PATH,
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
