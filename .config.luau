@@ -6,7 +6,6 @@ return {
 			std = "~/.lute/typedefs/1.0.1/std",
 			pkg = "./Packages",
 			repo = ".",
-			root = "./src",
 
 			-- `lute run install` writes these paths from `pkg.lock.luau`.
 			-- https://github.com/flipbook-labs/flipbook/issues/689 tracks removing this injection.

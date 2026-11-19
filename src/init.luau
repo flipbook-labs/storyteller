@@ -1,5 +1,5 @@
 local ControlTypes = require("@self/controls/ControlTypes")
-local StorytellerContext = require("@root/react/StorytellerContext")
+local StorytellerContext = require("@self/react/StorytellerContext")
 local types = require("@self/types")
 
 --[=[
