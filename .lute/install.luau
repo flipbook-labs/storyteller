@@ -25,16 +25,18 @@ local function getDescendants(dirPath: path.Pathlike): { path.Path }
 	return reduce(path.resolve(dirPath), {})
 end
 
--- `--vendor` copies each dependency in `pkg.luau` into a `.lpm/<key>@<rev>`
--- folder, and the `lpm` alias in `.config.luau` points at `.lpm`. When a
--- vendored package requires through `@lpm`, the require uses the `lpm` alias of
--- whichever project vendored it. So any project that vendors such a package has
--- to define the same alias.
+-- `--vendor` copies each dependency and dev dependency in `pkg.luau` into a
+-- `.lpm/<key>@<rev>` folder, and the `lpm` alias in `.config.luau` points at
+-- `.lpm`. Scripts require a dependency through its folder, so a rev bump in
+-- `pkg.luau` also changes their require paths. When a vendored package
+-- requires through `@lpm`, the require uses the `lpm` alias of the project that
+-- vendored it, not one of its own. So any project that vendors such a package
+-- has to define the same alias.
 -- The following issue tracks removing that requirement:
 -- https://github.com/flipbook-labs/flipbook/issues/694
 --
--- The Wally steps below use helpers from flipbook-batteries, so the Lute
--- dependencies are installed first.
+-- The Wally steps below use helpers from flipbook-batteries, so the
+-- dependencies in `pkg.luau` are installed first.
 do
 	local result = process.run({ "lute", "pkg", "install", "--vendor" }, { stdio = "inherit" })
 	assert(result.ok, "lute pkg install failed")
