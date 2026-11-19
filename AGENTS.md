@@ -40,5 +40,5 @@ Skills are living documents. When your work here contradicts a skill (a renamed 
 - Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
 - `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
-- The build is a Darklua-processed mirror of `src/` written to `dist/`, and Wally publishes from `dist/`. Never edit `dist/` by hand.
+- The build mirrors `src/` into `dist/`, rewriting string requires into Roblox instance paths with [`.lute/lib/rewriteLuau.luau`](.lute/lib/rewriteLuau.luau), and Wally publishes from `dist/`. Never edit `dist/` by hand. The rewriter is a copy of Flipbook's, so make fixes to it in both repos.
 - Releases are handled by the [Changewrite](https://github.com/flipbook-labs/changewrite) action. Unreleased entries live as partials in [`.changes/`](.changes) and are assembled into [`CHANGELOG.md`](CHANGELOG.md) at release time. Add a `.changes/` entry for any user-facing change.

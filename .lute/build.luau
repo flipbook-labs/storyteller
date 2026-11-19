@@ -1,9 +1,12 @@
 local FlipbookBatteries = require("@flipbook-batteries")
 local cli = require("@batteries/cli")
 local fs = require("@std/fs")
+local json = require("@std/json")
+local path = require("@std/path")
 local process = require("@std/process")
 
 local project = require("@repo/project")
+local rewriteLuau = require("./lib/rewriteLuau")
 
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
@@ -72,14 +75,17 @@ local function build()
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,
 		"-o",
-		project.DARKLUA_SOURCEMAP_PATH,
+		project.BUILD_SOURCEMAP_PATH,
 	})
 
-	run("darklua", {
-		"process",
-		project.SOURCE_PATH,
-		project.BUILD_PATH,
+	local sourcemap: unknown = json.deserialize(fs.readFileToString(project.BUILD_SOURCEMAP_PATH))
+	local rewriter = rewriteLuau.create({
+		repoPath = path.format(process.cwd()),
+		sourcemap = sourcemap :: rewriteLuau.SourcemapNode,
+		globalNames = {},
+		globalValues = {},
 	})
+	rewriteLuau.rewriteFolder(rewriter, path.resolve(project.SOURCE_PATH), project.BUILD_PATH)
 
 	if channel == "prod" then
 		rmdir(`{project.BUILD_PATH}/test-utils`)
