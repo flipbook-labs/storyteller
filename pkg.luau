@@ -2,6 +2,23 @@ return {
 	package = {
 		name = "Storyteller",
 		version = "1.12.0",
+		-- What the Lute package of Storyteller ships. Specs, stories and benchmarks
+		-- stay out, and so do `e2e` and `test-utils`, which the prod build also
+		-- prunes from `dist/`. `files` skips hidden files unless a pattern names
+		-- them, so `src/.config.luau` is listed on its own.
+		files = {
+			"/src/**",
+			"!/src/e2e/**",
+			"!/src/test-utils/**",
+			"!**/*.spec.luau",
+			"!**/*.story.luau",
+			"!**/*.storybook.luau",
+			"!**/*.bench.luau",
+			"!**/jest.config.luau",
+			"/src/.config.luau",
+			"/README.md",
+			"/LICENSE",
+		},
 		dependencies = {
 			["flipbook-batteries"] = {
 				rev = "v0.13.0",
