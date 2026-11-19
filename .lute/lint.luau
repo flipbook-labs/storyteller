@@ -1,5 +1,5 @@
-local CodeQuality = require("@luaupkg/CodeQuality@v0.3.0")
-local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
+local CodeQuality = require("@code-quality")
+local FlipbookBatteries = require("@flipbook-batteries")
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
