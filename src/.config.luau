@@ -4,7 +4,7 @@
 -- inside their own repo, and Luau resolves each alias from the nearest config
 -- that defines it. So `@root` keeps pointing here rather than at the
 -- consumer's `@root`. The repo-root `.config.luau` doesn't ship, because its
--- generated aliases point at packages in this machine's Loom store. Aliases
+-- aliases point at folders in this repo, like `.lpm` and `Packages`. Aliases
 -- for dependencies, like `@pkg` for the Wally packages, come from the
 -- consumer's config.
 return {
