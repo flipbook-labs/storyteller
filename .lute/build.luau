@@ -81,13 +81,6 @@ local function build()
 		project.BUILD_PATH,
 	})
 
-	-- `src/.config.luau` holds the aliases the Lute package of Storyteller needs
-	-- (see `files` in `pkg.luau`), and Roblox has no use for it. Darklua copies
-	-- it into `dist/`, where Rojo would turn it into a ModuleScript named
-	-- `.config`, so it's removed before the model and Wally package are built.
-	-- `build.project.json` ignores the original in `src/` for the same reason.
-	fs.remove(`{project.BUILD_PATH}/.config.luau`)
-
 	if channel == "prod" then
 		rmdir(`{project.BUILD_PATH}/test-utils`)
 		rmdir(`{project.BUILD_PATH}/e2e`)

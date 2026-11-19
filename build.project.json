@@ -1,8 +1,5 @@
 {
   "name": "Packages",
-  "globIgnorePaths": [
-    "src/.config.luau"
-  ],
   "tree": {
     "$path": "Packages",
     "Storyteller": {
