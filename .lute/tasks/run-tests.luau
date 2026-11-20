@@ -13,10 +13,8 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 
 local root = ReplicatedStorage.Packages.Storyteller
 
--- selene: allow(global_usage)
 -- lute-lint-ignore(global_usage)
 _G.__DEV__ = true
--- selene: allow(global_usage)
 -- lute-lint-ignore(global_usage)
 _G.__ROACT_17_MOCK_SCHEDULER__ = true
 
@@ -29,9 +27,7 @@ Vide.strict = true
 local status, result = Jest.runCLI(root, {
 	verbose = false,
 	ci = false,
-	-- selene: allow(global_usage)
 	testPathPattern = _G.__JEST_TEST_PATH_PATTERN__,
-	-- selene: allow(global_usage)
 	testMatch = if _G.RUN_BENCHMARKS then { "**/*.bench" } else nil,
 }, { root }):awaitStatus()
 

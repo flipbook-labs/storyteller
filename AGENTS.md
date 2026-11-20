@@ -12,7 +12,7 @@ Complete every step below before you write any code, tests, changelog entries, o
    rokit install && lute run install
    ```
 
-   `rokit install` puts `lute`, `luau-lsp`, `stylua`, and `selene` on PATH. `lute run install` fetches the Lute tooling dependencies declared in [`pkg.luau`](pkg.luau) into the Loom store, `~/.loom/store`, and the Roblox runtime dependencies from Wally into `Packages/`. The shared skills library is a dev dependency, so it lands in the store for you to read but is not shipped with the package. Without this step the skills are not on disk.
+   `rokit install` puts `lute`, `luau-lsp`, and `stylua` on PATH. `lute run install` fetches the Lute tooling dependencies declared in [`pkg.luau`](pkg.luau) into the Loom store, `~/.loom/store`, and the Roblox runtime dependencies from Wally into `Packages/`. The shared skills library is a dev dependency, so it lands in the store for you to read but is not shipped with the package. Without this step the skills are not on disk.
 
 2. Find the skills folder: it's the `agent-skills` alias in [`.config.luau`](.config.luau). Use that path wherever `<skills>` appears below.
 
@@ -37,7 +37,7 @@ Skills are living documents. When your work here contradicts a skill (a renamed 
 
 ## Repo specifics
 
-- Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
+- Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, and `stylua` on PATH.
 - `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
 - The build copies `src/` to `dist/` and runs [CodeQuality](https://github.com/flipbook-labs/code-quality)'s code mods over the copy with `lute transform`. `convertRequire` rewrites string requires into Roblox instance paths, and the rest fold constants and remove code that can never run. Wally publishes from `dist/`. Never edit `dist/` by hand.
