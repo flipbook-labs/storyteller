@@ -143,7 +143,12 @@ do
 
 	local function installWallyPackages()
 		run("wally", { "install" })
-		run("rojo", { "sourcemap", project.ROJO_BUILD_PROJECT, "-o", "sourcemap.json" })
+		run("rojo", {
+			"sourcemap",
+			project.ROJO_BUILD_PROJECT,
+			"-o",
+			"sourcemap.json",
+		})
 		run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
 	end
 

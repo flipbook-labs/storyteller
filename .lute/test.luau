@@ -55,9 +55,18 @@ local placePath = args:get("place")
 assert(typeof(placePath) == "string", `bad value for place (string expected, got {typeof(placePath)})`)
 
 if not isRunOnly then
-	run("lute", { "test", project.SCRIPTS_PATH })
-	run("lute", { "run", "build", "--channel", "dev" })
-	run("rojo", { "build", project.ROJO_TESTS_PROJECT, "--output", placePath })
+	run("lute", {
+		"run",
+		"build",
+		"--channel",
+		"dev",
+	})
+	run("rojo", {
+		"build",
+		project.ROJO_TESTS_PROJECT,
+		"--output",
+		placePath,
+	})
 	print(`Built test place: {placePath}`)
 end
 

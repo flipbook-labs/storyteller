@@ -1,13 +1,13 @@
+local CodeQuality = require("@code-quality")
 local FlipbookBatteries = require("@flipbook-batteries")
 local cli = require("@batteries/cli")
 local fs = require("@std/fs")
-local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
 local project = require("@repo/project")
-local rewriteLuau = require("./lib/rewriteLuau")
 
+local copyInto = FlipbookBatteries.copyInto
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
 local mkdir = FlipbookBatteries.mkdir
@@ -65,12 +65,33 @@ local function buildWallyPackage()
 	fs.remove(archivePath)
 end
 
+-- The build turns a copy of `src/` in `dist/` into code Roblox can run, using
+-- CodeQuality's code mods. `lute transform` runs one mod over every file and
+-- rewrites them in place. `convertRequire` turns string requires into
+-- `require(script...)` paths. The rest fold constant expressions and remove the
+-- code that can never run. They go in the order CodeQuality's README lists,
+-- since a later mod cleans up what an earlier one leaves behind, such as the
+-- empty `do ... end` blocks `removeEmptyDo` removes.
+local function transform(mod: string, ...: string)
+	run("lute", {
+		"transform",
+		path.format(path.join(CodeQuality.MODS_PATH, `{mod}.luau`)),
+		project.BUILD_PATH,
+		"--",
+		...,
+	})
+end
+
 local function build()
 	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
 		rmdir(project.BUILD_PATH)
 	end
-	mkdir(project.BUILD_PATH)
+	copyInto(project.SOURCE_PATH, project.BUILD_PATH)
 
+	-- `convertRequire` reads which instance each file becomes from a Rojo
+	-- sourcemap of the build project. The sourcemap names files in `src/`, so
+	-- `--sourceFolder` and `--buildFolder` tell the mod to look up each file in
+	-- `dist/` by its path in `src/`.
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,
@@ -78,14 +99,21 @@ local function build()
 		project.BUILD_SOURCEMAP_PATH,
 	})
 
-	local sourcemap: unknown = json.deserialize(fs.readFileToString(project.BUILD_SOURCEMAP_PATH))
-	local rewriter = rewriteLuau.create({
-		repoPath = path.format(process.cwd()),
-		sourcemap = sourcemap :: rewriteLuau.SourcemapNode,
-		globalNames = {},
-		globalValues = {},
-	})
-	rewriteLuau.rewriteFolder(rewriter, path.resolve(project.SOURCE_PATH), project.BUILD_PATH)
+	transform(
+		"convertRequire",
+		"--sourcemap",
+		project.BUILD_SOURCEMAP_PATH,
+		"--sourceFolder",
+		project.SOURCE_PATH,
+		"--buildFolder",
+		project.BUILD_PATH
+	)
+	transform("computeExpression")
+	transform("removeUnusedIfBranch")
+	transform("removeUnusedWhile")
+	transform("filterAfterEarlyReturn")
+	transform("removeNilDeclaration")
+	transform("removeEmptyDo")
 
 	if channel == "prod" then
 		rmdir(`{project.BUILD_PATH}/test-utils`)

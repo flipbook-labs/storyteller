@@ -14,8 +14,10 @@ local Vide = require(ReplicatedStorage.Packages.Vide)
 local root = ReplicatedStorage.Packages.Storyteller
 
 -- selene: allow(global_usage)
+-- lute-lint-ignore(global_usage)
 _G.__DEV__ = true
 -- selene: allow(global_usage)
+-- lute-lint-ignore(global_usage)
 _G.__ROACT_17_MOCK_SCHEDULER__ = true
 
 Charm.flags.frozen = true
@@ -23,6 +25,7 @@ Charm.flags.strict = true
 
 Vide.strict = true
 
+-- lute-lint-ignore(global_usage)
 local status, result = Jest.runCLI(root, {
 	verbose = false,
 	ci = false,
