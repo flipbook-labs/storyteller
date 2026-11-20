@@ -89,9 +89,10 @@ local function build()
 	copyInto(project.SOURCE_PATH, project.BUILD_PATH)
 
 	-- `convertRequire` reads which instance each file becomes from a Rojo
-	-- sourcemap of the build project. The sourcemap names files in `src/`, so
-	-- `--sourceFolder` and `--buildFolder` tell the mod to look up each file in
-	-- `dist/` by its path in `src/`.
+	-- sourcemap of `build.project.json`, which mounts `src/` as `Storyteller` inside `Packages`.
+	-- The sourcemap names files in `src/`, so `--sourceFolder` and
+	-- `--buildFolder` tell the mod to look up each file in `dist/` by its path
+	-- in `src/`.
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,
