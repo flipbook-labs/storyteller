@@ -10,14 +10,19 @@
   "rules": [
     {
       "id": "consumer-impact",
-      "rule": "When a change alters what Storyteller exports from src/init.luau, including function signatures, return shapes, exported types, or documented behavior, check how flipbook-labs/flipbook uses it and report anything that would break. A breaking change needs a .changes/ entry with a major bump and the breaking flag.",
-      "scope": ["src/**/*.luau"],
+      "rule": "When a change alters what Storyteller exports from src/init.luau, including function signatures, return shapes, exported types, or documented behavior, or changes what the build ships (.lute/build.luau prunes files from dist/, and default.project.json packages dist/), check how flipbook-labs/flipbook uses it and report anything that would break. A breaking change needs a .changes/ entry with a major bump and the breaking flag.",
+      "scope": [
+        "src/**/*.luau",
+        ".lute/build.luau",
+        "default.project.json",
+        "wally.toml"
+      ],
       "severity": "high"
     },
     {
       "id": "module-loader-boundary",
-      "rule": "When a change calls into ModuleLoader or uses a type it exports, compare the call with its source in context: function names, arguments, return shapes, and types. Its default branch can be ahead of the version pinned in wally.toml, so report a mismatch as a question to confirm unless the pinned version clearly has the same API.",
-      "scope": ["src/**/*.luau"],
+      "rule": "When a change calls into ModuleLoader or uses a type it exports, compare the call with its source in context: function names, arguments, return shapes, and types. Its default branch can be ahead of the version pinned in wally.toml, so report a mismatch as a question to confirm unless the pinned version clearly has the same API. When wally.toml changes a pin, recheck existing uses of that package against its source.",
+      "scope": ["src/**/*.luau", "wally.toml"],
       "severity": "high"
     },
     {
@@ -39,7 +44,7 @@
     },
     {
       "id": "spec-coverage",
-      "rule": "New or changed logic needs a colocated *.spec.luau test that would fail without the change. Flag tests that only restate what the implementation returns, mock the module under test, or cannot fail.",
+      "rule": "New or changed production behavior needs a test that would fail without the change, either a colocated *.spec.luau or existing integration coverage. Stories, test fixtures, and refactors that keep behavior the same don't need new specs. Flag tests that only restate what the implementation returns, mock the module under test, or cannot fail.",
       "scope": ["src/**/*.luau"],
       "severity": "medium"
     },
@@ -52,7 +57,14 @@
     {
       "id": "no-install-patches",
       "rule": "Do not add new install-time patches to upstream packages. Flag a change that rewrites files under Packages/ after they are installed. A problem in an upstream package gets an issue filed with that package instead.",
-      "scope": [".lute/**", "pkg.luau", "wally.toml", "rokit.toml"],
+      "scope": [
+        ".lute/**",
+        "pkg.luau",
+        "wally.toml",
+        "rokit.toml",
+        ".github/workflows/**",
+        ".github/actions/**"
+      ],
       "severity": "medium"
     },
     {
