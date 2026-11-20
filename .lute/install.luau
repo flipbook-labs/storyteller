@@ -1,30 +1,9 @@
 local fs = require("@std/fs")
-local json = require("@std/json")
 local luau = require("@std/luau")
 local path = require("@std/path")
 local process = require("@std/process")
 
 local project = require("@repo/project")
-
-local function getDescendants(dirPath: path.Pathlike): { path.Path }
-	if fs.type(dirPath) ~= "dir" then
-		return {}
-	end
-
-	local function reduce(rootPath: path.Path, accumulator: { path.Path }): { path.Path }
-		for _, child in fs.listDirectory(rootPath) do
-			local childPath = path.join(rootPath, child.name)
-			table.insert(accumulator, childPath)
-
-			if child.type == "dir" then
-				reduce(childPath, accumulator)
-			end
-		end
-		return accumulator
-	end
-
-	return reduce(path.resolve(dirPath), {})
-end
 
 local CONFIG_PATH = ".config.luau"
 local LOCKFILE_PATH = "pkg.lock.luau"
@@ -135,11 +114,11 @@ do
 end
 
 do
+	local CodeQuality = require("@code-quality")
 	local FlipbookBatteries = require("@flipbook-batteries")
 
 	local run = FlipbookBatteries.run
 	local find = FlipbookBatteries.find
-	local findAndReplace = FlipbookBatteries.findAndReplace
 
 	local function installWallyPackages()
 		run("wally", { "install" })
@@ -152,10 +131,13 @@ do
 		run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
 	end
 
-	-- Some of our Wally packages are written with string requires which are not
-	-- yet supported by ModuleLoader or Jest. To allow us to still use these
-	-- packages, this function patches them using darklua to resolve the string
-	-- requires to Roblox ones
+	-- Some of our Wally packages are written with string requires, which
+	-- ModuleLoader and Jest can't load yet (flipbook-labs/module-loader#70).
+	-- CodeQuality's `convertRequire` code mod rewrites them in place into
+	-- instance requires. It looks each module up in the sourcemap that
+	-- `installWallyPackages` writes, which covers `Packages/_Index`. vide loads
+	-- a mock from `../test/mock` only outside Roblox and doesn't ship it, so
+	-- that require stays as it is.
 	local function patchStringRequires()
 		local packages = {
 			"^charm$",
@@ -163,46 +145,26 @@ do
 			"^vide$",
 		}
 
+		-- `run` joins its arguments into one shell command, so the folders go
+		-- in as one space-separated argument.
+		local sourceFolders: { string } = {}
 		for _, package in packages do
 			local packageRoot = find(`{project.PACKAGES_PATH}/_Index`, package)[1]
-
 			assert(packageRoot, `no package found matching "{package}"`)
-
 			print(`patching {packageRoot}`)
-
-			local darkluaConfig = {
-				process = {
-					{
-						rule = "convert_require",
-						current = {
-							name = "luau",
-						},
-						target = {
-							name = "roblox",
-							indexing_style = "property",
-						},
-					},
-				},
-			}
-
-			local handle = fs.open(`{packageRoot}/.darklua.json`, "w+")
-			fs.write(handle, json.serialize(darkluaConfig, true))
-			fs.close(handle)
-
-			run("darklua", { "process", "src", "src" }, {
-				cwd = packageRoot,
-			})
-
-			-- Darklua doesn't seem to handle `./Foo` paths without a sourcemap,
-			-- and getting the sourcemap working is proving difficult. So the
-			-- following just does a quick pass to convert `"./Foo"` into
-			-- `script.Parent.Foo`
-			for _, descendant in getDescendants(packageRoot) do
-				if path.extname(descendant) == ".luau" then
-					findAndReplace(descendant, `require%("%./(%w+)"%)`, "require(script.Parent.%1)")
-				end
-			end
+			table.insert(sourceFolders, path.format(path.join(packageRoot, "src")))
 		end
+
+		run("lute", {
+			"transform",
+			path.format(path.join(CodeQuality.MODS_PATH, "convertRequire.luau")),
+			table.concat(sourceFolders, " "),
+			"--",
+			"--sourcemap",
+			"sourcemap.json",
+			"--ignore",
+			"../test/mock",
+		})
 	end
 
 	installWallyPackages()
