@@ -1,44 +1,64 @@
+# [Storyteller](https://flipbook-labs.github.io/storyteller)
 
-# Storyteller
+Storyteller finds, loads, and renders UI stories in Roblox, and powers the [Flipbook](https://github.com/flipbook-labs/flipbook) storybook plugin. It loads stories without Roblox's `require` cache, so a storybook app picks up edits without restarting.
 
-[![CI](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml/badge.svg)](https://github.com/flipbook-labs/storyteller/actions/workflows/ci.yml)
+API reference lives at [flipbook-labs.github.io/storyteller](https://flipbook-labs.github.io/storyteller/api/Storyteller).
 
-Storyteller is a package for the discovery and rendering of UI stories and powers our storybook plugin [Flipbook](https://github.com/flipbook-labs/flipbook).
+## Install
 
-The API for this package focuses around...
-1. Validation for the Story format and Storybook format
-2. Discvoery of valid ModuleScripts with `.story` and `.storybook` extensions
-3. Loading of Stories and Storybooks into a sandbox with cacheless module requiring
-4. Rendering stories into a container with lifecycle callbacks for updating and unmounting
-
-There also exist React hooks for ease of integration into storybook apps.
-
-## Features
-
-* Discover Storybooks and their Story files
-* Render stories written in React, Roact, Fusion, Iris, and any generic Roblox Gui.
-
-## Installation
-
-### Wally
+With Wally:
 
 ```toml
 [dependencies]
-Storyteller = "flipbook-labs/storyteller@x.x.x"
+Storyteller = "flipbook-labs/storyteller@1.12.0"
 ```
 
-### Roblox Model
+With Lute, add this to `pkg.luau` and run `lute pkg install --vendor`:
 
-Download a copy of the rbxm from the [latest release](https://github.com/flipbook-labs/storyteller/releases/latest) under the Assets section, then drag and drop the file into Roblox Studio to add it to your experience.
+```luau
+storyteller = {
+	rev = "v1.12.0",
+	sourceKind = "github",
+	source = "https://github.com/flipbook-labs/storyteller",
+},
+```
 
-## Resources
+## Use
 
-API documentation is available on [the official documentation website](https://flipbook-labs.github.io/storyteller).
+Find a storybook, load one of its stories, and render it into any Instance:
+
+```luau
+local Storyteller = require("@pkg/Storyteller")
+
+local storybookModule = Storyteller.findStorybookModules(game)[1]
+local storybook = Storyteller.loadStorybookModule(storybookModule)
+
+local storyModule = Storyteller.findStoryModulesForStorybook(storybook)[1]
+local story = Storyteller.loadStoryModule(storyModule, storybook)
+
+local container = Instance.new("ScreenGui")
+local lifecycle = Storyteller.render(container, story)
+lifecycle.unmount()
+```
+
+The load functions throw when a module fails to load, so wrap them in `pcall` in real code. Storybook apps built with React can use `StorytellerProvider`, `useStorybooks`, `useStory`, and `StoryContainer` instead. See the [API reference](https://flipbook-labs.github.io/storyteller/api/Storyteller) for every function.
+
+## Story format
+
+Storyteller treats any ModuleScript ending in `.storybook` as a storybook and any ending in `.story` as a story. See the [story format reference](https://flipbook-labs.github.io/storyteller/reference/story-format) for the fields each one takes.
+
+## Renderers
+
+Stories can render plain Roblox Instances, React, Roact, Fusion, Vide, or Iris. Storyteller picks the renderer from the packages a story or storybook provides. See [Story renderers](https://flipbook-labs.github.io/storyteller/contributing/story-renderers) to add one.
+
+## Compatibility
+
+Storyteller can load some stories written for [UI Labs](https://pepeeltoro41.github.io/ui-labs/) and [Hoarcekat](https://github.com/Kampfkarren/hoarcekat/).
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) to set up your fork and open a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-The contents of this repository are available under the MIT License. For full license text, see [LICENSE](LICENSE).
+MIT.
