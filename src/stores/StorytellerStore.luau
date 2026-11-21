@@ -25,6 +25,7 @@ type LoadedStorybook = types.LoadedStorybook
 type UnavailableStorybook = types.UnavailableStorybook
 
 type StoryModuleRecord = StoryModuleRecordStore.StoryModuleRecord
+type StoryModuleRecords = StoryModuleRecordStore.StoryModuleRecords
 type StoryRequest = StoryModuleRecordStore.StoryRequest
 type CleanupFn = StoryModuleRecordStore.CleanupFn
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
@@ -42,7 +43,8 @@ export type StorytellerStore = {
 	getStoryModules: () -> { ModuleScript },
 	getOrphanedStoryModules: () -> { ModuleScript },
 
-	getStoryModuleRecord: (storyModule: ModuleScript) -> StoryModuleRecord?,
+	getStoryModuleRecord: (request: StoryRequest) -> StoryModuleRecord?,
+	getStoryModuleRecords: () -> StoryModuleRecords,
 	requestStoryModule: (priority: StoryModuleRequestPriority, storyRequest: StoryRequest) -> CleanupFn,
 }
 
@@ -80,6 +82,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 	local recordStore = StoryModuleRecordStore.new()
 	self.getStoryModuleRecord = recordStore.getRecord
+	self.getStoryModuleRecords = recordStore.getRecords
 	self.requestStoryModule = recordStore.request
 
 	local getOrphanedStoryModules = Charm.computed(function(): { ModuleScript }
