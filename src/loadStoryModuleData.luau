@@ -2,6 +2,10 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local dropUnmigratableControls = require("@root/roblox-internal/dropUnmigratableControls")
+local isComponentClass = require("@root/roblox-internal/isComponentClass")
+local isElement = require("@root/roblox-internal/isElement")
+local isFunctionComponentStory = require("@root/roblox-internal/isFunctionComponentStory")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
@@ -10,6 +14,7 @@ local types = require("@root/types")
 type LoadedStory<T> = types.LoadedStory<T>
 type LoadedStorybook = types.LoadedStorybook
 type ModuleLoader = ModuleLoader.ModuleLoader
+type StoryControls = types.StoryControls
 type StoryControlsSchema = types.StoryControlsSchema
 type StoryDefinitionSource = types.StoryDefinitionSource
 type StoryGroupSource = types.StoryGroupSource
@@ -61,6 +66,11 @@ local function parseStoryEntry(
 	fallbackDescription: string
 ): StoryDefinitionSource
 	local definition: unknown = if typeof(entry) == "table" then entry else { story = entry }
+	do -- Roblox internal. This behavior may be removed without notice.
+		if isElement(entry) or isComponentClass(entry) then
+			definition = { story = entry }
+		end
+	end
 	local isValid, message = types.IStoryDefinitionSource(definition)
 	if not isValid then
 		local fields = definition :: UnknownDict
@@ -212,13 +222,68 @@ local function loadStoryModuleData<T>(
 		error(`Failed to load story {storyModule:GetFullName()}. Error: {err}`)
 	end
 
+	do -- Roblox internal. This behavior may be removed without notice.
+		if
+			typeof(requiredStory) == "function"
+			and isFunctionComponentStory(requiredStory :: (...any) -> ...any, loadedStorybook.packages)
+		then
+			requiredStory = {
+				story = requiredStory,
+			}
+		end
+
+		if isElement(requiredStory) or isComponentClass(requiredStory) then
+			requiredStory = {
+				story = requiredStory,
+			}
+		end
+	end
+
 	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)
 	local loadedStories: { LoadedStory<T> } = {}
 
 	for _, normalizedStory in storyModuleData.stories do
 		local controls = normalizedStory.controls :: StoryControlsSchema?
+		local legacyControlValues: StoryControls? = nil
+		local droppedControls: { [string]: unknown }? = nil
 		if controls then
-			controls = migrateControlsSchema(controls)
+			local wasMigrated, migratedControls = pcall(migrateControlsSchema, controls)
+			if wasMigrated then
+				controls = migratedControls
+			else
+				do -- Roblox internal. This behavior may be removed without notice.
+					controls, legacyControlValues, droppedControls = dropUnmigratableControls(controls, storyModule)
+				end
+			end
+		end
+
+		local story = normalizedStory.story
+		local packages = normalizedStory.packages or loadedStorybook.packages
+		do -- Roblox internal. This behavior may be removed without notice.
+			if isElement(story) then
+				-- `mapStory` wraps a component, so Developer Storybook renders
+				-- an element through a component that returns it.
+				local element = story
+				story = function()
+					return element
+				end
+			end
+
+			-- A Developer Storybook story that sets some of the legacy
+			-- packages takes the rest from its storybook, so a story with only
+			-- `roact = React` still renders with the storybook's ReactRoblox.
+			local fields = normalizedStory.legacyPassthroughFields
+			if fields.packages == nil and (fields.roact or fields.react or fields.reactRoblox) then
+				local storybookFields = loadedStorybook :: any
+				local storybookPackages = loadedStorybook.packages
+				packages = migrateLegacyPackages({
+					roact = fields.roact or storybookFields.roact,
+					react = fields.react or storybookFields.react,
+					reactRoblox = fields.reactRoblox
+						or storybookFields.reactRoblox
+						or (storybookPackages and storybookPackages.ReactRoblox),
+				})
+			end
 		end
 
 		local loadedStory: LoadedStory<T> = {
@@ -226,13 +291,20 @@ local function loadStoryModuleData<T>(
 			name = normalizedStory.name,
 			storybook = loadedStorybook,
 			source = storyModule,
-			story = normalizedStory.story :: T | (props: StoryProps) -> T,
-			packages = normalizedStory.packages or loadedStorybook.packages,
+			story = story :: T | (props: StoryProps) -> T,
+			packages = packages,
 			summary = normalizedStory.summary,
 			controls = controls,
 			props = normalizedStory.props,
 		}
-		table.insert(loadedStories, Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory))
+		local merged = Sift.Dictionary.merge(normalizedStory.legacyPassthroughFields, loadedStory)
+		do -- Roblox internal. This behavior may be removed without notice.
+			-- `render` passes these to the story alongside the hydrated controls.
+			merged.legacyControlValues = legacyControlValues
+			-- The dropped controls as the story declared them, for a host to report.
+			merged.droppedControls = droppedControls
+		end
+		table.insert(loadedStories, merged)
 	end
 
 	return {
