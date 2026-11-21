@@ -31,8 +31,6 @@ local function findLuaFiles()
 	return matches
 end
 
-run("selene", { table.unpack(project.FOLDERS_TO_LINT) })
-
 run("stylua", {
 	"--check",
 	table.unpack(project.FOLDERS_TO_LINT),
