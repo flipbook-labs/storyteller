@@ -1,1 +1,0 @@
-Storyteller now renders stories written with Vide and Iris, and one module can hold several named stories. Every renderer applies a storybook's `mapStory` and `mapDefinition` the same way, discovery scans each place once, and Storybooks evaluate across several frames instead of all at once.
