@@ -60,15 +60,8 @@ export type StoryPackages = {
 	[string]: any,
 }
 
--- A storybook's mapStory and mapDefinition receive stories made with whatever
--- UI library the storybook uses, and return values that library understands.
--- With `unknown`, a storybook couldn't use the story it's given without a cast.
--- #196 tracks removing this ignore.
--- lute-lint-ignore(no_any)
-type MapStoryFn = (story: any) -> (props: StoryProps) -> any
--- #197 tracks removing this ignore.
--- lute-lint-ignore(no_any)
-type MapDefinitionFn = (story: any) -> any
+type MapStoryFn = (story: unknown) -> (props: StoryProps) -> unknown
+type MapDefinitionFn = (story: unknown) -> unknown
 
 export type Storybook = {
 	storyRoots: { Instance },
