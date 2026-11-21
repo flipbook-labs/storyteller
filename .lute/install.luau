@@ -26,7 +26,7 @@ do
 end
 
 do
-	local CodeQuality = require("@lpm/code-quality@v0.6.0")
+	local CodeQuality = require("@lpm/code-quality@v0.7.0")
 	local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
 
 	local run = FlipbookBatteries.run
@@ -57,8 +57,6 @@ do
 			"^vide$",
 		}
 
-		-- `run` joins its arguments into one shell command, so the folders go
-		-- in as one space-separated argument.
 		local sourceFolders: { string } = {}
 		for _, package in packages do
 			local packageRoot = find(`{project.PACKAGES_PATH}/_Index`, package)[1]
@@ -67,15 +65,9 @@ do
 			table.insert(sourceFolders, path.format(path.join(packageRoot, "src")))
 		end
 
-		run("lute", {
-			"transform",
-			path.format(path.join(CodeQuality.MODS_PATH, "convertRequire.luau")),
-			table.concat(sourceFolders, " "),
-			"--",
-			"--sourcemap",
-			"sourcemap.json",
-			"--ignore",
-			"../test/mock",
+		CodeQuality.transform(CodeQuality.Mod.ConvertRequire, sourceFolders, {
+			sourcemap = "sourcemap.json",
+			ignore = "../test/mock",
 		})
 	end
 
