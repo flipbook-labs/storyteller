@@ -2,9 +2,22 @@ return {
 	package = {
 		name = "Storyteller",
 		version = "1.12.0",
+		files = {
+			"/src/**",
+			"!/src/e2e/**",
+			"!/src/test-utils/**",
+			"!**/*.spec.luau",
+			"!**/*.story.luau",
+			"!**/*.storybook.luau",
+			"!**/*.bench.luau",
+			"!**/jest.config.luau",
+			"/src/.config.luau",
+			"/README.md",
+			"/LICENSE",
+		},
 		dependencies = {
 			["flipbook-batteries"] = {
-				rev = "v0.13.0",
+				rev = "v0.13.1",
 				sourceKind = "github",
 				source = "https://github.com/flipbook-labs/flipbook-batteries",
 			},
