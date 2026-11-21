@@ -1,6 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local constants = require("@root/constants")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
@@ -46,6 +47,23 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	if not result.packages then
 		result.packages = migrateLegacyPackages(result)
+	end
+
+	local packages = result.packages :: { [unknown]: unknown }?
+	if packages then
+		-- Loaded storybooks get stored in Charm state, which deep-freezes
+		-- everything it can reach in Studio, but skips tables that have a
+		-- metatable. UI libraries mutate their module-level state while
+		-- rendering (React reassigns ReactCurrentDispatcher.current on every
+		-- render), so freezing has to stop at this foreign-module boundary
+		-- (flipbook-labs/storyteller#100).
+		--
+		-- The clone matters: when the storybook declares `packages` directly,
+		-- the table belongs to the author's module and may be shared between
+		-- storybooks or frozen, so we must not attach a metatable in place
+		local clone = table.clone(packages)
+		excludeFromCharmFreeze(clone)
+		result.packages = clone
 	end
 
 	if not result.name then
