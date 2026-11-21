@@ -9,7 +9,7 @@ return {
 	MODEL_FILENAME = "Storyteller.rbxm",
 
 	SOURCEMAP_PATH = "sourcemap.json",
-	DARKLUA_SOURCEMAP_PATH = "sourcemap-darklua.json",
+	BUILD_SOURCEMAP_PATH = "sourcemap-build.json",
 
 	ROJO_BUILD_PROJECT = "build.project.json",
 	ROJO_TESTS_PROJECT = "tests.project.json",
