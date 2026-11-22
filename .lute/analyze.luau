@@ -1,8 +1,9 @@
-local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local path = require("@std/path")
 local system = require("@std/system")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
 local dotenv = FlipbookBatteries.dotenv
@@ -20,6 +21,7 @@ args:parse({ ... })
 
 local globalDefsPath = path.join(system.tmpdir(), "globalTypes.d.luau")
 
+logger.debug("fetching Luau global type definitions")
 run("curl", {
 	"-s",
 	"-o",
@@ -29,6 +31,7 @@ run("curl", {
 })
 
 local function analyzeLuauSource()
+	logger.info("analyzing Lute scripts")
 	run("luau-lsp", {
 		"analyze",
 		`--defs={globalDefsPath}`,
@@ -40,6 +43,7 @@ local function analyzeLuauSource()
 end
 
 local function analyzeRobloxSource()
+	logger.info("analyzing Roblox source")
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_TESTS_PROJECT,
@@ -56,6 +60,7 @@ local function analyzeRobloxSource()
 	})
 
 	if args:has("include-build") then
+		logger.debug("including the local build in analysis")
 		run("luau-lsp", {
 			"analyze",
 			`--sourcemap={project.SOURCEMAP_PATH}`,
@@ -68,3 +73,5 @@ end
 
 analyzeLuauSource()
 analyzeRobloxSource()
+
+logger.info("analysis complete")

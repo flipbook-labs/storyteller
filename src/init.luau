@@ -1,5 +1,5 @@
 local ControlTypes = require("@self/controls/ControlTypes")
-local StorytellerContext = require("@root/react/StorytellerContext")
+local StorytellerContext = require("@self/react/StorytellerContext")
 local types = require("@self/types")
 
 --[=[
@@ -60,6 +60,11 @@ return {
 	findStorybookModules = require("@self/findStorybookModules"),
 	findStoryModulesForStorybook = require("@self/findStoryModulesForStorybook"),
 	findOrphanedStoryModules = require("@self/findOrphanedStoryModules"),
+
+	-- Discovery state
+	getLoadedStorybooks = require("@self/getLoadedStorybooks"),
+	getUnavailableStorybooks = require("@self/getUnavailableStorybooks"),
+	getOrphanedStoryModules = require("@self/getOrphanedStoryModules"),
 
 	-- Module loading
 	loadStoriesFromModule = require("@self/loadStoriesFromModule"),
