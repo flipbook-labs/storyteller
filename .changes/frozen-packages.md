@@ -4,4 +4,4 @@ category: Fixes
 kind: loading
 ---
 
-Keep a loaded storybook's and story's `packages` mutable when stored in Charm state, which deep-freezes in Studio.
+Keep loaded storybooks' and stories' `packages` mutable in Charm state. Legacy `react`/`roact` fields now load only into `packages`.
