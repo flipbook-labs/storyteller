@@ -4,4 +4,4 @@ category: Changes
 kind: docs
 ---
 
-Document the `colorMode` and `themeName` story props that hosts supply, and deprecate `theme` in favor of `colorMode`. Storyteller sets no default for either new prop, so they are `nil` unless the host supplies them. `theme` still defaults to `"Dark"`.
+Document the host-supplied `colorMode` and `themeName` story props, and deprecate `theme` in favor of `colorMode`.
