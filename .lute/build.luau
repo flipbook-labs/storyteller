@@ -1,10 +1,13 @@
-local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
-local cli = require("@batteries/cli")
+local CodeQuality = require("@lpm/code-quality@v0.7.0")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
 local process = require("@std/process")
 
+local logger = require("@repo/.lute/lib/logger")
 local project = require("@repo/project")
 
+local copyInto = FlipbookBatteries.copyInto
 local dotenv = FlipbookBatteries.dotenv
 local find = FlipbookBatteries.find
 local mkdir = FlipbookBatteries.mkdir
@@ -49,6 +52,7 @@ local PRUNED_FILE_PATTERNS = {
 }
 
 local function buildWallyPackage()
+	logger.debug("packaging for Wally")
 	rmdir(WALLY_BUILD_DIR)
 	mkdir(WALLY_BUILD_DIR)
 
@@ -63,25 +67,36 @@ local function buildWallyPackage()
 end
 
 local function build()
+	logger.info(`building for the {channel} channel`)
+
+	logger.debug("resetting the build directory")
 	if fs.exists(project.BUILD_PATH) and fs.type(project.BUILD_PATH) == "dir" then
 		rmdir(project.BUILD_PATH)
 	end
-	mkdir(project.BUILD_PATH)
+	copyInto(project.SOURCE_PATH, project.BUILD_PATH)
 
+	-- CodeQuality's build, below, turns the copy in `dist/` into code Roblox
+	-- can run. To turn a string require into a `require(script...)` path, it
+	-- has to know which Roblox instance each file becomes. It reads that from
+	-- this Rojo sourcemap of `build.project.json`, which mounts `src/` as
+	-- `Storyteller` inside `Packages`. The sourcemap names files in `src/`, so
+	-- `sourceFolder` and `buildFolder` tell the build to look up each file in
+	-- `dist/` by its path in `src/`.
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,
 		"-o",
-		project.DARKLUA_SOURCEMAP_PATH,
+		project.BUILD_SOURCEMAP_PATH,
 	})
 
-	run("darklua", {
-		"process",
-		project.SOURCE_PATH,
-		project.BUILD_PATH,
+	CodeQuality.build({
+		sourceFolder = project.SOURCE_PATH,
+		buildFolder = project.BUILD_PATH,
+		sourcemap = project.BUILD_SOURCEMAP_PATH,
 	})
 
 	if channel == "prod" then
+		logger.debug("pruning test and story files from the prod build")
 		rmdir(`{project.BUILD_PATH}/test-utils`)
 		rmdir(`{project.BUILD_PATH}/e2e`)
 
@@ -96,11 +111,14 @@ local function build()
 	run("rojo", { "build", "-o", output })
 
 	buildWallyPackage()
+
+	logger.info(`built {output}`)
 end
 
 build()
 
 if args:has("watch") then
+	logger.info("watching for changes")
 	watch({
 		roots = {
 			`{process.cwd()}/src`,

@@ -1,6 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local constants = require("@root/constants")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
 
@@ -31,6 +32,13 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
 
+	-- The loader caches this table, and a story loaded with the same loader can
+	-- require the storybook module too. The edits below go on a copy so that
+	-- story still gets the table its author wrote.
+	if typeof(result) == "table" then
+		result = table.clone(result)
+	end
+
 	do -- Roblox internal. This behavior may be removed without notice.
 		if not result.storyRoots and result.storyRoot then
 			-- Some storybooks use `storyRoot: Instance` instead of a
@@ -46,6 +54,30 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	if not result.packages then
 		result.packages = migrateLegacyPackages(result)
+	end
+
+	-- The legacy fields point at the same library tables as `packages`, but
+	-- nothing stops Charm's freeze on that path. They're dropped once migrated
+	-- so the library is reachable only through `packages`.
+	for _, field in constants.LEGACY_PACKAGE_FIELDS do
+		result[field] = nil
+	end
+
+	local packages = result.packages :: { [unknown]: unknown }?
+	if packages then
+		-- Loaded storybooks get stored in Charm state, which deep-freezes
+		-- everything it can reach in Studio, but skips tables that have a
+		-- metatable. UI libraries mutate their module-level state while
+		-- rendering (React reassigns ReactCurrentDispatcher.current on every
+		-- render), so freezing has to stop at this foreign-module boundary
+		-- (flipbook-labs/storyteller#100).
+		--
+		-- The clone matters: when the storybook declares `packages` directly,
+		-- the table belongs to the author's module and may be shared between
+		-- storybooks or frozen, so we must not attach a metatable in place
+		local clone = table.clone(packages)
+		excludeFromCharmFreeze(clone)
+		result.packages = clone
 	end
 
 	if not result.name then

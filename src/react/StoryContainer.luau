@@ -68,23 +68,31 @@ local function StoryContainer(props: {
 	end, {})
 
 	-- Main mounting and unmounting logic
-	useEffect(function()
-		local isFirstRender = prevStory == nil
-		local didStoryChange = prevStory and props.story ~= prevStory
+	useEffect(
+		function()
+			local isFirstRender = prevStory == nil
+			local didStoryChange = prevStory and props.story ~= prevStory
 
-		if isFirstRender and ref.current then
-			mount()
-			return
-		end
-
-		if didStoryChange then
-			unmount()
-
-			if ref.current and props.story then
+			if isFirstRender and ref.current then
 				mount()
+				return
 			end
-		end
-	end, { mount, unmount, props.story, prevStory } :: { unknown })
+
+			if didStoryChange then
+				unmount()
+
+				if ref.current and props.story then
+					mount()
+				end
+			end
+		end,
+		{
+			mount,
+			unmount,
+			props.story,
+			prevStory,
+		} :: { unknown }
+	)
 
 	-- Unmount when the StoryContainer does
 	useEffect(function()
@@ -92,15 +100,25 @@ local function StoryContainer(props: {
 	end, {})
 
 	-- Update when extraProps change
-	useEffect(function()
-		local didStoryChange = prevStory and props.story == prevStory
-		local didControlsChange = prevControls and props.controls ~= prevControls
-		local didExtraPropsChange = prevExtraProps and props.extraProps ~= prevExtraProps
+	useEffect(
+		function()
+			local didStoryChange = prevStory and props.story == prevStory
+			local didControlsChange = prevControls and props.controls ~= prevControls
+			local didExtraPropsChange = prevExtraProps and props.extraProps ~= prevExtraProps
 
-		if lifecycle.current and (didStoryChange or didControlsChange or didExtraPropsChange) then
-			update()
-		end
-	end, { update, props.story, prevStory, props.extraProps, prevExtraProps, props.onError } :: { unknown })
+			if lifecycle.current and (didStoryChange or didControlsChange or didExtraPropsChange) then
+				update()
+			end
+		end,
+		{
+			update,
+			props.story,
+			prevStory,
+			props.extraProps,
+			prevExtraProps,
+			props.onError,
+		} :: { unknown }
+	)
 
 	return React.createElement("Frame", {
 		Size = UDim2.fromScale(1, 1),

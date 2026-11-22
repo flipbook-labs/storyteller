@@ -4,12 +4,14 @@
 	path/git dependencies, so we have to make our own shim.
 ]]
 
-local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
+
+local logger = require("@repo/.lute/lib/logger")
 
 local run = FlipbookBatteries.run
 local copyInto = FlipbookBatteries.copyInto
@@ -110,7 +112,7 @@ local flipbookRoot = if requestedFlipbookRoot
 	else findFlipbookRoot(path.dirname(repoRoot))
 
 if flipbookRoot and fs.exists(flipbookRoot) then
-	print(`using Flipbook at {flipbookRoot}`)
+	logger.info(`using Flipbook at {flipbookRoot}`)
 else
 	error(`could not find Flipbook at {flipbookRoot}. Pass an explicit checkout with --flipbook <path>`)
 end
@@ -125,13 +127,20 @@ end
 
 local dest = path.join(packageInstallation, BUNDLE_DIR_NAME)
 
+logger.debug(`removing the existing install at {dest}`)
 fs.removeDirectory(dest, {
 	recursive = true,
 })
 
-run("lute", { "run", "build", "--channel", "dev" })
+logger.info("building Storyteller")
+run("lute", {
+	"run",
+	"build",
+	"--channel",
+	"dev",
+})
 copyInto(src, dest)
 prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
 refreshFlipbookPackageTypes(flipbookRoot, packageInstallation)
 
-print(`successfully installed to {dest}`)
+logger.info(`successfully installed to {dest}`)

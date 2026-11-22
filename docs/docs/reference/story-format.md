@@ -161,18 +161,16 @@ A Story's `story` function is passed in a `StoryProps` object that contains the 
 | **Property** | **Type** | **Description** |
 | --- | --- | --- |
 | `container` | `Instance` |  |
-| `theme` | `string` | A string representing the current Roblox Studio theme. |
+| `colorMode` | `string?` | `"Light"` or `"Dark"`, supplied by the host. `nil` when the host does not supply one. |
+| `themeName` | `string?` | The app theme, such as `"Default"` or `"Kids"`, supplied by the host. `nil` when the host does not supply one. |
+| `theme` | `string` | **Deprecated.** Use `colorMode` instead. Defaults to `"Dark"` when the host does not supply one. |
 | `controls` | `StoryControls` | Defaults to an empty table. |
 
 If `props` is supplied on the Story, then the key/value pairs will be merged with `StoryProps`.
 
 ## Legacy package support
 
-:::warning
-
-A future version of Storyteller may remove this compatibility layer. It is recommended to migrate to `packages` in the meantime.
-
-:::
+:::warning A future version of Storyteller may remove this compatibility layer. It is recommended to migrate to `packages` in the meantime. :::
 
 UI libraries used to be supplied by attaching them as properties to a Story or Storybook. This has been superseded by the `packages` object, which acts as a dedicated location to supply the packages used for rendering Stories.
 

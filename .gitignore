@@ -11,6 +11,7 @@ sourcemap*.json
 globalTypes.d.luau
 LuauPackages
 *.lock.luau
+/.lpm/
 
 # Wally
 /DevPackages
