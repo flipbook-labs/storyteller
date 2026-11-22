@@ -106,6 +106,10 @@ test("releases requested records when the consumer unmounts", function()
 	}
 	local store = StorytellerStore.get()
 	store.stop()
+	-- Holding a store lease keeps the store running through unmount. Otherwise
+	-- the store's stop() clears every record, and the assertion below would
+	-- pass even if the hook never released its request.
+	local releaseStore = store.acquire()
 
 	local function Wrapper(): React.ReactNode
 		useStoryModuleRecords({
@@ -135,10 +139,169 @@ test("releases requested records when the consumer unmounts", function()
 	end)
 	expect(store.getStoryModuleRecords()[storybook.source]).toBeUndefined()
 
+	releaseStore()
 	store.stop()
 	storybook.source:Destroy()
 	storyModule:Destroy()
 	container:Destroy()
+end)
+
+test("reads records from the new store when the provider's store changes", function()
+	local storyModule = Instance.new("ModuleScript")
+	storyModule.Name = "Swapped.story"
+	storyModule.Source = "return { story = function() end }"
+
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+	local request: StoryModuleRecordStore.StoryRequest = {
+		storyModule = storyModule,
+		storybook = storybook,
+	}
+	local firstStore = StorytellerStore.new(Instance.new("Folder"))
+	local secondStore = StorytellerStore.new(Instance.new("Folder"))
+	local currentStore = firstStore
+	local getRenderVersion, setRenderVersion = Charm.signal(0)
+
+	local function Wrapper(props): React.ReactNode
+		useSignalState(getRenderVersion)
+		return React.createElement(StorytellerContext.StorytellerProvider, {
+			store = currentStore,
+		}, props.children)
+	end
+
+	local get = renderHook(function()
+		return useStoryModuleRecords({ request })
+	end, {
+		wrapper = Wrapper,
+	})
+
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local record = firstStore.getStoryModuleRecord(request)
+		assert(record and record.stories, "expected the first store to load the record")
+	end)
+
+	act(function()
+		currentStore = secondStore
+		setRenderVersion(1)
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local expected = secondStore.getStoryModuleRecord(request)
+		assert(expected and expected.stories, "expected the second store to load the record")
+		local recordsForStorybook = get()[storybook.source]
+		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
+		expect(record).toBe(expected)
+	end)
+
+	firstStore.destroy()
+	secondStore.destroy()
+	storybook.source:Destroy()
+	storyModule:Destroy()
+end)
+
+test("reloads every module when its Storybook is replaced alongside another module", function()
+	local firstStoryModule = Instance.new("ModuleScript")
+	firstStoryModule.Name = "First.story"
+	firstStoryModule.Source = [[
+		script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
+		return { story = function() end }
+	]]
+
+	local secondStoryModule = Instance.new("ModuleScript")
+	secondStoryModule.Name = "Second.story"
+	secondStoryModule.Source = [[
+		script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
+		return { story = function() end }
+	]]
+
+	local source = Instance.new("ModuleScript")
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = source,
+		storyRoots = {},
+		packages = { Dependency = "first" },
+	}
+	local replacedStorybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = source,
+		storyRoots = {},
+		packages = { Dependency = "second" },
+	}
+	local requests: { StoryModuleRecordStore.StoryRequest } = {
+		{
+			storyModule = firstStoryModule,
+			storybook = storybook,
+		},
+		{
+			storyModule = secondStoryModule,
+			storybook = storybook,
+		},
+	}
+	local getRenderVersion, setRenderVersion = Charm.signal(0)
+	local store = StorytellerStore.new(Instance.new("Folder"))
+
+	local function Wrapper(props): React.ReactNode
+		return React.createElement(StorytellerContext.StorytellerProvider, {
+			store = store,
+		}, props.children)
+	end
+
+	local get = renderHook(function()
+		useSignalState(getRenderVersion)
+		return useStoryModuleRecords(requests)
+	end, {
+		wrapper = Wrapper,
+	})
+
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local recordsForStorybook = get()[source]
+		local record = if recordsForStorybook then recordsForStorybook[firstStoryModule] else nil
+		assert(record and record.stories, "expected the first record to load")
+	end)
+
+	act(function()
+		requests = {
+			{
+				storyModule = firstStoryModule,
+				storybook = replacedStorybook,
+			},
+			{
+				storyModule = secondStoryModule,
+				storybook = replacedStorybook,
+			},
+		}
+		setRenderVersion(1)
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local recordsForStorybook = get()[source]
+		assert(recordsForStorybook, "expected records for the replaced Storybook")
+		for _, storyModule in { firstStoryModule, secondStoryModule } do
+			local record = recordsForStorybook[storyModule]
+			assert(record and record.stories, "expected the record to reload")
+			expect(record.stories[1].packages).toEqual({ Dependency = "second" })
+		end
+	end)
+	expect(firstStoryModule:GetAttribute("LoadCount")).toBe(2)
+	expect(secondStoryModule:GetAttribute("LoadCount")).toBe(2)
+
+	store.destroy()
+	source:Destroy()
+	firstStoryModule:Destroy()
+	secondStoryModule:Destroy()
 end)
 
 test("keeps records for every Storybook that covers a module", function()
@@ -311,6 +474,8 @@ test("does not reload existing requests when requests are added or removed", fun
 		task.wait(0.1)
 	end)
 	expect(secondStoryModule:GetAttribute("LoadCount")).toBe(1)
+	expect(store.getStoryModuleRecord(firstRequest)).toBeUndefined()
+	expect(store.getStoryModuleRecord(secondRequest)).toBeDefined()
 
 	store.destroy()
 	root:Destroy()
