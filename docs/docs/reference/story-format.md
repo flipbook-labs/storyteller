@@ -158,11 +158,13 @@ Use [`loadStoriesFromModule`](/api/Storyteller#loadStoriesFromModule) to load ev
 
 A Story's `story` function is passed in a `StoryProps` object that contains the following.
 
-| **Property** | **Type**        | **Description**                                        |
-| ------------ | --------------- | ------------------------------------------------------ |
-| `container`  | `Instance`      |                                                        |
-| `theme`      | `string`        | A string representing the current Roblox Studio theme. |
-| `controls`   | `StoryControls` | Defaults to an empty table.                            |
+| **Property** | **Type**        | **Description**                                                                                                |
+| ------------ | --------------- | -------------------------------------------------------------------------------------------------------------- |
+| `container`  | `Instance`      |                                                                                                                |
+| `colorMode`  | `string?`       | `"Light"` or `"Dark"`, supplied by the host. `nil` when the host does not supply one.                          |
+| `themeName`  | `string?`       | The app theme, such as `"Default"` or `"Kids"`, supplied by the host. `nil` when the host does not supply one. |
+| `theme`      | `string`        | **Deprecated.** Use `colorMode` instead. Defaults to `"Dark"` when the host does not supply one.               |
+| `controls`   | `StoryControls` | Defaults to an empty table.                                                                                    |
 
 If `props` is supplied on the Story, then the key/value pairs will be merged with `StoryProps`.
 

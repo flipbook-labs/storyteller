@@ -18,6 +18,7 @@ For each renderer, Storyteller provides a mounting point, context, and lifecycle
 | Hoarcekat (Legacy)  | Same as `Functional (Legacy)` but the story file itself is represented by a function                                                    |
 
 Future:
+
 - [Blend](https://quenty.github.io/NevermoreEngine/api/Blend/)
 - Developer Storybook (Roblox internal)
 
@@ -33,11 +34,23 @@ When adding a new renderer, use the existing ones as reference and use the below
 
 ### Props
 
+#### colorMode
+
+`colorMode: ("Dark" | "Light")?`
+
+The color mode, supplied by hosts like Flipbook via extra props. Storyteller does not set a default, so this is `nil` when the host does not supply it.
+
+#### themeName
+
+`themeName: string?`
+
+The app theme, such as `"Default"` or `"Kids"`, supplied by hosts like Flipbook via extra props. Storyteller does not set a default, so this is `nil` when the host does not supply it.
+
 #### theme
 
 `theme: "Dark" | "Light"`
 
-Deprecated. This prop is always `"Dark"` and is only kept for backwards compatibility. Hosts like Flipbook supply the real theme themselves via extra props.
+Deprecated. Use `colorMode` instead. Storyteller sets this to `"Dark"` when the host does not supply it, so older stories that read `theme` keep working.
 
 #### container
 
