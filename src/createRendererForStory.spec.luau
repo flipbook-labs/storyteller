@@ -15,12 +15,14 @@ local ROACT_RENDERER = { kind = "Roact" }
 local REACT_RENDERER = { kind = "React" }
 local FUSION_RENDERER = { kind = "Fusion" }
 local VIDE_RENDERER = { kind = "Vide" }
+local IRIS_RENDERER = { kind = "Iris" }
 local MANUAL_RENDERER = { kind = "Manual" }
 
 local mockCreateRoactRenderer = jest.fn()
 local mockCreateReactRenderer = jest.fn()
 local mockCreateFusionRenderer = jest.fn()
 local mockCreateVideRenderer = jest.fn()
+local mockCreateIrisRenderer = jest.fn()
 local mockCreateManualRenderer = jest.fn()
 
 local createRendererForStory: typeof(require("./createRendererForStory"))
@@ -30,6 +32,7 @@ beforeEach(function()
 	mockCreateReactRenderer.mockReturnValue(REACT_RENDERER)
 	mockCreateFusionRenderer.mockReturnValue(FUSION_RENDERER)
 	mockCreateVideRenderer.mockReturnValue(VIDE_RENDERER)
+	mockCreateIrisRenderer.mockReturnValue(IRIS_RENDERER)
 	mockCreateManualRenderer.mockReturnValue(MANUAL_RENDERER)
 
 	local renderers = script.Parent.renderers
@@ -45,6 +48,9 @@ beforeEach(function()
 	end)
 	jest.mock(renderers.createVideRenderer, function()
 		return mockCreateVideRenderer
+	end)
+	jest.mock(renderers.createIrisRenderer, function()
+		return mockCreateIrisRenderer
 	end)
 	jest.mock(renderers.createManualRenderer, function()
 		return mockCreateManualRenderer
@@ -103,6 +109,14 @@ test("selects the Vide renderer when Vide is provided", function()
 	expect(mockCreateVideRenderer).toHaveBeenCalledWith(packages)
 end)
 
+test("selects the Iris renderer when Iris is provided", function()
+	local packages = { Iris = {} }
+	local renderer = createRendererForStory(createStoryWithPackages(packages))
+
+	expect(renderer).toBe(IRIS_RENDERER)
+	expect(mockCreateIrisRenderer).toHaveBeenCalledWith(packages)
+end)
+
 test("selects the Manual renderer when no packages are provided", function()
 	local renderer = createRendererForStory(createStoryWithPackages(nil))
 
@@ -124,6 +138,7 @@ test("prefers Roact over every other renderer", function()
 		ReactRoblox = {},
 		Fusion = {},
 		Vide = {},
+		Iris = {},
 	}
 	local renderer = createRendererForStory(createStoryWithPackages(packages))
 
@@ -150,6 +165,16 @@ test("prefers Fusion over Vide", function()
 	local renderer = createRendererForStory(createStoryWithPackages(packages))
 
 	expect(renderer).toBe(FUSION_RENDERER)
+end)
+
+test("prefers Vide over Iris", function()
+	local packages = {
+		Vide = {},
+		Iris = {},
+	}
+	local renderer = createRendererForStory(createStoryWithPackages(packages))
+
+	expect(renderer).toBe(VIDE_RENDERER)
 end)
 
 test("uses the storybook's packages when the story does not define its own", function()
