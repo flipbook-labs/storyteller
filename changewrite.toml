@@ -5,7 +5,9 @@ collapsed = ["Dependencies", "Internal"]
 current = "1.12.0"
 mirror = [
   { file = "wally.toml" },
-  { file = "loom.config.luau" },
+  { file = "pkg.luau" },
+  { file = "README.md", pattern = "flipbook%-labs/storyteller@([%d%.]+)" },
+  { file = "README.md", pattern = "rev = \"v([%d%.]+)\"" },
 ]
 
 [kind]
