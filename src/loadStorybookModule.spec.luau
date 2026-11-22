@@ -1,8 +1,12 @@
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local loadStorybookModule = require("./loadStorybookModule")
+local types = require("@root/types")
 
+local afterEach = JestGlobals.afterEach
+local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local test = JestGlobals.test
 local expect = JestGlobals.expect
@@ -148,5 +152,46 @@ describe("roblox internal", function()
 		local storybook = loadStorybookModule(storybookModule, loader)
 
 		expect(storybook.name).toBe("Group / Foo")
+	end)
+end)
+
+describe("frozen Charm state (Studio behavior)", function()
+	local prevFrozen: boolean = Charm.flags.frozen
+
+	beforeEach(function()
+		-- Charm only freezes state below optimization level 2, so tests run
+		-- with freezing off. Force it on to reproduce what Studio does.
+		prevFrozen = Charm.flags.frozen
+		Charm.flags.frozen = true
+	end)
+
+	afterEach(function()
+		Charm.flags.frozen = prevFrozen
+	end)
+
+	test("a loaded storybook's packages survive being stored in Charm state", function()
+		local loader = ModuleLoader.new()
+		local storybookModule = createMockStorybookModule([[
+			return {
+				storyRoots = {},
+				packages = {
+					FakeUILibrary = {
+						internalState = {},
+					},
+				},
+			}
+		]])
+
+		local storybook = loadStorybookModule(storybookModule, loader)
+
+		local getStorybook, setStorybook = Charm.signal<<types.LoadedStorybook?>>(nil)
+		setStorybook(storybook)
+
+		local stored = getStorybook()
+		assert(stored, "storybook was not stored in Charm state")
+		local packages = stored.packages
+		assert(packages, "loaded storybook has no packages")
+		expect(table.isfrozen(packages.FakeUILibrary)).toBe(false)
+		expect(table.isfrozen(packages.FakeUILibrary.internalState)).toBe(false)
 	end)
 end)

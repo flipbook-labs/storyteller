@@ -155,12 +155,19 @@ test("pass the storybook's renderer packages to the story", function()
 	]])
 
 	local story = loadStoryModule(storyModule, mockReactStorybook)
+	local reactPackages = mockReactStorybook.packages :: types.StoryPackages
+	local packages = story.packages :: types.StoryPackages
 
-	expect(story.packages).toBe(mockReactStorybook.packages)
+	expect(packages).never.toBe(reactPackages)
+	expect(packages.React).toBe(reactPackages.React)
+	expect(packages.ReactRoblox).toBe(reactPackages.ReactRoblox)
 
 	story = loadStoryModule(storyModule, mockRoactStorybook)
+	local roactPackages = mockRoactStorybook.packages :: types.StoryPackages
+	packages = story.packages :: types.StoryPackages
 
-	expect(story.packages).toBe(mockRoactStorybook.packages)
+	expect(packages).never.toBe(roactPackages)
+	expect(packages.Roact).toBe(roactPackages.Roact)
 end)
 
 test("generic failures for stories", function()
