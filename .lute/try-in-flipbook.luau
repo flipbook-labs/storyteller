@@ -83,7 +83,12 @@ local function refreshFlipbookPackageTypes(flipbookRoot: path.Path, packageInsta
 		}, true)
 	)
 
-	run("rojo", { "sourcemap", SOURCEMAP_PROJECT_FILE_NAME, "-o", SOURCEMAP_FILE_NAME }, {
+	run("rojo", {
+		"sourcemap",
+		SOURCEMAP_PROJECT_FILE_NAME,
+		"-o",
+		SOURCEMAP_FILE_NAME,
+	}, {
 		cwd = typeLinkBuildRoot,
 	})
 	run("wally-package-types", { "--sourcemap", SOURCEMAP_FILE_NAME, PACKAGES_DIR_NAME }, {
