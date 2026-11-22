@@ -15,7 +15,7 @@ include = [
 exclude = ["*"]
 
 [dependencies]
-Archivist = "flipbook-labs/archivist@0.2.0"
+Archivist = "flipbook-labs/archivist@0.3.1"
 Charm = "littensy/charm@0.11.0-rc.4"
 GreenTea = "corecii/greentea@0.4.11"
 ModuleLoader = "flipbook-labs/module-loader@0.12.0"
@@ -29,8 +29,8 @@ UILabs = "pepeeltoro41/ui-labs@2.4.2"
 Fusion = "elttob/fusion@0.2.0"
 Fusion3 = "elttob/fusion@0.3.0"
 Iris = "sirmallard/iris@2.5.1"
-Jest = "jsdotlua/jest@3.10.0"
-JestGlobals = "jsdotlua/jest-globals@3.10.0"
+Jest = "roblox/jest@3.21.0"
+JestGlobals = "roblox/jest-globals@3.21.0"
 ReactRoblox = "jsdotlua/react-roblox@17.0.2"
 Roact = "roblox/roact@1.4.4"
 RoactCompat = "jsdotlua/roact-compat@17.0.2"

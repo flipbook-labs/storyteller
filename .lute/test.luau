@@ -1,5 +1,5 @@
-local FlipbookBatteries = require("@luaupkg/FlipbookBatteries@v0.12.0")
-local cli = require("@batteries/cli")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
@@ -57,8 +57,18 @@ assert(typeof(placePath) == "string", `bad value for place (string expected, got
 
 if not isRunOnly then
 	logger.info("building the dev channel for testing")
-	run("lute", { "run", "build", "--channel", "dev" })
-	run("rojo", { "build", project.ROJO_TESTS_PROJECT, "--output", placePath })
+	run("lute", {
+		"run",
+		"build",
+		"--channel",
+		"dev",
+	})
+	run("rojo", {
+		"build",
+		project.ROJO_TESTS_PROJECT,
+		"--output",
+		placePath,
+	})
 	logger.info(`built test place: {placePath}`)
 end
 

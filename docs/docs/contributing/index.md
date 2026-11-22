@@ -42,7 +42,7 @@ If your code is not properly tested, maintainers will let you know and offer sug
 
 ## Building
 
-Part of our build process uses [darklua](https://github.com/seaofvoices/darklua) to compile our Luau source code for Roblox. This is largely to support string requires so our Storyteller source code can use the same syntax as our Lute scripts.
+Storyteller's source code uses string requires, the same syntax as our Lute scripts. The build copies `src/` to `dist/` and rewrites each string require into an instance require like `require(script.Parent.Foo)` so the build runs in Roblox.
 
 Run the following to build the project:
 
