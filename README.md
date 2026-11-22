@@ -37,7 +37,10 @@ local storyModule = Storyteller.findStoryModulesForStorybook(storybook)[1]
 local story = Storyteller.loadStoryModule(storyModule, storybook)
 
 local container = Instance.new("ScreenGui")
+container.Parent = game:GetService("StarterGui")
 local lifecycle = Storyteller.render(container, story)
+
+-- When the story closes:
 lifecycle.unmount()
 ```
 
