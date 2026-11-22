@@ -92,7 +92,9 @@ local function inheritDefaults(
 		-- supported and does not depend on `legacyPassthroughFields`.
 		packages = mergeOrNil(defaults and defaults.packages, entry.packages) or migrateLegacyPackages(source),
 		props = mergeOrNil(defaults and defaults.props, entry.props),
-		legacyPassthroughFields = source,
+		-- Legacy package fields stay out of the passthrough, because they point
+		-- at library tables that Charm would freeze outside `packages`.
+		legacyPassthroughFields = Sift.Dictionary.removeKeys(source, table.unpack(constants.LEGACY_PACKAGE_FIELDS)),
 	}
 end
 

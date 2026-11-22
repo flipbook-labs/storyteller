@@ -750,4 +750,29 @@ describe("frozen Charm state (Studio behavior)", function()
 		expect(table.isfrozen(packages.FakeUILibrary)).toBe(false)
 		expect(table.isfrozen(packages.FakeUILibrary.internalState)).toBe(false)
 	end)
+
+	test("a legacy story's library survives being stored in Charm state", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+				react = {
+					internalState = {},
+				},
+				reactRoblox = {},
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		local getStory, setStory = Charm.signal<<types.LoadedStory<unknown>?>>(nil)
+		setStory(story)
+
+		local stored = getStory()
+		assert(stored, "story was not stored in Charm state")
+		local packages = stored.packages
+		assert(packages, "loaded story has no packages")
+		local React = packages.React :: { internalState: {} }
+		expect(table.isfrozen(React)).toBe(false)
+		expect(table.isfrozen(React.internalState)).toBe(false)
+	end)
 end)

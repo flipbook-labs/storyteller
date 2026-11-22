@@ -49,6 +49,13 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		result.packages = migrateLegacyPackages(result)
 	end
 
+	-- The legacy fields point at the same library tables as `packages`, but
+	-- nothing stops Charm's freeze on that path. They're dropped once migrated
+	-- so the library is reachable only through `packages`.
+	for _, field in constants.LEGACY_PACKAGE_FIELDS do
+		result[field] = nil
+	end
+
 	local packages = result.packages :: { [unknown]: unknown }?
 	if packages then
 		-- Loaded storybooks get stored in Charm state, which deep-freezes
