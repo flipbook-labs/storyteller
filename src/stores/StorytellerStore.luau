@@ -18,6 +18,7 @@ local isOrphanedStoryModule = require("@root/isOrphanedStoryModule")
 local isStoryModule = require("@root/isStoryModule")
 local isStorybookModule = require("@root/isStorybookModule")
 local loadStorybookModule = require("@root/loadStorybookModule")
+local logger = require("@root/logger")
 local query = require("@root/stores/query")
 local types = require("@root/types")
 
@@ -142,6 +143,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		end)
 
 		if success and storybook then
+			logger.info("loaded storybook", storybookModule:GetFullName())
+
 			if storybook.packages then
 				-- The Storybook owns this map, so attach the exclusion to a clone.
 				local packages = table.clone(storybook.packages)
@@ -163,6 +166,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 				return new
 			end)
 		else
+			logger.warn("failed to load storybook", storybookModule:GetFullName(), result)
+
 			setUnavailableStorybooks(function(prev)
 				local new = table.clone(prev)
 				local index = Sift.List.findWhere(new, function(other)
@@ -189,6 +194,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function unloadStorybook(storybookModule: ModuleScript)
+		logger.debug("unloading storybook", storybookModule:GetFullName())
 		Charm.batch(function()
 			setLoadedStorybooks(function(prev)
 				return Sift.List.filter(prev, function(storybook)
@@ -242,6 +248,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function reloadStorybook(storybookModule: ModuleScript)
+		logger.debug("reloading storybook", storybookModule:GetFullName())
 		unloadStorybook(storybookModule)
 		queueStorybookModule(storybookModule)
 	end
@@ -259,6 +266,8 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 		isProcessingStorybookModules = false
 		table.clear(pendingStorybookModules)
 		table.clear(queuedStorybookModules)
+
+		logger.info("stopped")
 
 		modulesQuery.stop()
 
@@ -319,6 +328,11 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		table.insert(connections, root.Destroying:Connect(stop))
 		table.insert(connections, script.Destroying:Connect(stop))
+
+		logger.info("started", {
+			storybooks = #getStorybookModules(),
+			storyModules = #getStoryModules(),
+		})
 	end
 	self.start = start
 
@@ -354,6 +368,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 
 		stop()
 		isDestroyed = true
+		logger.debug("destroyed")
 		recordStore.destroy()
 		modulesQuery.destroy()
 	end

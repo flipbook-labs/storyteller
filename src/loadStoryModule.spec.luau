@@ -3,6 +3,7 @@
 -- #182 tracks removing this ignore.
 -- lute-lint-global-ignore(unused_variable)
 
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
 local loadStoriesFromModule = require("./loadStoriesFromModule")
@@ -154,12 +155,19 @@ test("pass the storybook's renderer packages to the story", function()
 	]])
 
 	local story = loadStoryModule(storyModule, mockReactStorybook)
+	local reactPackages = mockReactStorybook.packages :: types.StoryPackages
+	local packages = story.packages :: types.StoryPackages
 
-	expect(story.packages).toBe(mockReactStorybook.packages)
+	expect(packages).never.toBe(reactPackages)
+	expect(packages.React).toBe(reactPackages.React)
+	expect(packages.ReactRoblox).toBe(reactPackages.ReactRoblox)
 
 	story = loadStoryModule(storyModule, mockRoactStorybook)
+	local roactPackages = mockRoactStorybook.packages :: types.StoryPackages
+	packages = story.packages :: types.StoryPackages
 
-	expect(story.packages).toBe(mockRoactStorybook.packages)
+	expect(packages).never.toBe(roactPackages)
+	expect(packages.Roact).toBe(roactPackages.Roact)
 end)
 
 test("generic failures for stories", function()
@@ -345,7 +353,7 @@ describe("multiple stories", function()
 		expect(story.name).toBe("First")
 	end)
 
-	test("rejects duplicate story ids", function()
+	test("rejects duplicate explicit story ids", function()
 		local storyModule = createMockStoryModule([[
 			return {
 				stories = {
@@ -357,7 +365,37 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow("duplicated")
+		end).toThrow('Story id "duplicate" is duplicated')
+	end)
+
+	test("explains when array story names collide", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					{ name = "Duplicate", story = function() end },
+					{ name = "Duplicate", story = function() end },
+				}
+			}
+		]])
+
+		expect(function()
+			loadStoriesFromModule(storyModule, mockPlainStorybook)
+		end).toThrow('Two Stories named "Duplicate" collide. Rename one Story or give them distinct `id` values.')
+	end)
+
+	test("allows dictionary stories with distinct keys to share a name", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				stories = {
+					first = { name = "Shared", story = function() end },
+					second = { name = "Shared", story = function() end },
+				}
+			}
+		]])
+
+		local stories = loadStoriesFromModule(storyModule, mockPlainStorybook)
+		expect(stories[1]).toMatchObject({ id = "first", name = "Shared" })
+		expect(stories[2]).toMatchObject({ id = "second", name = "Shared" })
 	end)
 
 	test("rejects modules that define both story and stories", function()
@@ -696,4 +734,73 @@ test("rejects malformed props", function()
 	expect(function()
 		loadStoryModule(storyModule, mockPlainStorybook)
 	end).toThrow("Story is malformed")
+end)
+
+describe("frozen Charm state (Studio behavior)", function()
+	local prevFrozen: boolean = Charm.flags.frozen
+
+	beforeEach(function()
+		-- Charm only freezes state below optimization level 2, so tests run
+		-- with freezing off. Force it on to reproduce what Studio does.
+		prevFrozen = Charm.flags.frozen
+		Charm.flags.frozen = true
+	end)
+
+	afterEach(function()
+		Charm.flags.frozen = prevFrozen
+	end)
+
+	test("a loaded story's packages survive being stored in Charm state", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+				packages = {
+					FakeUILibrary = {
+						internalState = {},
+					},
+				},
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		-- Hosts like Flipbook keep the loaded story in Charm state, which
+		-- deep-freezes everything it can reach. UI libraries mutate their
+		-- module-level state while rendering, so the story's packages must
+		-- stay mutable even after being stored.
+		local getStory, setStory = Charm.signal<<types.LoadedStory<unknown>?>>(nil)
+		setStory(story)
+
+		local stored = getStory()
+		assert(stored, "story was not stored in Charm state")
+		local packages = stored.packages
+		assert(packages, "loaded story has no packages")
+		expect(table.isfrozen(packages.FakeUILibrary)).toBe(false)
+		expect(table.isfrozen(packages.FakeUILibrary.internalState)).toBe(false)
+	end)
+
+	test("a legacy story's library survives being stored in Charm state", function()
+		local storyModule = createMockStoryModule([[
+			return {
+				story = function() end,
+				react = {
+					internalState = {},
+				},
+				reactRoblox = {},
+			}
+		]])
+
+		local story = loadStoryModule(storyModule, mockPlainStorybook)
+
+		local getStory, setStory = Charm.signal<<types.LoadedStory<unknown>?>>(nil)
+		setStory(story)
+
+		local stored = getStory()
+		assert(stored, "story was not stored in Charm state")
+		local packages = stored.packages
+		assert(packages, "loaded story has no packages")
+		local React = packages.React :: { internalState: {} }
+		expect(table.isfrozen(React)).toBe(false)
+		expect(table.isfrozen(React.internalState)).toBe(false)
+	end)
 end)
