@@ -194,6 +194,10 @@ test("reads records from the new store when the provider's store changes", funct
 	end)
 
 	waitFor(function()
+		-- Flush renders the store schedules after its deferred load publishes.
+		act(function()
+			task.wait()
+		end)
 		local expected = secondStore.getStoryModuleRecord(request)
 		assert(expected and expected.stories, "expected the second store to load the record")
 		local recordsForStorybook = get()[storybook.source]
@@ -287,6 +291,10 @@ test("reloads every module when its Storybook is replaced alongside another modu
 	end)
 
 	waitFor(function()
+		-- Flush renders the store schedules after its deferred load publishes.
+		act(function()
+			task.wait()
+		end)
 		local recordsForStorybook = get()[source]
 		assert(recordsForStorybook, "expected records for the replaced Storybook")
 		for _, storyModule in { firstStoryModule, secondStoryModule } do
