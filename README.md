@@ -1,4 +1,4 @@
-# [Storyteller](https://flipbook-labs.github.io/storyteller)
+# Storyteller
 
 Storyteller finds, loads, and renders UI stories in Roblox, and powers the [Flipbook](https://github.com/flipbook-labs/flipbook) storybook plugin. It loads stories without Roblox's `require` cache, so a storybook app picks up edits without restarting.
 
