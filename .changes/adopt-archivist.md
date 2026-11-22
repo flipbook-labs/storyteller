@@ -4,4 +4,4 @@ category: Changes
 kind: loading
 ---
 
-Route StorytellerStore lifecycle and repository script logs through Archivist.
+Log StorytellerStore activity through Archivist. Set `_G.ENABLE_STORYTELLER_LOGS = true` to show it in Studio Output.
