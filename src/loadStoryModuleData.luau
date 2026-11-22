@@ -92,7 +92,9 @@ local function inheritDefaults(
 		-- supported and does not depend on `legacyPassthroughFields`.
 		packages = mergeOrNil(defaults and defaults.packages, entry.packages) or migrateLegacyPackages(source),
 		props = mergeOrNil(defaults and defaults.props, entry.props),
-		legacyPassthroughFields = source,
+		-- Legacy package fields stay out of the passthrough, because they point
+		-- at library tables that Charm would freeze outside `packages`.
+		legacyPassthroughFields = Sift.Dictionary.removeKeys(source, table.unpack(constants.LEGACY_PACKAGE_FIELDS)),
 	}
 end
 
@@ -148,9 +150,20 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	local normalized: { NormalizedStory } = {}
 
 	if Sift.Array.is(group.stories) then
+		local seenNames: { [string]: boolean } = {}
 		for index, entry in group.stories do
 			local fallback = tostring(index)
 			local definition = parseStoryEntry(entry, storyModule, `at index {index}`)
+			if definition.id == nil and definition.name ~= nil then
+				if seenNames[definition.name] then
+					error(
+						`Story is malformed. Two Stories named "{definition.name}" collide. Rename one Story or give them distinct `
+							.. "`id` values. Source: "
+							.. storyModule:GetFullName()
+					)
+				end
+				seenNames[definition.name] = true
+			end
 			local id = definition.id or definition.name or fallback
 			table.insert(normalized, inheritDefaults(definition, group, id, definition.name or fallback))
 		end

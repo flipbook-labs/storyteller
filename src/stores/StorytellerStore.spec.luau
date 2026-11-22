@@ -3,8 +3,11 @@
 -- #189 tracks removing this ignore.
 -- lute-lint-global-ignore(unused_variable)
 
+local Archivist = require("@pkg/Archivist")
+local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
 
+local logger = require("@root/logger")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
@@ -12,6 +15,7 @@ local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleReques
 local StorytellerStore = require("./StorytellerStore")
 local types = require("@root/types")
 
+local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
 local expect = JestGlobals.expect
 local test = JestGlobals.test
@@ -112,7 +116,12 @@ test("collects all relevant ModuleScripts under the root", function()
 	store.start()
 
 	waitFor(function()
-		expect(store.getStoryModules()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+		expect(store.getStoryModules()).toEqual(expect.arrayContaining({
+			storyA,
+			storyB,
+			storyC,
+			storyD,
+		}))
 		expect(store.getStorybookModules()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
 	end)
 end)
@@ -178,6 +187,37 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(#store.getUnavailableStorybooks()).toBe(2)
 	end)
+end)
+
+test("warns with the Storybook's path and error when it fails to load", function()
+	local storybookThatThrows = Instance.new("ModuleScript")
+	storybookThatThrows.Source = [[
+		error("Something went wrong!")
+	]]
+
+	local root = new("Folder", nil, {
+		["StorybookThatThrows.storybook"] = storybookThatThrows :: Instance,
+	})
+
+	local warnings: { Archivist.LogRecord } = {}
+	local sink = Archivist.createCallbackSink(function(record)
+		if record.level == "Warn" then
+			table.insert(warnings, record)
+		end
+	end)
+	logger.addSink(sink)
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	waitFor(function()
+		expect(#store.getUnavailableStorybooks()).toBe(1)
+	end)
+	logger.removeSink(sink)
+
+	expect(#warnings).toBe(1)
+	expect(warnings[1].args[2]).toBe(storybookThatThrows:GetFullName())
+	expect(tostring(warnings[1].args[3])).toMatch("Something went wrong!")
 end)
 
 test("evaluates each Storybook once during initial discovery", function()
@@ -658,5 +698,54 @@ describe("requesting story modules", function()
 		store.destroy()
 
 		expect(store.getStoryModuleRecord(request)).toBeUndefined()
+	end)
+end)
+
+describe("frozen Charm state (Studio behavior)", function()
+	local prevFrozen: boolean = Charm.flags.frozen
+
+	beforeEach(function()
+		-- Charm only freezes state below optimization level 2, so tests run
+		-- with freezing off. Force it on to reproduce what Studio does.
+		prevFrozen = Charm.flags.frozen
+		Charm.flags.frozen = true
+	end)
+
+	afterEach(function()
+		Charm.flags.frozen = prevFrozen
+	end)
+
+	test("loading storybooks does not freeze their package module exports", function()
+		local storybookModule = new("ModuleScript", {
+			Source = [[
+				return {
+					storyRoots = {},
+					packages = {
+						FakeUILibrary = {
+							internalState = {},
+						},
+					},
+				}
+			]],
+		})
+
+		local root = new("Folder", nil, {
+			["A.storybook"] = storybookModule,
+		})
+
+		store = StorytellerStore.new(root)
+		store.start()
+
+		waitFor(function()
+			expect(#store.getLoadedStorybooks()).toBe(1)
+		end)
+
+		-- UI libraries mutate their module-level state while rendering (React
+		-- reassigns ReactCurrentDispatcher.current on every render), so the
+		-- exports a storybook hands us must never be frozen by the store
+		local packages = store.getLoadedStorybooks()[1].packages
+		assert(packages, "loaded storybook has no packages")
+		expect(table.isfrozen(packages.FakeUILibrary)).toBe(false)
+		expect(table.isfrozen(packages.FakeUILibrary.internalState)).toBe(false)
 	end)
 end)
