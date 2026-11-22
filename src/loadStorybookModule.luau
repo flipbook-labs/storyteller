@@ -32,6 +32,13 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 
 	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
 
+	-- The loader caches this table, and a story loaded with the same loader can
+	-- require the storybook module too. The edits below go on a copy so that
+	-- story still gets the table its author wrote.
+	if typeof(result) == "table" then
+		result = table.clone(result)
+	end
+
 	do -- Roblox internal. This behavior may be removed without notice.
 		if not result.storyRoots and result.storyRoot then
 			-- Some storybooks use `storyRoot: Instance` instead of a

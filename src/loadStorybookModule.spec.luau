@@ -122,6 +122,23 @@ describe("legacy support", function()
 	end)
 end)
 
+test("leaves the table the storybook module returns untouched", function()
+	local loader = ModuleLoader.new()
+	local storybookModule = createMockStorybookModule([[
+		return {
+			storyRoots = {},
+			react = {},
+			reactRoblox = {},
+		}
+	]])
+
+	loadStorybookModule(storybookModule, loader)
+
+	local source = loader:require(storybookModule) :: { [string]: unknown }
+	expect(source.react).toBeDefined()
+	expect(source.packages).toBeUndefined()
+end)
+
 describe("roblox internal", function()
 	test("map storyRoot (single instance) to storyRoots (array of instances)", function()
 		local storybookModule = createMockStorybookModule([[
