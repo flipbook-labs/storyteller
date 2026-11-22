@@ -255,7 +255,12 @@ test("collects all relevant ModuleScripts under the root", function()
 	storybookModulesQuery.start()
 
 	waitFor(function()
-		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({ storyA, storyB, storyC, storyD }))
+		expect(storyModulesQuery.get()).toEqual(expect.arrayContaining({
+			storyA,
+			storyB,
+			storyC,
+			storyD,
+		}))
 		expect(storybookModulesQuery.get()).toEqual(expect.arrayContaining({ storybookA, storybookB }))
 	end)
 end)
