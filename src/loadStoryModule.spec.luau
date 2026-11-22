@@ -648,16 +648,22 @@ describe("storybook middleware", function()
 		local receivedStory: unknown
 		mockPlainStorybook.mapStory = function(originalStory)
 			receivedStory = originalStory
-			return function()
+			local storyFn = originalStory :: (props: types.StoryProps) -> ()
+			return function(props)
 				local wrapper = Instance.new("Frame")
 				wrapper.Name = "Wrapper"
-				return wrapper
+				wrapper.Parent = props.container
+				storyFn(props)
+				return nil
 			end
 		end
 
 		local storyModule = createMockStoryModule([[
 			return {
-				story = function() end,
+				story = function(props)
+					local label = Instance.new("TextLabel")
+					label.Parent = props.container
+				end,
 			}
 		]])
 
@@ -667,6 +673,7 @@ describe("storybook middleware", function()
 
 		expect(receivedStory).toBe(story.story)
 		expect(container:FindFirstChild("Wrapper")).toBeDefined()
+		expect(container:FindFirstChildWhichIsA("TextLabel")).toBeDefined()
 
 		lifecycle.unmount()
 	end)
