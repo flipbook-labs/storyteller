@@ -304,10 +304,11 @@ describe("middleware", function()
 		} :: StoryControlsSchema
 
 		story.storybook.mapStory = function(element)
+			local component = element :: React.FC<StoryProps>
 			return function(props)
 				return React.createElement(ThemeContext.Provider, {
 					value = "Dark",
-				}, React.createElement(element, props))
+				}, React.createElement(component, props))
 			end
 		end
 

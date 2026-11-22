@@ -170,8 +170,9 @@ test("mapStory continues to wrap the story on updates", function()
 	} :: StoryControlsSchema
 
 	story.storybook.mapStory = function(originalStory)
+		local storyFn = originalStory :: (props: StoryProps) -> ()
 		return function(props)
-			originalStory(props)
+			storyFn(props)
 
 			Iris.Window({ "Middleware Window" })
 			Iris.Text({ "FromMiddleware" })
