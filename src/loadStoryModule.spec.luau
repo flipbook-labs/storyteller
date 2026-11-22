@@ -372,9 +372,7 @@ describe("multiple stories", function()
 
 		expect(function()
 			loadStoriesFromModule(storyModule, mockPlainStorybook)
-		end).toThrow(
-			'Two Stories named "Duplicate" collide. Rename one Story or give them distinct explicit `id` values.'
-		)
+		end).toThrow('Two Stories named "Duplicate" collide. Rename one Story or give them distinct `id` values.')
 	end)
 
 	test("allows dictionary stories with distinct keys to share a name", function()

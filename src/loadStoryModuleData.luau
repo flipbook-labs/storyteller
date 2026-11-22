@@ -155,7 +155,7 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 			if definition.id == nil and definition.name ~= nil then
 				if seenNames[definition.name] then
 					error(
-						`Story is malformed. Two Stories named "{definition.name}" collide. Rename one Story or give them distinct explicit `
+						`Story is malformed. Two Stories named "{definition.name}" collide. Rename one Story or give them distinct `
 							.. "`id` values. Source: "
 							.. storyModule:GetFullName()
 					)
