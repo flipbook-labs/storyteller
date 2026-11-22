@@ -16,6 +16,11 @@ return {
 			"/LICENSE",
 		},
 		dependencies = {
+			archivist = {
+				rev = "v0.3.1",
+				sourceKind = "github",
+				source = "https://github.com/flipbook-labs/archivist",
+			},
 			["flipbook-batteries"] = {
 				rev = "v0.13.1",
 				sourceKind = "github",

@@ -3,8 +3,10 @@
 -- #189 tracks removing this ignore.
 -- lute-lint-global-ignore(unused_variable)
 
+local Archivist = require("@pkg/Archivist")
 local JestGlobals = require("@pkg/JestGlobals")
 
+local logger = require("@root/logger")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
@@ -182,6 +184,37 @@ test("parses each Storybook module into a LoadedStorybook or UnavailableStoryboo
 		expect(#store.getLoadedStorybooks()).toBe(1)
 		expect(#store.getUnavailableStorybooks()).toBe(2)
 	end)
+end)
+
+test("warns with the Storybook's path and error when it fails to load", function()
+	local storybookThatThrows = Instance.new("ModuleScript")
+	storybookThatThrows.Source = [[
+		error("Something went wrong!")
+	]]
+
+	local root = new("Folder", nil, {
+		["StorybookThatThrows.storybook"] = storybookThatThrows :: Instance,
+	})
+
+	local warnings: { Archivist.LogRecord } = {}
+	local sink = Archivist.createCallbackSink(function(record)
+		if record.level == "Warn" then
+			table.insert(warnings, record)
+		end
+	end)
+	logger.addSink(sink)
+
+	store = StorytellerStore.new(root)
+	store.start()
+
+	waitFor(function()
+		expect(#store.getUnavailableStorybooks()).toBe(1)
+	end)
+	logger.removeSink(sink)
+
+	expect(#warnings).toBe(1)
+	expect(warnings[1].args[2]).toBe(storybookThatThrows:GetFullName())
+	expect(tostring(warnings[1].args[3])).toMatch("Something went wrong!")
 end)
 
 test("evaluates each Storybook once during initial discovery", function()
