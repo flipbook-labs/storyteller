@@ -12,15 +12,9 @@ Complete every step below before you write any code, tests, changelog entries, o
    rokit install && lute run install && npm ci
    ```
 
-   `rokit install` puts `lute`, `luau-lsp`, `stylua`, and `selene` on PATH. `lute run install` fetches the Loom dependencies into `~/.loom/store` and vendors the runtime ones into the package folders. The shared skills library is a dev dependency, so it lands in `~/.loom/store` for you to read but is not shipped with the package. `npm ci` uses Node.js 24 to install the pinned Prettier development dependency. Without these steps the skills and formatter are not on disk.
+   `rokit install` puts `lute`, `luau-lsp`, and `stylua` on PATH. `lute run install` copies the Lute tooling dependencies declared in [`pkg.luau`](pkg.luau) into `.lpm/`, one `<key>@<rev>` folder each, and installs the Roblox runtime dependencies from Wally into `Packages/`. The shared skills library is a dev dependency, so it lands in `.lpm/` for you to read but is not shipped with the package. `npm ci` uses Node.js 24 to install the pinned Prettier development dependency. Without these steps the skills and formatter are not on disk.
 
-2. Resolve the concrete skills path from the pinned version (do not guess it):
-
-   ```sh
-   ls -d ~/.loom/store/AgentSkills@*
-   ```
-
-   The store can hold more than one version, so match the `rev` pinned for `AgentSkills` in [`loom.config.luau`](loom.config.luau): the path is `~/.loom/store/AgentSkills@<rev>`. Use it wherever `<skills>` appears below, and ignore any other versions the listing prints.
+2. Find the skills folder: it's `.lpm/agent-skills@<rev>`, where `<rev>` is the `agent-skills` rev in [`pkg.luau`](pkg.luau). `ls -d .lpm/agent-skills@*` prints it. Use that path wherever `<skills>` appears below.
 
 3. Read the routing index at `<skills>/AGENTS.md` in full. Its **Project Skills** section lists every skill with a trigger-rich one-liner, so you know what exists before you start. This read is unconditional.
 
@@ -47,9 +41,9 @@ Skills are living documents. When your work here contradicts a skill (a renamed 
 
 ## Repo specifics
 
-- Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, `stylua`, and `selene` on PATH.
+- Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, and `stylua` on PATH.
 - `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
 - Markdown uses Prettier with soft wrapping. `npm run format:markdown` formats Markdown at the repository root and under `.agents`, `.changes`, `docs`, and `src`. `lute run lint` checks the same set.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
-- The build is a Darklua-processed mirror of `src/` written to `dist/`, and Wally publishes from `dist/`. Never edit `dist/` by hand.
+- The build copies `src/` to `dist/` and runs [CodeQuality](https://github.com/flipbook-labs/code-quality)'s code mods over the copy with `lute transform`. `convertRequire` rewrites string requires into Roblox instance paths, and the rest fold constants and remove code that can never run. Wally publishes from `dist/`. Never edit `dist/` by hand.
 - Releases are handled by the [Changewrite](https://github.com/flipbook-labs/changewrite) action. Unreleased entries live as partials in [`.changes/`](.changes) and are assembled into [`CHANGELOG.md`](CHANGELOG.md) at release time. Add a `.changes/` entry for any user-facing change.

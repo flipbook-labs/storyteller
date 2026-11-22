@@ -64,9 +64,7 @@ describe("Fusion 0.3.0", function()
 	end)
 
 	test("unmount a Fusion component", function()
-		local story = createStory({
-			story = TextStory,
-		})
+		local story = createFusionStory(TextStory)
 		local lifecycle = render(container, story)
 
 		expect(#container:GetChildren()).toBe(1)
@@ -121,6 +119,35 @@ describe("Fusion 0.3.0", function()
 		task.wait()
 
 		expect(element.Text).toBe("Enabled")
+	end)
+
+	test("mount and unmount a story that is an Instance", function()
+		local instance = scope:New("TextLabel")({
+			Text = "Static",
+		})
+		local story = createFusionStory(instance)
+
+		local lifecycle = render(container, story)
+
+		expect(#container:GetChildren()).toBe(1)
+		expect(instance.Parent).toBe(container)
+
+		lifecycle.unmount()
+
+		expect(#container:GetChildren()).toBe(0)
+		expect(instance.Parent).toBeNil()
+	end)
+
+	test("errors thrown by the story propagate out of render", function()
+		local story = createFusionStory(function()
+			error("fusion story blew up")
+		end)
+
+		expect(function()
+			render(container, story)
+		end).toThrow("fusion story blew up")
+
+		expect(#container:GetChildren()).toBe(0)
 	end)
 
 	test("mapStory middleware wraps the story", function()
@@ -252,9 +279,7 @@ describe("Fusion 0.2.0", function()
 	end)
 
 	test("unmount a Fusion component", function()
-		local story = createStory({
-			story = TextStory,
-		})
+		local story = createFusionStory(TextStory)
 		local lifecycle = render(container, story)
 
 		expect(#container:GetChildren()).toBe(1)
@@ -309,6 +334,35 @@ describe("Fusion 0.2.0", function()
 		task.wait()
 
 		expect(element.Text).toBe("Enabled")
+	end)
+
+	test("mount and unmount a story that is an Instance", function()
+		local instance = New("TextLabel")({
+			Text = "Static",
+		})
+		local story = createFusionStory(instance)
+
+		local lifecycle = render(container, story)
+
+		expect(#container:GetChildren()).toBe(1)
+		expect(instance.Parent).toBe(container)
+
+		lifecycle.unmount()
+
+		expect(#container:GetChildren()).toBe(0)
+		expect(instance.Parent).toBeNil()
+	end)
+
+	test("errors thrown by the story propagate out of render", function()
+		local story = createFusionStory(function()
+			error("fusion story blew up")
+		end)
+
+		expect(function()
+			render(container, story)
+		end).toThrow("fusion story blew up")
+
+		expect(#container:GetChildren()).toBe(0)
 	end)
 
 	test("mapStory middleware wraps the story", function()
