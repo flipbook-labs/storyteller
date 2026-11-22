@@ -213,7 +213,7 @@ test("array controls are collapsed to the first item", function()
 	expect(font).toBe(Enum.Font.BuilderSans)
 end)
 
-test("extra props can be supplied for things like the UI theme", function()
+test("extra props can be supplied for things like the color mode and theme", function()
 	local mockMount = jest.fn()
 
 	mockCreateRendererForStory.mockReturnValue({
@@ -221,7 +221,8 @@ test("extra props can be supplied for things like the UI theme", function()
 	})
 
 	render(container, story, {
-		theme = "Light",
+		colorMode = "Light",
+		themeName = "Kids",
 	})
 
 	expect(mockMount).toHaveBeenCalledWith(
@@ -229,9 +230,27 @@ test("extra props can be supplied for things like the UI theme", function()
 		expect.anything(),
 		expect.objectContaining({
 			container = container,
-			theme = "Light",
+			colorMode = "Light",
+			themeName = "Kids",
 		})
 	)
+end)
+
+test("leaves colorMode unset and passes the deprecated Dark theme when the host supplies neither", function()
+	local props: types.StoryProps?
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = function(_otherContainer, _otherStory, initialProps)
+			props = initialProps
+		end,
+	})
+
+	render(container, story)
+
+	assert(props, "story was not mounted")
+	expect(props.colorMode).toBeNil()
+	expect(props.themeName).toBeNil()
+	expect(props.theme).toBe("Dark")
 end)
 
 test("always passes reserved props", function()
@@ -240,6 +259,123 @@ test("always passes reserved props", function()
 	mockCreateRendererForStory.mockReturnValue({
 		mount = mockMount,
 	})
+
+	render(container, story)
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			container = container,
+			story = story,
+			controls = expect.any("table"),
+		})
+	)
+end)
+
+test("transformProps is applied before mount", function()
+	local mockMount = jest.fn()
+	local transformArgs = {}
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+		transformProps = function(props, prevProps)
+			table.insert(transformArgs, { props = props, prevProps = prevProps })
+
+			local transformed = table.clone(props)
+			transformed.wasTransformed = true
+			return transformed
+		end,
+	})
+
+	render(container, story)
+
+	expect(#transformArgs).toBe(1)
+	expect(transformArgs[1].prevProps).toBeNil()
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			wasTransformed = true,
+		})
+	)
+end)
+
+test("transformProps receives the previous props on update", function()
+	local mockUpdate = jest.fn()
+	local transformArgs = {}
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = function() end,
+		update = mockUpdate,
+		transformProps = function(props, prevProps)
+			table.insert(transformArgs, { props = props, prevProps = prevProps })
+
+			local transformed = table.clone(props)
+			transformed.wasTransformed = true
+			return transformed
+		end,
+	})
+
+	local lifecycle = render(container, story)
+
+	lifecycle.update()
+
+	expect(#transformArgs).toBe(2)
+	-- The previous props passed on update are the *transformed* props from
+	-- the initial render, so renderers can carry state (like Fusion Values)
+	-- across renders
+	expect(transformArgs[2].prevProps).toMatchObject({
+		wasTransformed = true,
+	})
+	expect(mockUpdate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			wasTransformed = true,
+		}),
+		expect.anything()
+	)
+end)
+
+test("story props override extra props", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	story.props = {
+		conflicting = "from story",
+		storyOnly = true,
+	}
+
+	render(container, story, {
+		conflicting = "from extra props",
+		extraOnly = true,
+	})
+
+	expect(mockMount).toHaveBeenCalledWith(
+		expect.anything(),
+		expect.anything(),
+		expect.objectContaining({
+			conflicting = "from story",
+			storyOnly = true,
+			extraOnly = true,
+		})
+	)
+end)
+
+test("reserved props cannot be overridden by story props", function()
+	local mockMount = jest.fn()
+
+	mockCreateRendererForStory.mockReturnValue({
+		mount = mockMount,
+	})
+
+	story.props = {
+		container = "spoofed container",
+		story = "spoofed story",
+		controls = "spoofed controls",
+	}
 
 	render(container, story)
 
