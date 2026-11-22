@@ -1,7 +1,7 @@
 ---
 bump: patch
-category: Fixed
+category: Fixes
 kind: loading
 ---
 
-Keep a loaded storybook or story's `packages` mutable when Charm deep-freezes its state in Studio. The `packages` hold the module exports of UI libraries like React and Fusion, which reassign their own module-level state while rendering and cannot be frozen.
+Keep a loaded storybook's and story's `packages` mutable when stored in Charm state, which deep-freezes in Studio.
