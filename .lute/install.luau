@@ -3,18 +3,20 @@ local process = require("@std/process")
 
 local project = require("@repo/project")
 
--- `--vendor` copies each dependency and dev dependency in `pkg.luau` into a
--- `.lpm/<key>@<rev>` folder, and the `lpm` alias in `.config.luau` points at
--- `.lpm`. Scripts require a dependency through its folder, so a rev bump in
--- `pkg.luau` also changes their require paths. When a vendored package
--- requires through `@lpm`, the require uses the `lpm` alias of the project that
--- vendored it, not one of its own. So any project that vendors such a package
--- has to define the same alias.
--- The following issue tracks removing that requirement:
--- https://github.com/flipbook-labs/flipbook/issues/694
---
--- The Wally steps below use helpers from flipbook-batteries, so the
--- dependencies in `pkg.luau` are installed first.
+--[[
+	`--vendor` copies each dependency and dev dependency in `pkg.luau` into a
+	`.lpm/<key>@<rev>` folder, and the `lpm` alias in `.config.luau` points at
+	`.lpm`. Scripts require a dependency through its folder, so a rev bump in
+	`pkg.luau` also changes their require paths. When a vendored package
+	requires through `@lpm`, the require uses the `lpm` alias of the project that
+	vendored it, not one of its own. So any project that vendors such a package
+	has to define the same alias.
+	The following issue tracks removing that requirement:
+	https://github.com/flipbook-labs/flipbook/issues/694
+
+	The Wally steps below use helpers from flipbook-batteries, so the
+	dependencies in `pkg.luau` are installed first.
+]]
 do
 	local result = process.run({
 		"lute",
@@ -26,7 +28,7 @@ do
 end
 
 do
-	local CodeQuality = require("@lpm/code-quality@v0.7.0")
+	local CodeQuality = require("@lpm/code-quality@v0.8.0")
 	local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
 
 	local run = FlipbookBatteries.run
@@ -43,13 +45,15 @@ do
 		run("wally-package-types", { "--sourcemap", "sourcemap.json", "Packages" })
 	end
 
-	-- Some of our Wally packages are written with string requires, which
-	-- ModuleLoader and Jest can't load yet (flipbook-labs/module-loader#70).
-	-- CodeQuality's `convertRequire` code mod rewrites them in place into
-	-- instance requires. It looks each module up in the sourcemap that
-	-- `installWallyPackages` writes, which covers `Packages/_Index`. vide loads
-	-- a mock from `../test/mock` only outside Roblox and doesn't ship it, so
-	-- that require stays as it is.
+	--[[
+		Some of our Wally packages are written with string requires, which
+		ModuleLoader and Jest can't load yet (flipbook-labs/module-loader#70).
+		CodeQuality's `convertRequire` code mod rewrites them in place into
+		instance requires. It looks each module up in the sourcemap that
+		`installWallyPackages` writes, which covers `Packages/_Index`. vide loads
+		a mock from `../test/mock` only outside Roblox and doesn't ship it, so
+		that require stays as it is.
+	]]
 	local function patchStringRequires()
 		local packages = {
 			"^charm$",

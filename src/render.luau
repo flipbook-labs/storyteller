@@ -82,10 +82,12 @@ local function render<T>(container: Instance, story: LoadedStory<T>, initialExtr
 		}
 
 		local props: StoryProps = Sift.Dictionary.join({
-			-- DEPRECATED: Use `colorMode`, which hosts supply as an extra prop.
-			-- Stories that still read `theme` get this fixed value when the host
-			-- does not supply one. `colorMode` has no placeholder, so a story can
-			-- tell when the host leaves it unset.
+			--[[
+				DEPRECATED: Use `colorMode`, which hosts supply as an extra prop.
+				Stories that still read `theme` get this fixed value when the host
+				does not supply one. `colorMode` has no placeholder, so a story can
+				tell when the host leaves it unset.
+			]]
 			theme = "Dark",
 		}, extraProps, story.props, reservedStoryProps)
 

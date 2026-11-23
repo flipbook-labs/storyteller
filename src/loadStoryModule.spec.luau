@@ -1,7 +1,9 @@
--- Lute's unused_variable lint doesn't count writing a property as a use, and
--- these tests set up instances that way.
--- #182 tracks removing this ignore.
--- lute-lint-global-ignore(unused_variable)
+--[[
+	Lute's unused_variable lint doesn't count writing a property as a use, and
+	these tests set up instances that way.
+	#182 tracks removing this ignore.
+	lute-lint-global-ignore(unused_variable)
+]]
 
 local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
@@ -766,10 +768,12 @@ describe("frozen Charm state (Studio behavior)", function()
 
 		local story = loadStoryModule(storyModule, mockPlainStorybook)
 
-		-- Hosts like Flipbook keep the loaded story in Charm state, which
-		-- deep-freezes everything it can reach. UI libraries mutate their
-		-- module-level state while rendering, so the story's packages must
-		-- stay mutable even after being stored.
+		--[[
+			Hosts like Flipbook keep the loaded story in Charm state, which
+			deep-freezes everything it can reach. UI libraries mutate their
+			module-level state while rendering, so the story's packages must
+			stay mutable even after being stored.
+		]]
 		local getStory, setStory = Charm.signal<<types.LoadedStory<unknown>?>>(nil)
 		setStory(story)
 

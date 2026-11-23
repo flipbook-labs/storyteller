@@ -1,10 +1,12 @@
--- Requiring this module must do no work. Storyteller gets required
--- transitively inside ModuleLoader sandboxes when a Story module's dependency
--- graph includes it (Flipbook's own stories do), and a sandboxed copy must
--- stay inert: starting discovery there spawns loaders, re-evaluates React
--- package graphs, and feeds foreign component instances into live trees. The
--- shared instance is created on the first get() call rather than at require
--- time.
+--[[
+	Requiring this module must do no work. Storyteller gets required
+	transitively inside ModuleLoader sandboxes when a Story module's dependency
+	graph includes it (Flipbook's own stories do), and a sandboxed copy must
+	stay inert: starting discovery there spawns loaders, re-evaluates React
+	package graphs, and feeds foreign component instances into live trees. The
+	shared instance is created on the first get() call rather than at require
+	time.
+]]
 
 local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
