@@ -1,7 +1,9 @@
--- Lute's unused_variable lint doesn't count writing a property as a use, and
--- these tests set up instances that way.
--- #187 tracks removing this ignore.
--- lute-lint-global-ignore(unused_variable)
+--[[
+	Lute's unused_variable lint doesn't count writing a property as a use, and
+	these tests set up instances that way.
+	#187 tracks removing this ignore.
+	lute-lint-global-ignore(unused_variable)
+]]
 
 local Charm = require("@pkg/Charm")
 local JestGlobals = require("@pkg/JestGlobals")
@@ -383,6 +385,43 @@ test("groups records by Storybook when multiple Storybooks cover the same module
 		expect(records[first.storybook.source][first.storyModule]).toBeDefined()
 		expect(records[second.storybook.source][second.storyModule]).toBeDefined()
 	end)
+end)
+
+test("releasing one Storybook's request keeps the other Storybook's record", function()
+	recordStore = StoryModuleRecordStore.new()
+	local first = createRequest("Shared")
+	local second: StoryRequest = {
+		storyModule = first.storyModule,
+		storybook = {
+			name = "Second Storybook",
+			source = Instance.new("ModuleScript"),
+			storyRoots = {},
+		},
+	}
+
+	local releaseFirst = recordStore.request(StoryModuleRequestPriority.Background, first)
+	local releaseSecond = recordStore.request(StoryModuleRequestPriority.Background, second)
+
+	waitFor(function()
+		expect(getRecord(first)).toBeDefined()
+		expect(getRecord(second)).toBeDefined()
+	end)
+	local secondRecord = getRecord(second)
+
+	releaseFirst()
+	expect(getRecord(first)).toBeUndefined()
+	expect(getRecord(second)).toBe(secondRecord)
+
+	local record = getRecord(second)
+	assert(record and record.stories, "expected the second Storybook's record to survive")
+	expect(record.problem).toBeUndefined()
+	expect(record.stories[1]).toMatchObject({
+		id = "Shared",
+		storybook = second.storybook,
+	})
+
+	releaseSecond()
+	expect(getRecord(second)).toBeUndefined()
 end)
 
 test("services an interactive request before queued background requests", function()

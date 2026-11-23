@@ -13,10 +13,12 @@ local types = {}
 
 export type StudioTheme = "Light" | "Dark"
 
--- Hosts pass extra props that stories read directly. With `unknown` values,
--- every story would need a cast to use one, and Luau's old solver, which
--- Storyteller type checks with, would reject the tables of props hosts pass.
--- #193 tracks removing this ignore.
+--[[
+	Hosts pass extra props that stories read directly. With `unknown` values,
+	every story would need a cast to use one, and Luau's old solver, which
+	Storyteller type checks with, would reject the tables of props hosts pass.
+	#193 tracks removing this ignore.
+]]
 -- lute-lint-ignore(no_any)
 export type ExtraStoryProps = {
 	[string]: any,
@@ -28,11 +30,13 @@ export type ReservedStoryProps = {
 	-- story: LoadedStory<unknown>
 }
 
--- Stories read their props directly, as in `props.controls.text`. With
--- `unknown` values, every story would need a cast to use a prop, and Luau's old
--- solver, which Storyteller type checks with, would reject the tables of props
--- that callers pass.
--- #194 tracks removing this ignore.
+--[[
+	Stories read their props directly, as in `props.controls.text`. With
+	`unknown` values, every story would need a cast to use a prop, and Luau's old
+	solver, which Storyteller type checks with, would reject the tables of props
+	that callers pass.
+	#194 tracks removing this ignore.
+]]
 -- lute-lint-ignore(no_any)
 export type StoryProps = {
 	[string]: any,
@@ -51,10 +55,12 @@ export type StoryRenderer<T> = {
 	shouldUpdate: ((props: StoryProps, prevProps: StoryProps?) -> boolean)?,
 }
 
--- Storyteller type checks with Luau's old solver, which rejects a table like
--- `{ React = React }` where `{ [string]: unknown }` is expected. With `unknown`
--- here, storybooks that annotate their packages would stop type checking.
--- #195 tracks removing this ignore.
+--[[
+	Storyteller type checks with Luau's old solver, which rejects a table like
+	`{ React = React }` where `{ [string]: unknown }` is expected. With `unknown`
+	here, storybooks that annotate their packages would stop type checking.
+	#195 tracks removing this ignore.
+]]
 -- lute-lint-ignore(no_any)
 export type StoryPackages = {
 	[string]: any,
