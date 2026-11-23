@@ -1,4 +1,4 @@
-local CodeQuality = require("@lpm/code-quality@v0.7.0")
+local CodeQuality = require("@lpm/code-quality@v0.8.0")
 local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
 local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
@@ -75,13 +75,15 @@ local function build()
 	end
 	copyInto(project.SOURCE_PATH, project.BUILD_PATH)
 
-	-- CodeQuality's build, below, turns the copy in `dist/` into code Roblox
-	-- can run. To turn a string require into a `require(script...)` path, it
-	-- has to know which Roblox instance each file becomes. It reads that from
-	-- this Rojo sourcemap of `build.project.json`, which mounts `src/` as
-	-- `Storyteller` inside `Packages`. The sourcemap names files in `src/`, so
-	-- `sourceFolder` and `buildFolder` tell the build to look up each file in
-	-- `dist/` by its path in `src/`.
+	--[[
+		CodeQuality's build, below, turns the copy in `dist/` into code Roblox
+		can run. To turn a string require into a `require(script...)` path, it
+		has to know which Roblox instance each file becomes. It reads that from
+		this Rojo sourcemap of `build.project.json`, which mounts `src/` as
+		`Storyteller` inside `Packages`. The sourcemap names files in `src/`, so
+		`sourceFolder` and `buildFolder` tell the build to look up each file in
+		`dist/` by its path in `src/`.
+	]]
 	run("rojo", {
 		"sourcemap",
 		project.ROJO_BUILD_PROJECT,

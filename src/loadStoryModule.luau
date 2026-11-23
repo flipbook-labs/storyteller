@@ -35,15 +35,17 @@ local function loadStoryModule<T>(
 	local story = loadStoryModuleData(storyModule, storybook, providedLoader).stories[1]
 
 	if story.packages then
-		-- Hosts keep loaded stories in Charm state, which deep-freezes
-		-- everything it can reach in Studio, but skips tables that have a
-		-- metatable. The story's packages are foreign module exports that
-		-- must stay mutable, so freezing has to stop here
-		-- (flipbook-labs/storyteller#100).
-		--
-		-- The clone matters: `packages` can be the storybook's table, which
-		-- belongs to the author's module and may be shared, so we must not
-		-- attach a metatable in place.
+		--[[
+			Hosts keep loaded stories in Charm state, which deep-freezes
+			everything it can reach in Studio, but skips tables that have a
+			metatable. The story's packages are foreign module exports that
+			must stay mutable, so freezing has to stop here
+			(flipbook-labs/storyteller#100).
+
+			The clone matters: `packages` can be the storybook's table, which
+			belongs to the author's module and may be shared, so we must not
+			attach a metatable in place.
+		]]
 		local packages = table.clone(story.packages)
 		excludeFromCharmFreeze(packages)
 		story.packages = packages
