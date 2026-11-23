@@ -24,9 +24,11 @@ From the target Flipbook worktree, run local checks and build the Studio artifac
 ```bash
 lute run lint
 lute run analyze
-lute run build plugin --channel dev --clean
+lute run build plugin --channel dev --clean --output "$PWD/build/FlipbookStorytellerIntegration.rbxm"
 lute run build storybook --channel dev --clean
 ```
+
+The plugin build writes to Studio's Plugins folder by default, which would replace an installed `Flipbook.rbxm`. The `--output` path keeps the integration build out of that folder until you install it.
 
 The Storyteller and Flipbook test tasks upload a place to Roblox. Obtain explicit authorization before running those test tasks when the code is private.
 

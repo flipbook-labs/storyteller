@@ -60,7 +60,7 @@ end
 ]=]
 local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRecords
 	local storytellerStore = useStorytellerStore()
-	local records = useSignalState(storytellerStore.getStoryModuleRecords)
+	local records = useSignalState(storytellerStore.getStoryModuleRecords, { storytellerStore })
 	local stableRequestsRef = useRef(requests)
 	if not areSameRequests(stableRequestsRef.current, requests) then
 		stableRequestsRef.current = requests
@@ -103,14 +103,16 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 			if activeRequest and activeRequest.request.storybook == request.storybook then
 				continue
 			end
-			if activeRequest then
-				activeRequest.release()
-			end
-
+			-- Acquire the replacement before releasing the lease it replaces. Releasing
+			-- first can drop the entry's last reference, and the new request would then
+			-- create a fresh entry that skips the store's storybook-change invalidation.
 			requestsForModule[storybookSource] = {
 				request = request,
 				release = storytellerStore.requestStoryModule(StoryModuleRequestPriority.Background, request),
 			}
+			if activeRequest then
+				activeRequest.release()
+			end
 		end
 
 		for storyModule, requestsForModule in activeRequests do
