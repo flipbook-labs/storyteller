@@ -1,7 +1,9 @@
--- Lute's unused_variable lint doesn't count writing a property as a use, and
--- these tests set up instances that way.
--- #181 tracks removing this ignore.
--- lute-lint-global-ignore(unused_variable)
+--[[
+	Lute's unused_variable lint doesn't count writing a property as a use, and
+	these tests set up instances that way.
+	#181 tracks removing this ignore.
+	lute-lint-global-ignore(unused_variable)
+]]
 
 local JestGlobals = require("@pkg/JestGlobals")
 
@@ -19,11 +21,13 @@ beforeEach(function()
 end)
 
 test("finds all Story modules that aren't managed by a Storybook", function()
-	-- Folder
-	--   FolderA
-	--     StoryA.story
-	--   FolderB
-	--     StoryB.story
+	--[[
+		Folder
+		  FolderA
+		    StoryA.story
+		  FolderB
+		    StoryB.story
+	]]
 
 	local folderA = Instance.new("Folder")
 	folderA.Name = "FolderA"
@@ -53,11 +57,13 @@ test("finds all Story modules that aren't managed by a Storybook", function()
 end)
 
 test("returns empty list when all Story modules are managed by Storybooks", function()
-	-- Folder
-	--   FolderA
-	--     StoryA.story
-	--   FolderB
-	--     StoryB.story
+	--[[
+		Folder
+		  FolderA
+		    StoryA.story
+		  FolderB
+		    StoryB.story
+	]]
 
 	local folderA = Instance.new("Folder")
 	folderA.Name = "FolderA"

@@ -1,7 +1,9 @@
--- Lute's unused_variable lint doesn't count writing a property as a use, and
--- these tests set up instances that way.
--- #188 tracks removing this ignore.
--- lute-lint-global-ignore(unused_variable)
+--[[
+	Lute's unused_variable lint doesn't count writing a property as a use, and
+	these tests set up instances that way.
+	#188 tracks removing this ignore.
+	lute-lint-global-ignore(unused_variable)
+]]
 
 local JestGlobals = require("@pkg/JestGlobals")
 
@@ -244,10 +246,12 @@ describeEach({
 		local sampleRecord = store.getStoryModuleRecord(storyModules[1])
 		assert(sampleRecord and sampleRecord.story, "expected a loaded story for the first story module")
 
-		-- The work budget must spread large batches across frames rather than
-		-- stalling one frame with the entire load. Fast hardware can finish a
-		-- small batch inside a single budget window, so only assert spreading
-		-- when the batch demonstrably outlasted one.
+		--[[
+			The work budget must spread large batches across frames rather than
+			stalling one frame with the entire load. Fast hardware can finish a
+			small batch inside a single budget window, so only assert spreading
+			when the batch demonstrably outlasted one.
+		]]
 		local totalMs = (os.clock() - startTime) * 1000
 		if #requests >= 100 and totalMs >= 50 then
 			expect(firstFrames + allFrames).toBeGreaterThan(1)

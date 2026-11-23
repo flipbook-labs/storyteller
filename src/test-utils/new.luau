@@ -1,7 +1,9 @@
--- Specs call this with property tables like `{ Name = "Story" }`. Luau's old
--- solver, which Storyteller type checks with, rejects those where
--- `{ [string]: unknown }` is expected, so props stay `any`.
--- #191 tracks removing this ignore.
+--[[
+	Specs call this with property tables like `{ Name = "Story" }`. Luau's old
+	solver, which Storyteller type checks with, rejects those where
+	`{ [string]: unknown }` is expected, so props stay `any`.
+	#191 tracks removing this ignore.
+]]
 -- lute-lint-ignore(no_any)
 local function new(className: string, props: { [string]: any }?, children: { [string]: Instance }?)
 	local instance = Instance.new(className)
