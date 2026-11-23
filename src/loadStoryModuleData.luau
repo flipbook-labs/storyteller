@@ -30,11 +30,13 @@ type NormalizedStory = {
 	controls: UnknownDict?,
 	packages: UnknownDict?,
 	props: UnknownDict?,
-	-- Every field the Story source defines, copied onto the loaded Story so
-	-- Storybook middleware such as `mapDefinition` can read custom fields.
-	-- This passthrough is not a supported contract and may be removed, so
-	-- don't build features on it. Fields Storyteller supports belong in the
-	-- typed fields above.
+	--[[
+		Every field the Story source defines, copied onto the loaded Story so
+		Storybook middleware such as `mapDefinition` can read custom fields.
+		This passthrough is not a supported contract and may be removed, so
+		don't build features on it. Fields Storyteller supports belong in the
+		typed fields above.
+	]]
 	legacyPassthroughFields: UnknownDict,
 }
 
@@ -50,11 +52,13 @@ local function mergeOrNil(defaults: UnknownDict?, overrides: UnknownDict?): Unkn
 	return Sift.Dictionary.merge(defaults, overrides)
 end
 
--- Parses one entry of a Story group's `stories`. Entries that are not tables are
--- shorthand for `{ story = entry }`.
---
--- `fallbackDescription` identifies the entry when it has no usable id or name,
--- such as `at index 2` for an array entry.
+--[[
+	Parses one entry of a Story group's `stories`. Entries that are not tables are
+	shorthand for `{ story = entry }`.
+
+	`fallbackDescription` identifies the entry when it has no usable id or name,
+	such as `at index 2` for an array entry.
+]]
 local function parseStoryEntry(
 	entry: unknown,
 	storyModule: ModuleScript,
