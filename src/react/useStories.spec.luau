@@ -1,4 +1,5 @@
 local JestGlobals = require("@pkg/JestGlobals")
+local React = require("@pkg/React")
 local ReactRoblox = require("@pkg/ReactRoblox")
 
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
@@ -141,5 +142,146 @@ test("surfaces a problem for a malformed module", function()
 	end)
 
 	storybook.source:Destroy()
+	storyModule:Destroy()
+end)
+
+test("switching the storybook source reloads from the new source and releases the old hold", function()
+	local storyModule = Instance.new("ModuleScript")
+	storyModule.Name = "Switched.story"
+	storyModule.Source = [[return { story = function() end }]]
+
+	local firstStorybook: types.LoadedStorybook = {
+		name = "First",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+	local secondStorybook: types.LoadedStorybook = {
+		name = "Second",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+
+	-- Another consumer holds the first Storybook's entry, so the hook's cleanup
+	-- must release only its own hold.
+	local releaseOther = StorytellerStore.get().requestStoryModule(StoryModuleRequestPriority.Background, {
+		storyModule = storyModule,
+		storybook = firstStorybook,
+	})
+
+	local setStorybook: (storybook: types.LoadedStorybook) -> ()
+	local get = renderHook(function()
+		local storybook, setState = React.useState(firstStorybook)
+		setStorybook = setState
+		return useStories(storyModule, storybook)
+	end)
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local stories = get()
+		assert(stories, "expected the first Storybook's stories to load")
+		expect(stories[1].storybook).toBe(firstStorybook)
+	end)
+
+	act(function()
+		setStorybook(secondStorybook)
+	end)
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local stories = get()
+		assert(stories, "expected the second Storybook's stories to load")
+		expect(stories[1].name).toBe("Switched")
+		expect(stories[1].storybook).toBe(secondStorybook)
+	end)
+
+	local firstRecord = StorytellerStore.get().getStoryModuleRecord({
+		storyModule = storyModule,
+		storybook = firstStorybook,
+	})
+	assert(firstRecord and firstRecord.stories, "expected the other consumer to keep the first record")
+
+	releaseOther()
+	expect(StorytellerStore.get().getStoryModuleRecord({
+		storyModule = storyModule,
+		storybook = firstStorybook,
+	})).toBeUndefined()
+
+	firstStorybook.source:Destroy()
+	secondStorybook.source:Destroy()
+	storyModule:Destroy()
+end)
+
+test("replacing the storybook object for the same source keeps another request's record", function()
+	local storyModule = Instance.new("ModuleScript")
+	storyModule.Name = "Replaced.story"
+	storyModule.Source = [[return { story = function() end }]]
+
+	local source = Instance.new("ModuleScript")
+	local storybook: types.LoadedStorybook = {
+		name = "Storybook",
+		source = source,
+		storyRoots = {},
+	}
+	local replacement: types.LoadedStorybook = {
+		name = "Replacement",
+		source = source,
+		storyRoots = {},
+	}
+
+	local releaseOther = StorytellerStore.get().requestStoryModule(StoryModuleRequestPriority.Background, {
+		storyModule = storyModule,
+		storybook = storybook,
+	})
+
+	local setStorybook: (storybook: types.LoadedStorybook) -> ()
+	local get = renderHook(function()
+		local current, setState = React.useState(storybook)
+		setStorybook = setState
+		return useStories(storyModule, current)
+	end)
+	act(function()
+		task.wait(0.1)
+	end)
+
+	waitFor(function()
+		local stories = get()
+		assert(stories, "expected the original Storybook's stories to load")
+		expect(stories[1].storybook).toBe(storybook)
+	end)
+
+	act(function()
+		setStorybook(replacement)
+	end)
+	act(function()
+		task.wait(0.1)
+	end)
+
+	-- The previous record stays visible until the reload publishes, so wait on
+	-- the Storybook identity rather than the name.
+	waitFor(function()
+		local stories = get()
+		assert(stories, "expected the replacement Storybook's stories to load")
+		expect(stories[1].storybook).toBe(replacement)
+	end)
+
+	-- The other request still holds the entry, so its record must survive the
+	-- hook's cleanup for the replaced storybook object.
+	local record = StorytellerStore.get().getStoryModuleRecord({
+		storyModule = storyModule,
+		storybook = storybook,
+	})
+	assert(record and record.stories, "expected the other request to keep its record")
+	expect(record.problem).toBeUndefined()
+
+	releaseOther()
+	local stories = get()
+	assert(stories, "expected the hook to keep its stories after the other request releases")
+	expect(stories[1].storybook).toBe(replacement)
+
+	source:Destroy()
 	storyModule:Destroy()
 end)
