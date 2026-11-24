@@ -40,7 +40,7 @@ return {
 				source = "https://github.com/flipbook-labs/code-quality",
 			},
 			["agent-skills"] = {
-				rev = "v0.7.0",
+				rev = "v0.9.0",
 				sourceKind = "github",
 				source = "https://github.com/flipbook-labs/agent-skills",
 			},
