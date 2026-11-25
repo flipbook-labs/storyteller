@@ -257,7 +257,7 @@ describeEach({
 		})
 
 		local sampleRecord = store.getStoryModuleRecord(requests[1])
-		assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
+		assert(sampleRecord and sampleRecord.status == "Loaded", "expected loaded stories for the first story module")
 
 		--[[
 			The work budget must spread large batches across frames rather than
@@ -305,7 +305,7 @@ test("loads every Story from multi-Story modules", function()
 	})
 
 	local sampleRecord = store.getStoryModuleRecord(requests[1])
-	assert(sampleRecord and sampleRecord.stories, "expected loaded stories for the first story module")
+	assert(sampleRecord and sampleRecord.status == "Loaded", "expected loaded stories for the first story module")
 	expect(#sampleRecord.stories).toBe(3)
 
 	root:Destroy()
@@ -440,7 +440,7 @@ test("republishes a single edited story at scale without reloading siblings", fu
 	editedModule.Source = "-- edited\n" .. COUNTING_STORY_SOURCE
 	local elapsed, frames = settle(60, function()
 		local record = store.getStoryModuleRecord(requests[1])
-		return record ~= nil and record ~= recordBefore and record.problem == nil
+		return record ~= nil and record ~= recordBefore and record.status == "Loaded"
 	end)
 
 	-- ModuleLoader reports source changes asynchronously after the store's
@@ -657,7 +657,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 
 	local selectElapsed, selectFrames = settle(60, function()
 		local record = getRecord(selectedModule)
-		return record ~= nil and record.problem == nil
+		return record ~= nil and record.status == "Loaded"
 	end)
 	local recordsWhenSelected = countRecords(store, storyModules)
 
@@ -683,7 +683,7 @@ test("loads a heavy dependency corpus lazily with fast selection", function()
 		warmReselectMs = warmMs,
 	})
 
-	assert(warmRecord ~= nil and warmRecord.problem == nil, "expected the warm re-select to hit a loaded record")
+	assert(warmRecord ~= nil and warmRecord.status == "Loaded", "expected the warm re-select to hit a loaded record")
 	expect(countRecords(store, storyModules)).toBe(#requests)
 
 	root:Destroy()

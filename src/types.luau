@@ -181,11 +181,18 @@ export type StoryRequest = {
 	storybook: LoadedStorybook,
 }
 
-export type StoryModuleRecord = {
-	name: string?,
-	stories: { LoadedStory<unknown> }?,
-	problem: string?,
+export type LoadedStoryModule = {
+	status: "Loaded",
+	name: string,
+	stories: { LoadedStory<unknown> },
 }
+
+export type UnavailableStoryModule = {
+	status: "Unavailable",
+	problem: string,
+}
+
+export type StoryModuleRecord = LoadedStoryModule | UnavailableStoryModule
 
 -- Records are grouped by Storybook source, then keyed by Story module. Each
 -- pairing loads independently because the Storybook supplies the loader

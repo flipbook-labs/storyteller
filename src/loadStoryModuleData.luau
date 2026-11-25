@@ -2,6 +2,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
@@ -238,13 +239,30 @@ local function loadStoryModuleData<T>(
 			controls = migrateControlsSchema(controls)
 		end
 
+		local packages = normalizedStory.packages or loadedStorybook.packages
+		if packages then
+			--[[
+				Hosts keep loaded stories in Charm state, which deep-freezes
+				everything it can reach in Studio, but skips tables that have a
+				metatable. The story's packages are foreign module exports that
+				must stay mutable, so freezing has to stop here
+				(flipbook-labs/storyteller#100).
+
+				The clone matters: `packages` can be the storybook's table, which
+				belongs to the author's module and may be shared, so we must not
+				attach a metatable in place.
+			]]
+			packages = table.clone(packages)
+			excludeFromCharmFreeze(packages)
+		end
+
 		local loadedStory: LoadedStory<T> = {
 			id = normalizedStory.id,
 			name = normalizedStory.name,
 			storybook = loadedStorybook,
 			source = storyModule,
 			story = normalizedStory.story :: T | (props: StoryProps) -> T,
-			packages = normalizedStory.packages or loadedStorybook.packages,
+			packages = packages,
 			summary = normalizedStory.summary,
 			controls = controls,
 			props = normalizedStory.props,
