@@ -11,6 +11,8 @@ type StoryRequest = types.StoryRequest
 
 	Requests for the same module and Storybook share one record, including requests from hooks that use the shared runtime. Passing a different `storybook` table for the same source counts as a new version of that Storybook, so the module reloads.
 
+	The record is dropped when its last request is released. So to change a request's priority, make the new request before releasing the old one. If the old one was the last, releasing it first would leave no record until the module loads again.
+
 	```lua
 	local request = {
 		storyModule = storyModule,
