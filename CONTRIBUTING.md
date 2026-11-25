@@ -21,11 +21,12 @@ Install [Rokit](https://github.com/rojo-rbx/rokit/) before running the setup com
    git switch -c my-change upstream/main
    ```
 
-3. Install the pinned tools and packages:
+3. Install the pinned tools and packages. `npm ci` needs Node.js 24 and installs Prettier, which `lute run lint` uses to check Markdown:
 
    ```sh
    rokit install
    lute run install
+   npm ci
    ```
 
 4. Make your change and add one file under [`.changes/`](.changes/README.md) describing its effect for people who use Storyteller.
