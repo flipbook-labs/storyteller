@@ -31,6 +31,7 @@ export type UnavailableStoryModule = types.UnavailableStoryModule
 export type StoryRequest = types.StoryRequest
 export type StoryModuleRecord = types.StoryModuleRecord
 export type StoryModuleRecords = types.StoryModuleRecords
+export type StoryModuleRequestPriority = types.StoryModuleRequestPriority
 
 export type BooleanControl = ControlTypes.BooleanControl
 export type CheckControl = ControlTypes.CheckControl
@@ -67,6 +68,10 @@ return {
 	getLoadedStorybooks = require("@self/getLoadedStorybooks"),
 	getUnavailableStorybooks = require("@self/getUnavailableStorybooks"),
 	getOrphanedStoryModules = require("@self/getOrphanedStoryModules"),
+
+	-- Story module records
+	getStoryModuleRecord = require("@self/getStoryModuleRecord"),
+	requestStoryModule = require("@self/requestStoryModule"),
 
 	-- Module loading
 	loadStoriesFromModule = require("@self/loadStoriesFromModule"),
