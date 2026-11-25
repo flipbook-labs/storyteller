@@ -3,8 +3,11 @@ local gt = require("@pkg/GreenTea")
 local t = require("@pkg/t")
 
 local ControlTypes = require("@root/controls/ControlTypes")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
+
+export type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControls = ControlTypes.StoryControls
@@ -179,17 +182,28 @@ export type LoadedStory<T> = {
 export type StoryRequest = {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
+	-- Queued Interactive requests load ahead of Background ones, for a module
+	-- someone is waiting to see. `requestStoryModule` and `useStoryModuleRecords`
+	-- default to Background.
+	priority: StoryModuleRequestPriority?,
 }
 
-export type StoryModuleRecord = {
-	name: string?,
-	stories: { LoadedStory<unknown> }?,
-	problem: string?,
+export type LoadedStoryModule = {
+	status: "Loaded",
+	name: string,
+	stories: { LoadedStory<unknown> },
 }
+
+export type UnavailableStoryModule = {
+	status: "Unavailable",
+	problem: string,
+}
+
+export type StoryModuleRecord = LoadedStoryModule | UnavailableStoryModule
 
 -- Records are grouped by Storybook source, then keyed by Story module. Each
--- pairing loads independently because the Storybook supplies the loader
--- environment (packages, mapStory, and friends).
+-- pairing has its own record because a loaded Story carries its Storybook and
+-- can take its packages from there.
 export type StoryModuleRecords = {
 	[ModuleScript]: {
 		[ModuleScript]: StoryModuleRecord,
