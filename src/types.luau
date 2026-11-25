@@ -195,8 +195,8 @@ export type UnavailableStoryModule = {
 export type StoryModuleRecord = LoadedStoryModule | UnavailableStoryModule
 
 -- Records are grouped by Storybook source, then keyed by Story module. Each
--- pairing loads independently because the Storybook supplies the loader
--- environment (packages, mapStory, and friends).
+-- pairing has its own record because a loaded Story carries its Storybook and
+-- can take its packages from there.
 export type StoryModuleRecords = {
 	[ModuleScript]: {
 		[ModuleScript]: StoryModuleRecord,
