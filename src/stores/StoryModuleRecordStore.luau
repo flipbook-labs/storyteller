@@ -425,13 +425,17 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			-- lute-lint-ignore(unused_variable)
 			local loaderEntry = ensureLoaderEntry(storyRequest.storybook.source)
 			loaderEntry.requests[storyRequest.storyModule] = entry
-			entry.sourceConnection = storyRequest.storyModule:GetPropertyChangedSignal("Source"):Connect(function()
-				invalidateRequest(
-					entry,
-					if entry.interactiveRefCount > 0
-						then StoryModuleRequestPriority.Interactive
-						else StoryModuleRequestPriority.Background
-				)
+			-- In a playtest, GetPropertyChangedSignal("Source") throws for lack of
+			-- the PluginOrOpenCloud capability. Connecting to Changed doesn't.
+			entry.sourceConnection = storyRequest.storyModule.Changed:Connect(function(property)
+				if property == "Source" then
+					invalidateRequest(
+						entry,
+						if entry.interactiveRefCount > 0
+							then StoryModuleRequestPriority.Interactive
+							else StoryModuleRequestPriority.Background
+					)
+				end
 			end)
 			entry.destroyingConnection = storyRequest.storyModule.Destroying:Connect(function()
 				cleanupRequestEntry(entry)
