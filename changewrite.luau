@@ -1,0 +1,28 @@
+return {
+	categories = { "Features", "Changes", "Fixes", "Dependencies", "Internal" },
+	collapsed = { "Dependencies", "Internal" },
+	version = {
+		current = "1.13.0",
+		mirror = {
+			{ file = "wally.toml" },
+			{ file = "pkg.luau" },
+			{ file = "README.md", pattern = "flipbook%-labs/storyteller@([%d%.]+)" },
+			{ file = "README.md", pattern = 'rev = "v([%d%.]+)"' },
+		},
+	},
+	kind = {
+		release = { text = "Release", color = "#94606f" },
+		build = { text = "Build", color = "#5a7396" },
+		ci = { text = "CI", color = "#75659a" },
+		contributing = { text = "Contributing", color = "#5f7f55" },
+		controls = { text = "Controls", color = "#0969da" },
+		discovery = { text = "Discovery", color = "#0e7490" },
+		docs = { text = "Docs", color = "#8a5a2b" },
+		loading = { text = "Loading", color = "#5b5bd6" },
+		packages = { text = "Packages", color = "#7a7444" },
+		react = { text = "React", color = "#8250df" },
+		renderers = { text = "Renderers", color = "#bf3989" },
+		storybooks = { text = "Storybooks", color = "#9a6700" },
+		tooling = { text = "Tooling", color = "#4e8079" },
+	},
+}
