@@ -298,15 +298,18 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 		if not success then
 			return {
+				status = "Unavailable",
 				problem = tostring(result),
 			}
 		end
 
-		local stories = result.stories
-		excludeFromCharmFreeze(stories)
+		for _, story in result.stories do
+			excludeFromCharmFreeze(story)
+		end
 		return {
+			status = "Loaded",
 			name = result.name,
-			stories = stories,
+			stories = result.stories,
 		}
 	end
 

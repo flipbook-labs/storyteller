@@ -102,7 +102,7 @@ test("unrelated record updates do not rerender a loaded story", function()
 			storyModule = unrelatedModule,
 			storybook = storybook,
 		})
-		assert(record and record.stories, "expected the unrelated story to load")
+		assert(record and record.status == "Loaded", "expected the unrelated story to load")
 		expect(record.stories[1].name).toBe("Unrelated")
 	end)
 
@@ -202,7 +202,7 @@ test("switching the storybook source reloads from the new source and releases th
 		storyModule = storyModule,
 		storybook = firstStorybook,
 	})
-	assert(firstRecord and firstRecord.stories, "expected the other consumer to keep the first record")
+	assert(firstRecord and firstRecord.status == "Loaded", "expected the other consumer to keep the first record")
 
 	releaseOther()
 	expect(StorytellerStore.get().getStoryModuleRecord({
@@ -274,8 +274,7 @@ test("replacing the storybook object for the same source keeps another request's
 		storyModule = storyModule,
 		storybook = storybook,
 	})
-	assert(record and record.stories, "expected the other request to keep its record")
-	expect(record.problem).toBeUndefined()
+	assert(record and record.status == "Loaded", "expected the other request to keep its record")
 
 	releaseOther()
 	local stories = get()

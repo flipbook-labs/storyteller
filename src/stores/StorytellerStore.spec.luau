@@ -682,7 +682,7 @@ describe("requesting story modules", function()
 
 		waitFor(function()
 			local record = store.getStoryModuleRecord(request)
-			assert(record and record.stories, "expected a loaded record for the requested story module")
+			assert(record and record.status == "Loaded", "expected a loaded record for the requested story module")
 			expect(record.stories[1].name).toBe("Delegated")
 		end)
 	end)

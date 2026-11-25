@@ -62,11 +62,13 @@ test("loads records and isolates malformed modules", function()
 		local recordsForStorybook = records[storybook.source]
 		local validRecord = recordsForStorybook[validStoryModule]
 		local invalidRecord = recordsForStorybook[invalidStoryModule]
+		assert(validRecord and validRecord.status == "Loaded", "expected the valid module to load")
 		expect(validRecord.stories).toEqual({
 			expect.objectContaining({ id = "Alpha", name = "Alpha" }),
 			expect.objectContaining({ id = "Beta", name = "Beta" }),
 		})
-		expect(invalidRecord.problem).toBeDefined()
+		assert(invalidRecord and invalidRecord.status == "Unavailable", "expected the invalid module to fail")
+		expect(invalidRecord.problem).toMatch("Invalid.story")
 	end)
 
 	act(function()
@@ -80,7 +82,7 @@ test("loads records and isolates malformed modules", function()
 
 	waitFor(function()
 		local record = get()[storybook.source][invalidStoryModule]
-		expect(record.problem).toBeUndefined()
+		assert(record.status == "Loaded", "expected the repaired module to load")
 		expect(record.stories).toEqual({
 			expect.objectContaining({
 				id = "default",
@@ -130,7 +132,7 @@ test("releases requested records when the consumer unmounts", function()
 	waitFor(function()
 		local recordsForStorybook = store.getStoryModuleRecords()[storybook.source]
 		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
-		assert(record and record.stories, "expected the requested record to load")
+		assert(record and record.status == "Loaded", "expected the requested record to load")
 		expect(record.stories[1].id).toBe("default")
 	end)
 
@@ -184,7 +186,7 @@ test("reads records from the new store when the provider's store changes", funct
 
 	waitFor(function()
 		local record = firstStore.getStoryModuleRecord(request)
-		assert(record and record.stories, "expected the first store to load the record")
+		assert(record and record.status == "Loaded", "expected the first store to load the record")
 	end)
 
 	act(function()
@@ -199,7 +201,7 @@ test("reads records from the new store when the provider's store changes", funct
 			task.wait()
 		end)
 		local expected = secondStore.getStoryModuleRecord(request)
-		assert(expected and expected.stories, "expected the second store to load the record")
+		assert(expected and expected.status == "Loaded", "expected the second store to load the record")
 		local recordsForStorybook = get()[storybook.source]
 		local record = if recordsForStorybook then recordsForStorybook[storyModule] else nil
 		expect(record).toBe(expected)
@@ -272,7 +274,7 @@ test("reloads every module when its Storybook is replaced alongside another modu
 	waitFor(function()
 		local recordsForStorybook = get()[source]
 		local record = if recordsForStorybook then recordsForStorybook[firstStoryModule] else nil
-		assert(record and record.stories, "expected the first record to load")
+		assert(record and record.status == "Loaded", "expected the first record to load")
 	end)
 
 	act(function()
@@ -299,7 +301,7 @@ test("reloads every module when its Storybook is replaced alongside another modu
 		assert(recordsForStorybook, "expected records for the replaced Storybook")
 		for _, storyModule in { firstStoryModule, secondStoryModule } do
 			local record = recordsForStorybook[storyModule]
-			assert(record and record.stories, "expected the record to reload")
+			assert(record and record.status == "Loaded", "expected the record to reload")
 			expect(record.stories[1].packages).toEqual({ Dependency = "second" })
 		end
 	end)
@@ -451,7 +453,7 @@ test("does not reload existing requests when requests are added or removed", fun
 	waitFor(function()
 		local recordsForStorybook = get()[firstStorybook.source]
 		local record = if recordsForStorybook then recordsForStorybook[firstStoryModule] else nil
-		assert(record and record.stories, "expected the first record to load")
+		assert(record and record.status == "Loaded", "expected the first record to load")
 		expect(record.stories[1].id).toBe("default")
 	end)
 
@@ -467,7 +469,7 @@ test("does not reload existing requests when requests are added or removed", fun
 	waitFor(function()
 		local recordsForStorybook = get()[secondStorybook.source]
 		local record = if recordsForStorybook then recordsForStorybook[secondStoryModule] else nil
-		assert(record and record.stories, "expected the second record to load")
+		assert(record and record.status == "Loaded", "expected the second record to load")
 		expect(record.stories[1].id).toBe("default")
 	end)
 	expect(firstStoryModule:GetAttribute("LoadCount")).toBe(1)
@@ -491,4 +493,241 @@ test("does not reload existing requests when requests are added or removed", fun
 	secondStorybook.source:Destroy()
 	firstStoryModule:Destroy()
 	secondStoryModule:Destroy()
+end)
+
+-- Renders the hook against its own store, and returns a setter that rerenders
+-- it with new requests. `results` collects what each render returned.
+local function renderRequests(initialRequests: { StoryModuleRecordStore.StoryRequest })
+	local root = Instance.new("Folder")
+	local store = StorytellerStore.new(root)
+	local getRequests, setRequests = Charm.signal({ list = initialRequests })
+	local results: { types.StoryModuleRecords } = {}
+
+	local function Wrapper(props): React.ReactNode
+		return React.createElement(StorytellerContext.StorytellerProvider, {
+			store = store,
+		}, props.children)
+	end
+
+	renderHook(function()
+		local records = useStoryModuleRecords(useSignalState(getRequests).list)
+		table.insert(results, records)
+		return records
+	end, {
+		wrapper = Wrapper,
+	})
+
+	return {
+		store = store,
+		results = results,
+		setRequests = function(requests: { StoryModuleRecordStore.StoryRequest })
+			setRequests({ list = requests })
+		end,
+		destroy = function()
+			store.destroy()
+			root:Destroy()
+		end,
+	}
+end
+
+-- Each module stamps the order it was evaluated in.
+local function createOrderedModules(names: { string }): { ModuleScript }
+	local root = Instance.new("Folder")
+	local counter = Instance.new("IntValue")
+	counter.Name = "Counter"
+	counter.Parent = root
+
+	local modules: { ModuleScript } = {}
+	for _, name in names do
+		local storyModule = Instance.new("ModuleScript")
+		storyModule.Name = `{name}.story`
+		storyModule.Source = [[
+			local counter = script.Parent.Counter
+			counter.Value += 1
+			script:SetAttribute("Order", counter.Value)
+			script:SetAttribute("LoadCount", (script:GetAttribute("LoadCount") or 0) + 1)
+			return { story = function() end }
+		]]
+		storyModule.Parent = root
+		table.insert(modules, storyModule)
+	end
+	return modules
+end
+
+local function createStorybook(): types.LoadedStorybook
+	return {
+		name = "Storybook",
+		source = Instance.new("ModuleScript"),
+		storyRoots = {},
+	}
+end
+
+test("loads Interactive requests first, then the rest in request order", function()
+	local modules = createOrderedModules({ "First", "Second", "Third" })
+	local storybook = createStorybook()
+
+	local rendered = renderRequests({
+		{ storyModule = modules[1], storybook = storybook },
+		{ storyModule = modules[2], storybook = storybook },
+		{ storyModule = modules[3], storybook = storybook, priority = "Interactive" },
+	})
+
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(modules[3]:GetAttribute("Order")).toBe(1)
+		expect(modules[1]:GetAttribute("Order")).toBe(2)
+		expect(modules[2]:GetAttribute("Order")).toBe(3)
+	end)
+
+	rendered.destroy()
+	storybook.source:Destroy()
+end)
+
+test("loads a module once at the highest priority when its requests disagree", function()
+	local modules = createOrderedModules({ "First", "Duplicated" })
+	local storybook = createStorybook()
+
+	local rendered = renderRequests({
+		{ storyModule = modules[1], storybook = storybook },
+		{ storyModule = modules[2], storybook = storybook, priority = "Interactive" },
+		{ storyModule = modules[2], storybook = storybook, priority = "Background" },
+	})
+
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(modules[1]:GetAttribute("Order")).toBe(2)
+	end)
+	expect(modules[2]:GetAttribute("Order")).toBe(1)
+	expect(modules[2]:GetAttribute("LoadCount")).toBe(1)
+
+	rendered.destroy()
+	storybook.source:Destroy()
+end)
+
+test("changing a loaded request's priority keeps its record and reloads it first on the next edit", function()
+	local modules = createOrderedModules({ "Unchanged", "Reprioritized" })
+	local storybook = createStorybook()
+	local rendered = renderRequests({
+		{ storyModule = modules[1], storybook = storybook },
+		{ storyModule = modules[2], storybook = storybook },
+	})
+	local results = rendered.results
+
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		local recordsForStorybook = results[#results][storybook.source]
+		assert(recordsForStorybook, "expected records for the Storybook")
+		expect(recordsForStorybook[modules[1]]).toBeDefined()
+		expect(recordsForStorybook[modules[2]]).toBeDefined()
+	end)
+	local loaded = results[#results]
+
+	act(function()
+		rendered.setRequests({
+			{ storyModule = modules[1], storybook = storybook },
+			{ storyModule = modules[2], storybook = storybook, priority = "Interactive" },
+		})
+	end)
+	act(function()
+		task.wait(0.1)
+	end)
+	expect(results[#results]).toBe(loaded)
+	expect(modules[2]:GetAttribute("LoadCount")).toBe(1)
+
+	act(function()
+		modules[1].Source = modules[1].Source .. "\n"
+		modules[2].Source = modules[2].Source .. "\n"
+	end)
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(modules[2]:GetAttribute("Order")).toBe(3)
+		expect(modules[1]:GetAttribute("Order")).toBe(4)
+	end)
+
+	rendered.destroy()
+	storybook.source:Destroy()
+end)
+
+test("an unrelated record does not rerender the consumer", function()
+	local modules = createOrderedModules({ "Requested", "Unrelated" })
+	local storybook = createStorybook()
+	local rendered = renderRequests({
+		{ storyModule = modules[1], storybook = storybook },
+	})
+	local results = rendered.results
+
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(results[#results][storybook.source]).toBeDefined()
+	end)
+	local renderCount = #results
+
+	local unrelatedRequest: StoryModuleRecordStore.StoryRequest = {
+		storyModule = modules[2],
+		storybook = storybook,
+	}
+	local releaseUnrelated = rendered.store.requestStoryModule("Background", unrelatedRequest)
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(rendered.store.getStoryModuleRecord(unrelatedRequest)).toBeDefined()
+	end)
+	act(function()
+		releaseUnrelated()
+		task.wait()
+	end)
+	expect(#results).toBe(renderCount)
+
+	-- The requested module's own edit still gets through.
+	act(function()
+		modules[1].Source = modules[1].Source .. "\n"
+	end)
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		expect(#results).toBeGreaterThan(renderCount)
+		expect(results[#results]).never.toBe(results[renderCount])
+	end)
+
+	rendered.destroy()
+	storybook.source:Destroy()
+end)
+
+test("picks up requests added to the same list in place", function()
+	local modules = createOrderedModules({ "Original", "Appended" })
+	local storybook = createStorybook()
+	local requests: { StoryModuleRecordStore.StoryRequest } = {
+		{ storyModule = modules[1], storybook = storybook },
+	}
+	local rendered = renderRequests(requests)
+	local results = rendered.results
+
+	act(function()
+		table.insert(requests, { storyModule = modules[2], storybook = storybook })
+		rendered.setRequests(requests)
+	end)
+
+	waitFor(function()
+		act(function()
+			task.wait()
+		end)
+		local recordsForStorybook = results[#results][storybook.source]
+		assert(recordsForStorybook, "expected records for the Storybook")
+		expect(recordsForStorybook[modules[2]]).toBeDefined()
+	end)
+
+	rendered.destroy()
+	storybook.source:Destroy()
 end)
