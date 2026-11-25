@@ -27,7 +27,13 @@ local function useStories(
 		})
 	end, { module, storytellerStore, storybook } :: { unknown })
 
-	return if record then record.stories else nil, if record then record.problem else nil
+	if not record then
+		return nil
+	end
+	if record.status == "Unavailable" then
+		return nil, record.problem
+	end
+	return record.stories
 end
 
 return useStories
