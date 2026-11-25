@@ -249,8 +249,7 @@ local function loadStoryModuleData<T>(
 				(flipbook-labs/storyteller#100).
 
 				The clone matters: `packages` can be the storybook's table, which
-				belongs to the author's module and may be shared, so we must not
-				attach a metatable in place.
+				other stories share, so we must not attach a metatable in place.
 			]]
 			packages = table.clone(packages)
 			excludeFromCharmFreeze(packages)
