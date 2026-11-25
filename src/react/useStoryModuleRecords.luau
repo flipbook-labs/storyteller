@@ -91,8 +91,8 @@ local function areSameRecords(previous: StoryModuleRecords, current: StoryModule
 	return hasEveryRecord(previous, current) and hasEveryRecord(current, previous)
 end
 
--- The same pair of module and Storybook can be requested more than once, and
--- the hook holds one request for it at the highest priority asked for.
+-- A list can request the same module and Storybook source more than once. The
+-- hook holds one request for them, at the highest priority asked for.
 local function getPriorities(
 	requests: { StoryRequest }
 ): { [ModuleScript]: { [ModuleScript]: StoryModuleRequestPriority } }
@@ -120,16 +120,17 @@ local function releaseActiveRequests(activeRequests: ActiveRequests)
 end
 
 --[=[
-	Requests and subscribes to the loaded Story module records needed to build
-	Story browser nodes. Consumers project the metadata they need (names,
-	summaries, load problems) from each record's stories. Story module loading,
-	caching, scheduling, and watching are owned by the active StorytellerStore.
+	Requests many Story modules at once and returns their records, such as for a
+	sidebar that lists every Story. Records are grouped by Storybook source, then
+	keyed by Story module. A module that hasn't loaded yet has no record, and one
+	that failed to load has a record with its problem.
 
-	Set `priority = "Interactive"` on the requests someone is waiting to see. They
-	load before every Background request, and a request's priority can change
-	without loading its module again.
+	Set `priority = "Interactive"` on the requests someone is waiting to see, and
+	they go ahead of queued Background requests. Changing the priority of a loaded
+	module's request doesn't reload it.
 
-	The returned table only changes when one of the requested records does.
+	The returned table stays the same until one of its records is added, replaced,
+	or removed, so it's safe to use as a hook dependency.
 
 	@tag React
 	@tag Story
@@ -196,9 +197,9 @@ local function useStoryModuleRecords(requests: { StoryRequest }): StoryModuleRec
 			then
 				continue
 			end
-			-- Acquire the replacement before releasing the lease it replaces. Releasing
-			-- first can drop the entry's last reference, and the new request would then
-			-- create a fresh entry that skips the store's storybook-change invalidation.
+			-- Acquire the replacement before releasing the request it replaces. When
+			-- this is the only request for the module, releasing first would drop its
+			-- record, and the module would load again even for a priority change.
 			requestsForModule[storybookSource] = {
 				request = request,
 				priority = priority,

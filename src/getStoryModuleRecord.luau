@@ -5,9 +5,11 @@ type StoryModuleRecord = types.StoryModuleRecord
 type StoryRequest = types.StoryRequest
 
 --[=[
-	Returns the record of a Story module in the shared runtime, or `nil` while the module has not finished loading.
+	Returns the record of a Story module in the shared runtime, or `nil` when there isn't one yet.
 
-	A record only exists while something is requesting the module. Call `requestStoryModule` first, or use a hook that requests it, such as `useStory`. The record's `status` says whether the module loaded, and it decides which fields the record has.
+	The runtime makes a record after it loads a module that something requested, and drops it when the last request is released. Call `requestStoryModule` first, or use a hook that requests the module, such as `useStory`. While a module reloads after an edit, this returns the previous record.
+
+	The record's `status` says whether the module loaded, and it decides which fields the record has.
 
 	```lua
 	local record = Storyteller.getStoryModuleRecord(request)

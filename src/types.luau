@@ -182,8 +182,9 @@ export type LoadedStory<T> = {
 export type StoryRequest = {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
-	-- Interactive requests load before every Background one. Use it for a Story
-	-- someone is waiting to see. Requests are Background by default.
+	-- Queued Interactive requests load ahead of Background ones, for a module
+	-- someone is waiting to see. `requestStoryModule` and `useStoryModuleRecords`
+	-- default to Background.
 	priority: StoryModuleRequestPriority?,
 }
 

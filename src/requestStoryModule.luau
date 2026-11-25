@@ -7,7 +7,9 @@ type StoryRequest = types.StoryRequest
 --[=[
 	Asks the shared runtime to load a Story module, and returns a function that releases the request.
 
-	Loading happens in the background. Read the result with `getStoryModuleRecord`, which keeps following edits to the module until the request is released. Requests for the same Storybook and module share one record, so this does not load a module again when a hook already has.
+	The module loads after this function returns. Call `getStoryModuleRecord` with the same request to read the result, or pass that call to `Charm.listen` to be told when it changes. While the request is held, the module reloads when it or its dependencies are edited.
+
+	Requests for the same module and Storybook share one record, including requests from hooks that use the shared runtime. Passing a different `storybook` table for the same source counts as a new version of that Storybook, so the module reloads.
 
 	```lua
 	local request = {
@@ -17,7 +19,14 @@ type StoryRequest = types.StoryRequest
 	}
 
 	local release = Storyteller.requestStoryModule(request)
-	-- Wait for `Storyteller.getStoryModuleRecord(request)` to return a record
+	local stopListening = Charm.listen(function()
+		return Storyteller.getStoryModuleRecord(request)
+	end, function(record)
+		print(if record then record.status else "Loading")
+	end)
+
+	-- When the record is no longer needed
+	stopListening()
 	release()
 	```
 
@@ -29,9 +38,8 @@ type StoryRequest = types.StoryRequest
 ]=]
 local function requestStoryModule(request: StoryRequest): () -> ()
 	local store = StorytellerStore.get()
-	-- When the last consumer releases the runtime, it stops and clears every
-	-- record. Holding it here keeps this request's record through a host's
-	-- unmount.
+	-- The store stops and clears every record once nothing holds it. Holding it
+	-- here keeps this request's record when a StorytellerProvider unmounts.
 	local releaseStore = store.acquire()
 	local releaseRequest = store.requestStoryModule(request.priority or StoryModuleRequestPriority.Background, request)
 
