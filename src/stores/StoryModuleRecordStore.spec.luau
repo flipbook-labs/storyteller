@@ -23,9 +23,28 @@ type StoryRequest = StoryModuleRecordStore.StoryRequest
 local recordStore: StoryModuleRecordStore.StoryModuleRecordStore
 local wasCharmFrozen = Charm.flags.frozen
 
+--[[
+	Story modules in these specs find their siblings through `script.Parent`.
+	Their root folders aren't in the DataModel, so once nothing references a
+	root, it can be collected, and its children's Parent becomes nil. A reload
+	after that fails to find the siblings. Roots made by `createRoot` stay
+	referenced until the test ends.
+]]
+local roots: { Instance } = {}
+
+local function createRoot(): Folder
+	local root = Instance.new("Folder")
+	table.insert(roots, root)
+	return root
+end
+
 afterEach(function()
 	recordStore.destroy()
 	Charm.flags.frozen = wasCharmFrozen
+	for _, root in roots do
+		root:Destroy()
+	end
+	table.clear(roots)
 end)
 
 local function createRequest(name: string): StoryRequest
@@ -50,7 +69,7 @@ end
 -- Builds a batch of story modules that stamp the order they were evaluated in,
 -- so queue-ordering behavior is observable without timing assumptions.
 local function createOrderedRequests(count: number, storybook: types.LoadedStorybook): { StoryRequest }
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local counter = Instance.new("IntValue")
 	counter.Name = "Counter"
 	counter.Parent = root
@@ -253,7 +272,7 @@ end)
 test("evaluates the storybook and story through the same loader", function()
 	recordStore = StoryModuleRecordStore.new()
 
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local marker = Instance.new("ModuleScript")
 	marker.Name = "Marker"
 	marker.Source = "return {}"
@@ -343,7 +362,7 @@ test("reuses the cached record across overlapping requests", function()
 end)
 
 test("does not reload sibling stories when one story source changes", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local firstLoadCount = Instance.new("IntValue")
 	firstLoadCount.Name = "FirstLoadCount"
 	firstLoadCount.Parent = root
@@ -684,7 +703,7 @@ local function createTypingRecordStore()
 end
 
 test("reloads once when a replacement storybook arrives during the quiet period", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local loadCount = Instance.new("IntValue")
 	loadCount.Name = "LoadCount"
 	loadCount.Parent = root
@@ -733,7 +752,7 @@ test("reloads once when a replacement storybook arrives during the quiet period"
 end)
 
 test("reloads a story once after a burst of edits to its source", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local loadCount = Instance.new("IntValue")
 	loadCount.Name = "LoadCount"
 	loadCount.Parent = root
@@ -772,7 +791,7 @@ test("reloads a story once after a burst of edits to its source", function()
 end)
 
 test("reloads a story once after a burst of edits to a module it requires", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local loadCount = Instance.new("IntValue")
 	loadCount.Name = "LoadCount"
 	loadCount.Parent = root
@@ -847,7 +866,7 @@ test("reloads right away when a story module that isn't open in the script edito
 end)
 
 test("reloads right away when a dependency that isn't open changes, even while the story is open", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local dependency = Instance.new("ModuleScript")
 	dependency.Name = "Dependency"
 	dependency.Source = "return 1"
