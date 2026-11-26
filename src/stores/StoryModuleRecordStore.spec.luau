@@ -837,7 +837,7 @@ end)
 
 describe("a module that stops loading after it loaded once", function()
 	local function loadWorkingStory(name: string)
-		local root = Instance.new("Folder")
+		local root = createRoot()
 		local request = createRequest(name)
 		request.storyModule.Parent = root
 		request.storyModule.Source = `return \{ name = "Working", story = function() end \}`
@@ -904,7 +904,7 @@ describe("a module that stops loading after it loaded once", function()
 	end)
 
 	test("reloads once a broken dependency is fixed", function()
-		local root = Instance.new("Folder")
+		local root = createRoot()
 		local dependency = Instance.new("ModuleScript")
 		dependency.Name = "Dependency"
 		dependency.Source = "return 1"
@@ -946,7 +946,7 @@ describe("a module that stops loading after it loaded once", function()
 	end)
 
 	test("reloads once a broken dependency is fixed after an edit has loaded", function()
-		local root = Instance.new("Folder")
+		local root = createRoot()
 		local dependency = Instance.new("ModuleScript")
 		dependency.Name = "Dependency"
 		dependency.Source = "return 1"
