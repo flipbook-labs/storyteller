@@ -877,7 +877,12 @@ describe("a module that stops loading after it loaded once", function()
 		waitFor(function()
 			local record = getRecord(request)
 			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
-			expect(record.problem).toEqual(expect.any("string"))
+			local problem = record.problem
+			assert(problem, "expected the record to report the error")
+			-- The problem is the error alone, without a traceback or a
+			-- "Failed to load story" prefix.
+			expect(problem).toMatch("Throws%.story[^\n]*:2: attempt to index nil with 'name'$")
+			expect(problem).never.toMatch("Failed to load story")
 			expect(record.stories).toBe(workingRecord.stories)
 		end, { timeout = 5 })
 	end)
