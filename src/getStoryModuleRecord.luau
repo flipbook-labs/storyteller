@@ -7,7 +7,9 @@ type StoryRequest = types.StoryRequest
 --[=[
 	Returns the record of a Story module in the shared runtime, or `nil` when there isn't one yet.
 
-	The runtime makes a record after it loads a module that something requested, and drops it when the last request is released. Call `requestStoryModule` first, or use a hook that requests the module, such as `useStory`. While a module reloads after an edit, this returns the previous record.
+	The runtime makes a record after it loads a module that something requested, and drops it when the last request is
+	released. Call `requestStoryModule` first, or use a hook that requests the module, such as `useStory`. While a
+	module reloads after an edit, this returns the previous record.
 
 	The record's `status` says whether the module loaded, and it decides which fields the record has.
 
@@ -21,7 +23,8 @@ type StoryRequest = types.StoryRequest
 	end
 	```
 
-	This is a Charm getter for the shared runtime only; it does not read React context. A provider with a custom `store` and its descendant hooks use that store instead, and do not supply records to this getter.
+	This is a Charm getter for the shared runtime only; it does not read React context. A provider with a custom `store`
+	and its descendant hooks use that store instead, and do not supply records to this getter.
 
 	@tag Story
 	@tag Module Loading
