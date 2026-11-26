@@ -1,6 +1,7 @@
 local types = require("@root/types")
 
 type LoadedStory<T> = types.LoadedStory<T>
+type StoryControls = types.StoryControls
 type StoryProps = types.StoryProps
 type StoryRenderer<T> = types.StoryRenderer<T>
 
@@ -8,11 +9,14 @@ type StoryRenderer<T> = types.StoryRenderer<T>
 -- parts of it that this renderer uses.
 type Packages = {
 	Vide: {
-		source: (initialValue: unknown) -> unknown,
+		source: (initialValue: unknown) -> VideSource,
 		mount: (component: () -> unknown, target: Instance) -> () -> (),
 		batch: (callback: () -> ()) -> (),
 	},
 }
+
+type VideSource = (value: unknown) -> unknown
+type VideSources = { [string]: VideSource }
 
 local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local Vide = packages.Vide
@@ -23,17 +27,20 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 	local function transformProps(props: StoryProps)
 		local transformed = table.clone(props)
 
-		transformed.controls = {}
+		local prevControls: VideSources? = if prevProps ~= nil then prevProps.controls :: VideSources? else nil
+		local sources: VideSources = {}
 
-		for key, control in props.controls do
-			local prevControl = if prevProps ~= nil and prevProps.controls ~= nil then prevProps.controls[key] else nil
+		for key, control in props.controls :: StoryControls do
+			local prevControl = if prevControls ~= nil then prevControls[key] else nil
 
 			if prevControl ~= nil then
-				transformed.controls[key] = prevControl
+				sources[key] = prevControl
 			else
-				transformed.controls[key] = Vide.source(control)
+				sources[key] = Vide.source(control)
 			end
 		end
+
+		transformed.controls = sources
 
 		return transformed
 	end
@@ -45,7 +52,7 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 		local mapDefinition = if story.storybook then story.storybook.mapDefinition else nil
 
 		if mapDefinition then
-			story = mapDefinition(story)
+			story = mapDefinition(story) :: LoadedStory<Instance>
 		end
 
 		local mapStory = if story.storybook then story.storybook.mapStory else nil
@@ -63,9 +70,11 @@ local function createVideRenderer(packages: Packages): StoryRenderer<Instance>
 
 	local function update(props: StoryProps)
 		if prevProps ~= nil then
+			local prevControls = prevProps.controls :: VideSources
+
 			Vide.batch(function()
-				for key, control in props.controls do
-					local prevControl = prevProps.controls[key]
+				for key, control in props.controls :: StoryControls do
+					local prevControl = prevControls[key]
 
 					if prevControl ~= nil then
 						prevControl(control)

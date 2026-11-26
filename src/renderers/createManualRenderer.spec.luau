@@ -10,6 +10,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
@@ -17,6 +18,8 @@ local test = JestGlobals.test
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
+type LoadedStory<T> = types.LoadedStory<T>
+type StoryProps = types.StoryProps
 
 local function ButtonStory(props: {
 	controls: {
@@ -308,8 +311,9 @@ test("mapStory middleware wraps the story", function()
 	})
 
 	story.storybook.mapStory = function(originalStory)
+		local storyFn = originalStory :: (props: StoryProps) -> TextLabel
 		return function(props)
-			local instance = originalStory(props)
+			local instance = storyFn(props)
 			instance.Name = "Mapped"
 			return instance
 		end
@@ -333,7 +337,7 @@ test("mapDefinition is applied exactly once, at mount", function()
 
 	story.storybook.mapDefinition = function(storyDefinition)
 		applications += 1
-		return table.clone(storyDefinition)
+		return table.clone(storyDefinition :: LoadedStory<unknown>)
 	end
 
 	local lifecycle = render(container, story)
@@ -364,7 +368,7 @@ test("mapDefinition can replace the story's component", function()
 	})
 
 	story.storybook.mapDefinition = function(storyDefinition)
-		local mapped = table.clone(storyDefinition)
+		local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 		mapped.story = function()
 			local label = Instance.new("TextLabel")
 			label.Text = "Replaced"
