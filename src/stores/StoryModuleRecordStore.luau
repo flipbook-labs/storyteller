@@ -45,6 +45,9 @@ type RequestEntry = {
 	reloadLoader: ModuleLoader.ModuleLoader?,
 	-- Watches the reload loader for dependency changes after a reload.
 	reloadConnection: RBXScriptConnection?,
+	-- Waits out the quiet period after the latest change to the module or a
+	-- dependency, then reloads. Each new change restarts it.
+	reloadTimer: thread?,
 	-- Watches the Story module's own Source for direct edits.
 	sourceConnection: RBXScriptConnection?,
 	-- Cleans the entry up when the Story module is destroyed.
@@ -76,6 +79,14 @@ type PendingPublication = {
 -- frame's remaining budget.
 local WORK_BUDGET_MS = 4
 
+--[[
+	Studio changes a module's Source on every keystroke, and each reload
+	evaluates the Story and everything it requires. Waiting until changes stop
+	for this long turns a burst of typing into one reload, instead of one per
+	keystroke.
+]]
+local RELOAD_QUIET_PERIOD_SECONDS = 0.3
+
 local StoryModuleRecordStore = {}
 
 function StoryModuleRecordStore.new(): StoryModuleRecordStore
@@ -99,6 +110,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 	local processPendingRequests: () -> ()
 	local queueRequest: (entry: RequestEntry, priority: StoryModuleRequestPriority, invalidate: boolean) -> ()
 	local invalidateRequest: (entry: RequestEntry, priority: StoryModuleRequestPriority) -> ()
+	local scheduleReload: (entry: RequestEntry) -> ()
 	local cleanupRequestEntry: (entry: RequestEntry) -> ()
 
 	local function getRecord(request: StoryRequest): StoryModuleRecord?
@@ -205,12 +217,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				local changedEntry = loaderEntry.requests[changedModule]
 				if changedEntry then
 					if not changedEntry.reloadLoader then
-						invalidateRequest(
-							changedEntry,
-							if changedEntry.interactiveRefCount > 0
-								then StoryModuleRequestPriority.Interactive
-								else StoryModuleRequestPriority.Background
-						)
+						scheduleReload(changedEntry)
 					end
 					-- Story source changes have a dedicated connection. Only shared
 					-- dependency changes should invalidate sibling stories.
@@ -219,12 +226,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 				for _, entry in loaderEntry.requests do
 					if not entry.reloadLoader then
-						invalidateRequest(
-							entry,
-							if entry.interactiveRefCount > 0
-								then StoryModuleRequestPriority.Interactive
-								else StoryModuleRequestPriority.Background
-						)
+						scheduleReload(entry)
 					end
 				end
 			end),
@@ -261,6 +263,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		entry.generation += 1
 		entry.queuedPriority = nil
 
+		if entry.reloadTimer then
+			task.cancel(entry.reloadTimer)
+			entry.reloadTimer = nil
+		end
 		if entry.sourceConnection then
 			entry.sourceConnection:Disconnect()
 			entry.sourceConnection = nil
@@ -397,6 +403,18 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		local loader = ModuleLoader.new()
 		entry.reloadLoader = loader
 		entry.reloadConnection = loader.loadedModuleChanged:Connect(function()
+			scheduleReload(entry)
+		end)
+		queueRequest(entry, priority, true)
+	end
+
+	scheduleReload = function(entry: RequestEntry)
+		if entry.reloadTimer then
+			task.cancel(entry.reloadTimer)
+		end
+
+		entry.reloadTimer = task.delay(RELOAD_QUIET_PERIOD_SECONDS, function()
+			entry.reloadTimer = nil
 			invalidateRequest(
 				entry,
 				if entry.interactiveRefCount > 0
@@ -404,7 +422,6 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 					else StoryModuleRequestPriority.Background
 			)
 		end)
-		queueRequest(entry, priority, true)
 	end
 
 	local function request(priority: StoryModuleRequestPriority, storyRequest: StoryRequest): CleanupFn
@@ -431,6 +448,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				queuedPriority = nil,
 				reloadLoader = nil,
 				reloadConnection = nil,
+				reloadTimer = nil,
 				sourceConnection = nil,
 				destroyingConnection = nil,
 			}
@@ -442,12 +460,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			-- Source-specific signals require PluginOrOpenCloud in embedded clients.
 			entry.sourceConnection = storyRequest.storyModule.Changed:Connect(function(property)
 				if property == "Source" then
-					invalidateRequest(
-						entry,
-						if entry.interactiveRefCount > 0
-							then StoryModuleRequestPriority.Interactive
-							else StoryModuleRequestPriority.Background
-					)
+					scheduleReload(entry)
 				end
 			end)
 			entry.destroyingConnection = storyRequest.storyModule.Destroying:Connect(function()
@@ -500,6 +513,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				entry.interactiveRefCount = 0
 				entry.generation += 1
 				entry.queuedPriority = nil
+				if entry.reloadTimer then
+					task.cancel(entry.reloadTimer)
+					entry.reloadTimer = nil
+				end
 				if entry.sourceConnection then
 					entry.sourceConnection:Disconnect()
 					entry.sourceConnection = nil

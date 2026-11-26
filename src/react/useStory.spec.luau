@@ -178,9 +178,10 @@ test("re-renders on module changes", function()
 		}
 	]]
 
-	-- Wait for engine events
+	-- The store reloads once edits stop for its quiet period, so wait that out
+	-- inside `act` for the reload to reach the hook.
 	act(function()
-		task.wait()
+		task.wait(0.5)
 	end)
 
 	waitFor(function()
@@ -216,9 +217,10 @@ test("reloads on dependency changes", function()
 		return Component
 	]]
 
-	-- Wait for engine events
+	-- The store reloads once edits stop for its quiet period, so wait that out
+	-- inside `act` for the reload to reach the hook.
 	act(function()
-		task.wait()
+		task.wait(0.5)
 	end)
 
 	waitFor(function()

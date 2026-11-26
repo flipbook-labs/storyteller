@@ -662,3 +662,89 @@ test("requests after destroy are no-ops", function()
 	local recordKey = next(recordStore.getRecords())
 	expect(recordKey).toBeUndefined()
 end)
+
+-- Editing a module in Studio changes its Source on every keystroke. These
+-- specs make a burst of edits faster than the store's quiet period, the way
+-- typing does, and count how often the story module is evaluated.
+local TYPING_INTERVAL_SECONDS = 0.05
+
+test("reloads a story once after a burst of edits to its source", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("Typed")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 5 do
+		setVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the edited story to reload")
+		expect(record.stories[1].name).toBe("Version 5")
+	end, { timeout = 2 })
+
+	-- Leave time for any further reload to publish before counting.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+test("reloads a story once after a burst of edits to a module it requires", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Parent = root
+	local function setDependencyVersion(version: number)
+		dependency.Source = `return {version}`
+	end
+	setDependencyVersion(0)
+
+	local request = createRequest("UsesDependency")
+	request.storyModule.Parent = root
+	request.storyModule.Source = [[
+		script.Parent.LoadCount.Value += 1
+		local version = require(script.Parent.Dependency)
+		return { name = "UsesDependency", story = function() return version end }
+	]]
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 5 do
+		setDependencyVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload with its dependency")
+		expect((record.stories[1].story :: () -> number)()).toBe(5)
+	end, { timeout = 2 })
+
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
