@@ -11,13 +11,17 @@ type StoryRequest = types.StoryRequest
 	released. Call `requestStoryModule` first, or use a hook that requests the module, such as `useStory`. While a
 	module reloads after an edit, this returns the previous record.
 
-	The record's `status` says whether the module loaded, and it decides which fields the record has.
+	The record's `status` says whether the module loaded, and it decides which fields the record has. When a module that loaded
+	before stops loading after an edit, the record stays `Loaded` with the last working stories, and `problem` holds the error.
 
 	```lua
 	local record = Storyteller.getStoryModuleRecord(request)
 
 	if record and record.status == "Loaded" then
 		print(record.name, #record.stories)
+		if record.problem then
+			warn("showing the last working version:", record.problem)
+		end
 	elseif record and record.status == "Unavailable" then
 		warn(record.problem)
 	end

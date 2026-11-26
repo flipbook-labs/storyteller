@@ -45,6 +45,15 @@ type RequestEntry = {
 	reloadLoader: ModuleLoader.ModuleLoader?,
 	-- Watches the reload loader for dependency changes after a reload.
 	reloadConnection: RBXScriptConnection?,
+	--[[
+		The reload loader from the last reload that succeeded, and its watch.
+		A loader only watches modules that loaded through it, so a module that
+		fails to load is watched only here. Keeping this until the next reload
+		succeeds means fixing that module still triggers a reload. While it's
+		nil, the shared loader holds the last successful load.
+	]]
+	loadedLoader: ModuleLoader.ModuleLoader?,
+	loadedConnection: RBXScriptConnection?,
 	-- Started by a change to the module or one of its dependencies. When it
 	-- runs out after RELOAD_QUIET_PERIOD_SECONDS, it invalidates the entry,
 	-- which queues a reload. Each new change restarts it.
@@ -219,7 +228,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			connection = loader.loadedModuleChanged:Connect(function(changedModule)
 				local changedEntry = loaderEntry.requests[changedModule]
 				if changedEntry then
-					if not changedEntry.reloadLoader then
+					if not changedEntry.loadedLoader then
 						scheduleReload(changedEntry)
 					end
 					-- Story source changes have a dedicated connection. Only shared
@@ -228,7 +237,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				end
 
 				for _, entry in loaderEntry.requests do
-					if not entry.reloadLoader then
+					if not entry.loadedLoader then
 						scheduleReload(entry)
 					end
 				end
@@ -246,6 +255,25 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		}
 		loaderEntries[storybookSource] = loaderEntry
 		return loaderEntry
+	end
+
+	local function releaseReloadLoaders(entry: RequestEntry)
+		if entry.reloadConnection then
+			entry.reloadConnection:Disconnect()
+		end
+		if entry.loadedConnection then
+			entry.loadedConnection:Disconnect()
+		end
+		if entry.reloadLoader then
+			entry.reloadLoader:clear()
+		end
+		if entry.loadedLoader then
+			entry.loadedLoader:clear()
+		end
+		entry.reloadConnection = nil
+		entry.reloadLoader = nil
+		entry.loadedConnection = nil
+		entry.loadedLoader = nil
 	end
 
 	local function cleanupLoaderEntry(storybookSource: ModuleScript)
@@ -278,14 +306,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			entry.destroyingConnection:Disconnect()
 			entry.destroyingConnection = nil
 		end
-		if entry.reloadConnection then
-			entry.reloadConnection:Disconnect()
-			entry.reloadConnection = nil
-		end
-		if entry.reloadLoader then
-			entry.reloadLoader:clear()
-		end
-		entry.reloadLoader = nil
+		releaseReloadLoaders(entry)
 
 		local loaderEntry = loaderEntries[storybookSource]
 		if loaderEntry and loaderEntry.requests[entry.request.storyModule] == entry then
@@ -294,6 +315,21 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 		removeRecord(entry.request.storyModule, storybookSource)
 		cleanupLoaderEntry(storybookSource)
+	end
+
+	local function promoteReloadLoader(entry: RequestEntry)
+		if entry.loadedLoader == entry.reloadLoader then
+			return
+		end
+
+		if entry.loadedConnection then
+			entry.loadedConnection:Disconnect()
+		end
+		if entry.loadedLoader then
+			entry.loadedLoader:clear()
+		end
+		entry.loadedLoader = entry.reloadLoader
+		entry.loadedConnection = entry.reloadConnection
 	end
 
 	local function createRecord(entry: RequestEntry): StoryModuleRecord
@@ -306,10 +342,30 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 		end)
 
 		if not success then
+			--[[
+				While someone edits a module, most versions in between fail to
+				load. A module that loaded before keeps its last working stories,
+				so a Story stays on screen until the edit works again, and the
+				failure is reported alongside them.
+			]]
+			local previousRecord = getRecord(entry.request)
+			if previousRecord and previousRecord.status == "Loaded" then
+				return {
+					status = "Loaded",
+					name = previousRecord.name,
+					stories = previousRecord.stories,
+					problem = tostring(result),
+				}
+			end
+
 			return {
 				status = "Unavailable",
 				problem = tostring(result),
 			}
+		end
+
+		if loader == entry.reloadLoader then
+			promoteReloadLoader(entry)
 		end
 
 		for _, story in result.stories do
@@ -395,12 +451,13 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			return
 		end
 
-		if entry.reloadConnection then
-			entry.reloadConnection:Disconnect()
-			entry.reloadConnection = nil
-		end
-		if entry.reloadLoader then
-			entry.reloadLoader:clear()
+		if entry.reloadLoader ~= entry.loadedLoader then
+			if entry.reloadConnection then
+				entry.reloadConnection:Disconnect()
+			end
+			if entry.reloadLoader then
+				entry.reloadLoader:clear()
+			end
 		end
 
 		local loader = ModuleLoader.new()
@@ -451,6 +508,8 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 				queuedPriority = nil,
 				reloadLoader = nil,
 				reloadConnection = nil,
+				loadedLoader = nil,
+				loadedConnection = nil,
 				reloadTimer = nil,
 				sourceConnection = nil,
 				destroyingConnection = nil,
@@ -528,14 +587,7 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 					entry.destroyingConnection:Disconnect()
 					entry.destroyingConnection = nil
 				end
-				if entry.reloadConnection then
-					entry.reloadConnection:Disconnect()
-					entry.reloadConnection = nil
-				end
-				if entry.reloadLoader then
-					entry.reloadLoader:clear()
-				end
-				entry.reloadLoader = nil
+				releaseReloadLoaders(entry)
 			end
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
