@@ -669,8 +669,20 @@ end)
 	specs make a burst of edits closer together than the store's 0.3-second
 	quiet period (RELOAD_QUIET_PERIOD_SECONDS), the way typing does, and count
 	how often the story module is evaluated.
+
+	The store only waits for modules open in the script editor, and nothing is
+	open outside Studio, so these specs create a store that treats every module
+	as open.
 ]]
 local TYPING_INTERVAL_SECONDS = 0.1
+
+local function createTypingRecordStore()
+	return StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function()
+			return true
+		end,
+	})
+end
 
 test("reloads once when a replacement storybook arrives during the quiet period", function()
 	local root = Instance.new("Folder")
@@ -686,7 +698,7 @@ test("reloads once when a replacement storybook arrives during the quiet period"
 	end
 	setVersion(0)
 
-	recordStore = StoryModuleRecordStore.new()
+	recordStore = createTypingRecordStore()
 	recordStore.request(StoryModuleRequestPriority.Interactive, request)
 
 	waitFor(function()
@@ -735,7 +747,7 @@ test("reloads a story once after a burst of edits to its source", function()
 	end
 	setVersion(0)
 
-	recordStore = StoryModuleRecordStore.new()
+	recordStore = createTypingRecordStore()
 	recordStore.request(StoryModuleRequestPriority.Interactive, request)
 
 	waitFor(function()
@@ -782,7 +794,7 @@ test("reloads a story once after a burst of edits to a module it requires", func
 		return { name = "UsesDependency", story = function() return version end }
 	]]
 
-	recordStore = StoryModuleRecordStore.new()
+	recordStore = createTypingRecordStore()
 	recordStore.request(StoryModuleRequestPriority.Interactive, request)
 
 	waitFor(function()
@@ -966,4 +978,71 @@ describe("a module that stops loading after it loaded once", function()
 			expect(record.problem).toBeUndefined()
 		end, { timeout = 5 })
 	end)
+end)
+
+--[[
+	A module that isn't open in the script editor changes when a tool such as
+	Rojo syncs a saved file. These specs check that the reload starts right
+	away, well inside the quiet period.
+]]
+local NOT_WAITING_TIMEOUT_SECONDS = 0.2
+
+test("reloads right away when a story module that isn't open in the script editor changes", function()
+	local request = createRequest("Synced")
+
+	recordStore = StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function()
+			return false
+		end,
+	})
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to load")
+	end)
+
+	request.storyModule.Source = `return \{ name = "Saved", story = function() end \}`
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the saved story to load")
+		expect(record.stories[1].name).toBe("Saved")
+	end, { timeout = NOT_WAITING_TIMEOUT_SECONDS })
+end)
+
+test("reloads right away when a dependency that isn't open changes, even while the story is open", function()
+	local root = Instance.new("Folder")
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Source = "return 1"
+	dependency.Parent = root
+
+	local request = createRequest("OpenStory")
+	request.storyModule.Parent = root
+	request.storyModule.Source = [[
+		local version = require(script.Parent.Dependency)
+		return { name = "Version " .. version, story = function() end }
+	]]
+
+	recordStore = StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function(module)
+			return module == request.storyModule
+		end,
+	})
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to load")
+		expect(record.stories[1].name).toBe("Version 1")
+	end)
+
+	dependency.Source = "return 2"
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload with the saved dependency")
+		expect(record.stories[1].name).toBe("Version 2")
+	end, { timeout = NOT_WAITING_TIMEOUT_SECONDS })
 end)
