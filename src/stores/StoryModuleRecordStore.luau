@@ -395,6 +395,13 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 			return
 		end
 
+		-- This reload picks up any edit a pending timer is waiting on, so the
+		-- timer would only load the module a second time.
+		if entry.reloadTimer then
+			task.cancel(entry.reloadTimer)
+			entry.reloadTimer = nil
+		end
+
 		if entry.reloadConnection then
 			entry.reloadConnection:Disconnect()
 			entry.reloadConnection = nil

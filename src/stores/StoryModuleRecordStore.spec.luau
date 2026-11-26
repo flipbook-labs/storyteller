@@ -671,6 +671,55 @@ end)
 ]]
 local TYPING_INTERVAL_SECONDS = 0.1
 
+test("reloads once when a replacement storybook arrives during the quiet period", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("ReplacedWhileTyping")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	local replacementStorybook: types.LoadedStorybook = {
+		name = "Replacement",
+		source = request.storybook.source,
+		storyRoots = {},
+	}
+
+	-- The short wait lets the edit start its quiet-period timer before the
+	-- replacement arrives.
+	setVersion(1)
+	task.wait(0.05)
+	recordStore.request(StoryModuleRequestPriority.Interactive, {
+		storyModule = request.storyModule,
+		storybook = replacementStorybook,
+	})
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload")
+		expect(record.stories[1].name).toBe("Version 1")
+		expect(record.stories[1].storybook).toBe(replacementStorybook)
+	end)
+
+	-- Waiting past the quiet period lets a reload from the edit's timer show
+	-- up in the count.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
 test("reloads a story once after a burst of edits to its source", function()
 	local root = Instance.new("Folder")
 	local loadCount = Instance.new("IntValue")
