@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.14.0
+
+Features 1 · Changes 4 · Fixes 1 · Internal 3
+
+### Features
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Add `requestStoryModule` and `getStoryModuleRecord` for loading a module's Stories and watching them for changes. ([#145](https://github.com/flipbook-labs/storyteller/pull/145))
+
+### Changes
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Track every Story loaded from a module and select a Story by its ID in `useStory`. ([#156](https://github.com/flipbook-labs/storyteller/pull/156))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-storybooks-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-storybooks-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-storybooks-light.png" alt="Storybooks" height="18" align="texttop" /></picture> Type `mapStory` and `mapDefinition` values as `unknown`, so middleware narrows them before use. ([#146](https://github.com/flipbook-labs/storyteller/pull/146))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.png" alt="Tooling" height="18" align="texttop" /></picture> Add contributor tooling for validating Storyteller builds in Flipbook and formatting Markdown. ([#152](https://github.com/flipbook-labs/storyteller/pull/152))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.png" alt="Tooling" height="18" align="texttop" /></picture> Keep Flipbook integration overlays synchronized with Storyteller's exported types. ([#153](https://github.com/flipbook-labs/storyteller/pull/153))
+
+### Fixes
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Opening a story in a playtest no longer crashes. ([#221](https://github.com/flipbook-labs/storyteller/pull/221))
+
+### Internal
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.png" alt="Tooling" height="18" align="texttop" /></picture> Move to Changewrite v0.16.0 and AgentSkills v0.9.0. ([#213](https://github.com/flipbook-labs/storyteller/pull/213))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.png" alt="Tooling" height="18" align="texttop" /></picture> Upgrade CodeQuality to v0.8.0 and turn long `--` comment runs into `--[[ ]]` blocks. ([#213](https://github.com/flipbook-labs/storyteller/pull/213))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-contributing-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-contributing-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-contributing-light.png" alt="Contributing" height="18" align="texttop" /></picture> Apply the Greptile changelog length rule to `summary` and let `body` run longer. ([#214](https://github.com/flipbook-labs/storyteller/pull/214))
+
 ## v1.13.0
 
 Storyteller now renders stories written with Vide and Iris, and one module can hold several named stories. Every renderer applies a storybook's `mapStory` and `mapDefinition` the same way, discovery scans each place once, and Storybooks evaluate across several frames instead of all at once.

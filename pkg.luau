@@ -1,7 +1,7 @@
 return {
 	package = {
 		name = "Storyteller",
-		version = "1.13.0",
+		version = "1.14.0",
 		files = {
 			"/src/**",
 			"!/src/e2e/**",
