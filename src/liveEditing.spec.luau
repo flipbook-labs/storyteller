@@ -158,8 +158,12 @@ describe("file sync tools such as Rojo", function()
 		local dependency = createModule(root, "Dependency", "return 1")
 		local first = createModule(root, "First.story", dependentStorySource("First"))
 		local second = createModule(root, "Second.story", dependentStorySource("Second"))
-		local firstRequest = request(first)
-		local secondRequest = request(second)
+		-- Stories under one Storybook start out sharing its loader. Editing the
+		-- first one moves it to a loader of its own, so the dependency edit
+		-- below has to reach stories in both.
+		local storybookSource = Instance.new("ModuleScript")
+		local firstRequest = request(first, storybookSource)
+		local secondRequest = request(second, storybookSource)
 		waitForStoryName(firstRequest, "First 1")
 		waitForStoryName(secondRequest, "Second 1")
 
