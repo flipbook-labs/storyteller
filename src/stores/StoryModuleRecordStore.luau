@@ -47,10 +47,13 @@ type RequestEntry = {
 	reloadConnection: RBXScriptConnection?,
 	--[[
 		The reload loader from the last reload that succeeded, and its watch.
-		A loader only watches modules that loaded through it, so a module that
-		fails to load is watched only here. Keeping this until the next reload
-		succeeds means fixing that module still triggers a reload. While it's
-		nil, the shared loader holds the last successful load.
+		A ModuleLoader only watches the modules that loaded through it. When a
+		dependency breaks, the reload that follows fails before that loader
+		reaches it, so the loader from the last successful reload is the one
+		still watching it. Keeping that loader until another reload succeeds
+		means fixing the dependency triggers a reload. This stays nil until
+		the first reload succeeds, and until then the shared Storybook loader
+		watches the entry's modules instead.
 	]]
 	loadedLoader: ModuleLoader.ModuleLoader?,
 	loadedConnection: RBXScriptConnection?,
@@ -343,10 +346,10 @@ function StoryModuleRecordStore.new(): StoryModuleRecordStore
 
 		if not success then
 			--[[
-				While someone edits a module, most versions in between fail to
-				load. A module that loaded before keeps its last working stories,
-				so a Story stays on screen until the edit works again, and the
-				failure is reported alongside them.
+				While someone types in a module, many of the versions along the
+				way fail to load. When the current record is already Loaded, it
+				keeps its stories and gains the failure as `problem`, so a Story
+				stays on screen until the edit works again.
 			]]
 			local previousRecord = getRecord(entry.request)
 			if previousRecord and previousRecord.status == "Loaded" then
