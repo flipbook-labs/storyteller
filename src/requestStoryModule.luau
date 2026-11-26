@@ -7,9 +7,17 @@ type StoryRequest = types.StoryRequest
 --[=[
 	Asks the shared runtime to load a Story module, and returns a function that releases the request.
 
-	The module loads after this function returns. Call `getStoryModuleRecord` with the same request to read the result, or pass that call to `Charm.listen` to be told when it changes. While the request is held, the module reloads when it or its dependencies are edited.
+	The module loads after this function returns. Call `getStoryModuleRecord` with the same request to read the result,
+	or pass that call to `Charm.listen` to be told when it changes. While the request is held, the module reloads when
+	it or its dependencies are edited.
 
-	Requests for the same module and Storybook share one record, including requests from hooks that use the shared runtime. Passing a different `storybook` table for the same source counts as a new version of that Storybook, so the module reloads.
+	Requests for the same module and Storybook share one record, including requests from hooks that use the shared
+	runtime. Passing a different `storybook` table for the same source counts as a new version of that Storybook, so the
+	module reloads.
+
+	The record is dropped when its last request is released. So to change a request's priority, make the new request
+	before releasing the old one. If the old one was the last, releasing it first would leave no record until the module
+	loads again.
 
 	```lua
 	local request = {
@@ -30,7 +38,8 @@ type StoryRequest = types.StoryRequest
 	release()
 	```
 
-	This starts the shared runtime and keeps it running until the request is released. It does not read React context, so a provider with a custom `store` never sees the request.
+	This starts the shared runtime and keeps it running until the request is released. It does not read React context,
+	so a provider with a custom `store` never sees the request.
 
 	@tag Story
 	@tag Module Loading
