@@ -11,12 +11,12 @@
 	passes through many versions that don't compile on the way to one that
 	does.
 
-	Roblox's internal Storybooks go through the same loading code, but some
-	use the older `storyRoot` field instead of `storyRoots`.
+	Roblox's internal Storybooks load the same way as any other, but some use
+	the older `storyRoot` field instead of `storyRoots`.
 
-	Each test here acts out one of those changes and checks the record that
-	`requestStoryModule` publishes, so a change to loading or reloading has to
-	keep every flow working.
+	Each test requests a story with `requestStoryModule`, acts out one of
+	those changes, and checks the record `getStoryModuleRecord` returns. A
+	change to loading or reloading has to keep every flow working to pass.
 ]]
 
 local JestGlobals = require("@pkg/JestGlobals")
@@ -35,7 +35,8 @@ local test = JestGlobals.test
 
 type StoryRequest = types.StoryRequest
 
--- Long enough for a reload that waits for edits to settle first.
+-- Storyteller can wait for edits to stop before it reloads a story, so a
+-- reload can take longer than `waitFor`'s default of one second.
 local WAIT_OPTIONS = { timeout = 5 }
 
 -- How far apart keystrokes land when a test types into a module.
@@ -199,7 +200,7 @@ describe("Studio's script editor", function()
 		local storyRequest = request(storyModule)
 		waitForStoryName(storyRequest, "Start")
 
-		-- Most of these versions leave the string unclosed, so they don't compile.
+		-- None of these versions close the string, so none of them compile.
 		local finalName = "Typed out"
 		for length = 0, #finalName do
 			storyModule.Source = `return \{ name = "{finalName:sub(1, length)}`
