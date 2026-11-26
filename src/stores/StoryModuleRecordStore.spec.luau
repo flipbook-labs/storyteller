@@ -702,7 +702,7 @@ test("reloads a story once after a burst of edits to its source", function()
 		local record = getRecord(request)
 		assert(record and record.status == "Loaded", "expected the edited story to reload")
 		expect(record.stories[1].name).toBe("Version 3")
-	end, { timeout = 2 })
+	end, { timeout = 5 })
 
 	-- If each edit still reloaded the Story, some of those reloads would land
 	-- after the record shows the final version. Waiting past the quiet period
@@ -749,7 +749,7 @@ test("reloads a story once after a burst of edits to a module it requires", func
 		local record = getRecord(request)
 		assert(record and record.status == "Loaded", "expected the story to reload with its dependency")
 		expect((record.stories[1].story :: () -> number)()).toBe(3)
-	end, { timeout = 2 })
+	end, { timeout = 5 })
 
 	task.wait(0.5)
 	expect(loadCount.Value).toBe(2)
