@@ -13,9 +13,9 @@ local logger = require("@root/logger")
 local new = require("@root/test-utils/new")
 local waitFor = require("@root/test-utils/waitFor")
 
-local StoryModuleRecordStore = require("./StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local StorytellerStore = require("./StorytellerStore")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
@@ -23,7 +23,7 @@ local expect = JestGlobals.expect
 local test = JestGlobals.test
 local afterEach = JestGlobals.afterEach
 
-type StoryRequest = StoryModuleRecordStore.StoryRequest
+type StoryRequest = types.StoryRequest
 
 local store: StorytellerStore.StorytellerStore
 
@@ -154,7 +154,8 @@ test("discovers hundreds of story modules without loading them", function()
 	end)
 
 	expect(loadCount.Value).toBe(0)
-	expect(store.getStoryModuleRecord(root:FindFirstChild("Story1.story") :: ModuleScript)).toBeUndefined()
+	local recordKey = next(store.getStoryModuleRecords())
+	expect(recordKey).toBeUndefined()
 end)
 
 test("parses each Storybook module into a LoadedStorybook or UnavailableStorybook", function()
@@ -680,9 +681,9 @@ describe("requesting story modules", function()
 		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			local record = store.getStoryModuleRecord(request.storyModule)
-			assert(record and record.story, "expected a loaded record for the requested story module")
-			expect(record.story.name).toBe("Delegated")
+			local record = store.getStoryModuleRecord(request)
+			assert(record and record.status == "Loaded", "expected a loaded record for the requested story module")
+			expect(record.stories[1].name).toBe("Delegated")
 		end)
 	end)
 
@@ -693,12 +694,12 @@ describe("requesting story modules", function()
 		store.requestStoryModule(StoryModuleRequestPriority.Background, request)
 
 		waitFor(function()
-			expect(store.getStoryModuleRecord(request.storyModule)).toBeDefined()
+			expect(store.getStoryModuleRecord(request)).toBeDefined()
 		end)
 
 		store.destroy()
 
-		expect(store.getStoryModuleRecord(request.storyModule)).toBeUndefined()
+		expect(store.getStoryModuleRecord(request)).toBeUndefined()
 	end)
 end)
 
