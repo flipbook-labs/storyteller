@@ -10,6 +10,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 
 local StoryModuleRecordStore = require("./StoryModuleRecordStore")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
+local createPlaytestModuleScript = require("@root/test-utils/createPlaytestModuleScript")
 local types = require("@root/types")
 local waitFor = require("@root/test-utils/waitFor")
 
@@ -161,6 +162,16 @@ test("publishes the module's group name", function()
 		assert(record and record.status == "Loaded", "expected a record for the requested story module")
 		expect(record.name).toBe("Widget Gallery")
 	end)
+end)
+
+test("accepts a request in a playtest, where a story module's Source is off limits", function()
+	recordStore = StoryModuleRecordStore.new()
+	local request = createRequest("Playtest")
+	request.storyModule = createPlaytestModuleScript(request.storyModule)
+
+	expect(function()
+		recordStore.request(StoryModuleRequestPriority.Interactive, request)
+	end).never.toThrow()
 end)
 
 test("keeps loaded story packages mutable under Charm's Studio freeze", function()
