@@ -40,9 +40,7 @@ Pull requests from forks run the tests in CI once a maintainer approves them, so
 We use jsdotlua's [Jest](https://github.com/jsdotlua/jest-lua) fork for authoring and executing unit tests. [Read the docs](https://jsdotlua.github.io/jest-lua/) and look to our existing `.spec.luau` modules for how to write tests.
 
 :::tip
-
 If your code is not properly tested, maintainers will let you know and offer suggestions on how to improve your tests so you can get your pull request merged.
-
 :::
 
 ## Building
