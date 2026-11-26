@@ -7,6 +7,7 @@
 local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
 local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
+local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
@@ -18,6 +19,10 @@ local find = FlipbookBatteries.find
 
 local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
 local BUNDLE_DIR_NAME = "dist"
+local PACKAGES_DIR_NAME = "Packages"
+local SOURCEMAP_FILE_NAME = "sourcemap.json"
+local SOURCEMAP_PROJECT_FILE_NAME = "sourcemap.project.json"
+local TYPE_LINK_BUILD_DIR_NAME = "storyteller-package-types"
 
 local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	local dir = startDir
@@ -46,28 +51,56 @@ local function prepareFlipbookPackageInstallation(
 		:gsub("script%.Parent%._Index", "script.Parent.Parent")
 	fs.writeStringToFile(targetModuleLoaderLink, moduleLoaderLink)
 	fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
+end
 
-	local packageLink = path.join(flipbookRoot, "Packages/Storyteller.lua")
-	if not fs.exists(packageLink) then
-		return
+local function refreshFlipbookPackageTypes(flipbookRoot: path.Path, packageInstallation: path.Path)
+	local packageVersionRoot = path.dirname(packageInstallation)
+	local packageVersionDirName = path.basename(packageVersionRoot) :: string
+	local packageInstallationDirName = path.basename(packageInstallation) :: string
+	local typeLinkBuildRoot = path.join(flipbookRoot, "build", TYPE_LINK_BUILD_DIR_NAME)
+	local typeLinkPackagesRoot = path.join(typeLinkBuildRoot, PACKAGES_DIR_NAME)
+	local typeLinkPackageInstallation =
+		path.join(typeLinkPackagesRoot, "_Index", packageVersionDirName, packageInstallationDirName)
+
+	if fs.exists(typeLinkBuildRoot) then
+		fs.removeDirectory(typeLinkBuildRoot, {
+			recursive = true,
+		})
 	end
 
-	local typeExports = {}
-	for line in fs.readFileToString(path.join(repoRoot, "src/init.luau")):gmatch("[^\n]+") do
-		local typeName, generics = line:match("^export type ([%w_]+)(%b<>)")
-		typeName = typeName or line:match("^export type ([%w_]+)")
-		if typeName then
-			local params = if generics then generics:gsub("%s*=[^,>]*", "") else ""
-			table.insert(typeExports, `export type {typeName}{params} = REQUIRED_MODULE.{typeName}{params}`)
-		end
-	end
-
-	local packageRequire = fs.readFileToString(packageLink):match("require%b()")
-	assert(packageRequire, `expected a require in {packageLink}`)
+	copyInto(packageInstallation, typeLinkPackageInstallation)
 	fs.writeStringToFile(
-		packageLink,
-		`local REQUIRED_MODULE = {packageRequire}\n{table.concat(typeExports, "\n")}\nreturn REQUIRED_MODULE\n`
+		path.join(typeLinkPackagesRoot, "Storyteller.lua"),
+		`return require(script.Parent._Index["{packageVersionDirName}"]["{packageInstallationDirName}"])`
 	)
+	fs.writeStringToFile(
+		path.join(typeLinkBuildRoot, SOURCEMAP_PROJECT_FILE_NAME),
+		json.serialize({
+			name = "StorytellerPackageTypes",
+			tree = {
+				["$path"] = PACKAGES_DIR_NAME,
+			},
+		}, true)
+	)
+
+	run("rojo", {
+		"sourcemap",
+		SOURCEMAP_PROJECT_FILE_NAME,
+		"-o",
+		SOURCEMAP_FILE_NAME,
+	}, {
+		cwd = typeLinkBuildRoot,
+	})
+	run("wally-package-types", { "--sourcemap", SOURCEMAP_FILE_NAME, PACKAGES_DIR_NAME }, {
+		cwd = typeLinkBuildRoot,
+	})
+	fs.copy(
+		path.join(typeLinkPackagesRoot, "Storyteller.lua"),
+		path.join(flipbookRoot, PACKAGES_DIR_NAME, "Storyteller.lua")
+	)
+	fs.removeDirectory(typeLinkBuildRoot, {
+		recursive = true,
+	})
 end
 
 local args = cli.parser()
@@ -90,7 +123,7 @@ else
 end
 flipbookRoot = path.resolve(flipbookRoot :: path.Path)
 
-local flipbookPackageIndex = path.join(flipbookRoot, "Packages/_Index")
+local flipbookPackageIndex = path.join(flipbookRoot, PACKAGES_DIR_NAME, "_Index")
 local packageInstallation = find(flipbookPackageIndex, WALLY_PACKAGE_NAME_PATTERN)[1]
 
 if not packageInstallation or not fs.exists(packageInstallation) then
@@ -113,5 +146,6 @@ run("lute", {
 })
 copyInto(src, dest)
 prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
+refreshFlipbookPackageTypes(flipbookRoot, packageInstallation)
 
 logger.info(`successfully installed to {dest}`)
