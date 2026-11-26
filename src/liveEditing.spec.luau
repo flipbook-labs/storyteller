@@ -37,7 +37,7 @@ type StoryRequest = types.StoryRequest
 
 -- Storyteller can wait for edits to stop before it reloads a story, so a
 -- reload can take longer than `waitFor`'s default of one second.
-local WAIT_OPTIONS = { timeout = 5 }
+local WAIT_OPTIONS = { timeout = 3 }
 
 -- How far apart keystrokes land when a test types into a module.
 local KEYSTROKE_INTERVAL_SECONDS = 0.02
@@ -209,6 +209,43 @@ describe("Studio's script editor", function()
 		storyModule.Source = `return \{ name = "{finalName}", story = function() end \}`
 
 		waitForStoryName(storyRequest, finalName)
+	end)
+
+	test("keeps the last working version while an edit to a dependency doesn't compile, then loads the fix", function()
+		local root = createRoot()
+		local dependency = createModule(root, "Dependency", `return "Working"`)
+		local storyRequest = request(createModule(root, "Component.story", dependentStorySource("Uses")))
+		waitForStoryName(storyRequest, "Uses Working")
+
+		dependency.Source = `return "Fix`
+
+		waitFor(function()
+			local record = getStoryModuleRecord(storyRequest)
+			assert(record and record.status == "Loaded", "expected the last working version to stay loaded")
+			expect(record.stories[1].name).toBe("Uses Working")
+			expect((record :: { problem: string? }).problem).toEqual(expect.any("string"))
+		end, WAIT_OPTIONS)
+
+		dependency.Source = `return "Fixed"`
+
+		waitForStoryName(storyRequest, "Uses Fixed")
+	end)
+
+	test("ends on the final version after typing in a dependency one keystroke at a time", function()
+		local root = createRoot()
+		local dependency = createModule(root, "Dependency", `return "Start"`)
+		local storyRequest = request(createModule(root, "Component.story", dependentStorySource("Uses")))
+		waitForStoryName(storyRequest, "Uses Start")
+
+		-- None of these versions close the string, so none of them compile.
+		local finalValue = "Typed out"
+		for length = 0, #finalValue do
+			dependency.Source = `return "{finalValue:sub(1, length)}`
+			task.wait(KEYSTROKE_INTERVAL_SECONDS)
+		end
+		dependency.Source = `return "{finalValue}"`
+
+		waitForStoryName(storyRequest, `Uses {finalValue}`)
 	end)
 end)
 
