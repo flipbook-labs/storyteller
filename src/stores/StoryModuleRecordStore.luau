@@ -377,10 +377,11 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 
 		--[[
 			The module is required here first, with the same loader
-			`loadStoryModuleData` uses next. When that require fails, the error
-			is ModuleLoader's LoadError, and `problem` below takes its message:
-			the error alone, without ModuleLoader's traceback or the "Failed to
-			load story" text that `loadStoryModuleData` adds to its own errors.
+			`loadStoryModuleData` uses next. When that require fails, `problem`
+			below is ModuleLoader's error as it raised it: the error's message
+			on the first line, then the traceback ModuleLoader adds. That leaves
+			out the "Failed to load story" text `loadStoryModuleData` puts in
+			front of its own errors, so a host can show the first line alone.
 			When the require succeeds, the loader has the module cached, so
 			`loadStoryModuleData` doesn't run it again.
 		]]
@@ -390,10 +391,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		end)
 
 		if not success then
-			local err: unknown = result
-			local problem = if ModuleLoader.isLoadError(err)
-				then (err :: ModuleLoader.LoadError).message
-				else tostring(err)
+			local problem = tostring(result)
 
 			--[[
 				While someone types in a module, many of the versions along the
