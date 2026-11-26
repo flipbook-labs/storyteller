@@ -1,5 +1,6 @@
 local React = require("@pkg/React")
 
+local logger = require("@root/logger")
 local render = require("@root/render")
 local types = require("@root/types")
 local usePrevious = require("@root/react/usePrevious")
@@ -63,8 +64,28 @@ local function StoryContainer(props: {
 			return
 		end
 
-		lifecycle.current.unmount()
+		local previousLifecycle = lifecycle.current
 		lifecycle.current = nil
+
+		--[[
+			The lifecycle's `unmount` runs the Story's teardown, such as
+			unmounting a React Story's root, and that can throw. A React root
+			throws when a new version of its Story replaces it while its
+			previous render is still in progress.
+
+			This runs from an effect, so an error would propagate up the React
+			tree that hosts this container and unmount all of it. The error is
+			logged as a warning instead. It isn't passed to `onError`, because
+			this also runs when one Story replaces another, and the host would
+			then show an error in place of the new Story for a failure in the
+			old one.
+		]]
+		local success, result = xpcall(function()
+			previousLifecycle.unmount()
+		end, debug.traceback)
+		if not success then
+			logger.warn("failed to unmount story", result)
+		end
 	end, {})
 
 	-- Main mounting and unmounting logic
