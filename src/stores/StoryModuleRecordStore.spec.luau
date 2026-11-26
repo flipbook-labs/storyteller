@@ -172,7 +172,7 @@ test("keeps loaded story packages mutable under Charm's Studio freeze", function
 		Package = {
 			state = packageState,
 		},
-	}
+	} :: types.StoryPackages
 
 	recordStore.request(StoryModuleRequestPriority.Background, request)
 
@@ -278,7 +278,7 @@ test("evaluates the storybook and story through the same loader", function()
 			storyRoots = {},
 			packages = {
 				Marker = {},
-			},
+			} :: types.StoryPackages,
 		},
 	}
 

@@ -5,6 +5,7 @@ local ReactRoblox = require("@pkg/ReactRoblox")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local describe = JestGlobals.describe
@@ -15,6 +16,8 @@ local act = ReactRoblox.act
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
+type LoadedStory<T> = types.LoadedStory<T>
+type StoryProps = types.StoryProps
 
 local function createReactStory(element)
 	return createStory({
@@ -259,10 +262,11 @@ describe("middleware", function()
 		local story = createReactStory(StoryThatNeedsContext)
 
 		story.storybook.mapStory = function(element)
+			local component = element :: React.FC<StoryProps>
 			return function(props)
 				return React.createElement(ThemeContext.Provider, {
 					value = "Dark",
-				}, React.createElement(element, props))
+				}, React.createElement(component, props))
 			end
 		end
 
@@ -300,10 +304,11 @@ describe("middleware", function()
 		} :: StoryControlsSchema
 
 		story.storybook.mapStory = function(element)
+			local component = element :: React.FC<StoryProps>
 			return function(props)
 				return React.createElement(ThemeContext.Provider, {
 					value = "Dark",
-				}, React.createElement(element, props))
+				}, React.createElement(component, props))
 			end
 		end
 
@@ -342,7 +347,7 @@ describe("middleware", function()
 
 		story.storybook.mapDefinition = function(storyDefinition)
 			applications += 1
-			return table.clone(storyDefinition)
+			return table.clone(storyDefinition :: LoadedStory<unknown>)
 		end
 
 		local lifecycle = render(container, story)
@@ -373,7 +378,7 @@ describe("middleware", function()
 		local story = createReactStory(ButtonStory)
 
 		story.storybook.mapDefinition = function(storyDefinition)
-			local mapped = table.clone(storyDefinition)
+			local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 			mapped.story = function()
 				return React.createElement("TextLabel", {
 					Text = "Replaced",
