@@ -375,11 +375,25 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		assert(loaderEntry, "Story module loader was cleaned up while a story module was loading")
 		local loader = entry.reloadLoader or loaderEntry.loader
 
+		--[[
+			The module is required here first, with the loader
+			`loadStoryModuleData` uses next. When it fails, the caller gets
+			ModuleLoader's LoadError, whose message is the error alone, without
+			ModuleLoader's traceback or the "Failed to load story" text that
+			`loadStoryModuleData` adds. When it loads, the loader has it cached,
+			so `loadStoryModuleData` doesn't run it again.
+		]]
 		local success, result = pcall(function()
+			loader:require(entry.request.storyModule)
 			return loadStoryModuleData(entry.request.storyModule, entry.request.storybook, loader)
 		end)
 
 		if not success then
+			local err: unknown = result
+			local problem = if ModuleLoader.isLoadError(err)
+				then (err :: ModuleLoader.LoadError).message
+				else tostring(err)
+
 			--[[
 				While someone types in a module, many of the versions along the
 				way fail to load. When the current record is already Loaded, it
@@ -392,13 +406,13 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 					status = "Loaded",
 					name = previousRecord.name,
 					stories = previousRecord.stories,
-					problem = tostring(result),
+					problem = problem,
 				}
 			end
 
 			return {
 				status = "Unavailable",
-				problem = tostring(result),
+				problem = problem,
 			}
 		end
 
