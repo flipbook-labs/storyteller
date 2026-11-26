@@ -52,31 +52,22 @@ local function prepareFlipbookPackageInstallation(
 		return
 	end
 
-	local contents = fs.readFileToString(packageLink)
-	local missingExports = {}
-	for _, exportName in
-		{
-			"StoryEntry<T>",
-			"StoryGroup<T>",
-			"StoryModule<T>",
-			"StoryRequest",
-			"StoryModuleRecord",
-			"StoryModuleRecords",
-		}
-	do
-		local typeName = exportName:match("^[^<]+") :: string
-		if not contents:find(`export type {typeName}`, 1, true) then
-			table.insert(missingExports, `export type {exportName} = REQUIRED_MODULE.{exportName}`)
+	local typeExports = {}
+	for line in fs.readFileToString(path.join(repoRoot, "src/init.luau")):gmatch("[^\n]+") do
+		local typeName, generics = line:match("^export type ([%w_]+)(%b<>)")
+		typeName = typeName or line:match("^export type ([%w_]+)")
+		if typeName then
+			local params = if generics then generics:gsub("%s*=[^,>]*", "") else ""
+			table.insert(typeExports, `export type {typeName}{params} = REQUIRED_MODULE.{typeName}{params}`)
 		end
 	end
 
-	if #missingExports == 0 then
-		return
-	end
-
-	contents =
-		contents:gsub("return REQUIRED_MODULE", `{table.concat(missingExports, "\n")}\nreturn REQUIRED_MODULE`, 1)
-	fs.writeStringToFile(packageLink, contents)
+	local packageRequire = fs.readFileToString(packageLink):match("require%b()")
+	assert(packageRequire, `expected a require in {packageLink}`)
+	fs.writeStringToFile(
+		packageLink,
+		`local REQUIRED_MODULE = {packageRequire}\n{table.concat(typeExports, "\n")}\nreturn REQUIRED_MODULE\n`
+	)
 end
 
 local args = cli.parser()
