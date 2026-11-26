@@ -864,4 +864,57 @@ describe("a module that stops loading after it loaded once", function()
 			expect(record.problem).toBeUndefined()
 		end, { timeout = 5 })
 	end)
+
+	test("reloads once a broken dependency is fixed after an edit has loaded", function()
+		local root = Instance.new("Folder")
+		local dependency = Instance.new("ModuleScript")
+		dependency.Name = "Dependency"
+		dependency.Source = "return 1"
+		dependency.Parent = root
+
+		local request = createRequest("BrokenDependencyAfterEdit")
+		request.storyModule.Parent = root
+		request.storyModule.Source = [[
+			local version = require(script.Parent.Dependency)
+			return { name = "Version " .. version, story = function() end }
+		]]
+
+		recordStore = StoryModuleRecordStore.new()
+		recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to load")
+			expect(record.stories[1].name).toBe("Version 1")
+		end)
+
+		request.storyModule.Source = [[
+			local version = require(script.Parent.Dependency)
+			return { name = "Edited " .. version, story = function() end }
+		]]
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the edited story to load")
+			expect(record.stories[1].name).toBe("Edited 1")
+		end, { timeout = 5 })
+
+		dependency.Source = "return ("
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+			expect(record.stories[1].name).toBe("Edited 1")
+		end, { timeout = 5 })
+
+		dependency.Source = "return 2"
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to reload with the fixed dependency")
+			expect(record.stories[1].name).toBe("Edited 2")
+			expect(record.problem).toBeUndefined()
+		end, { timeout = 5 })
+	end)
 end)
