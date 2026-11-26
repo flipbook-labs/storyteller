@@ -3,8 +3,11 @@ local gt = require("@pkg/GreenTea")
 local t = require("@pkg/t")
 
 local ControlTypes = require("@root/controls/ControlTypes")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
+
+export type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControls = ControlTypes.StoryControls
@@ -66,17 +69,8 @@ export type StoryPackages = {
 	[string]: any,
 }
 
---[[
-	A storybook's mapStory and mapDefinition receive stories made with whatever
-	UI library the storybook uses, and return values that library understands.
-	With `unknown`, a storybook couldn't use the story it's given without a cast.
-	#196 tracks removing this ignore.
-]]
--- lute-lint-ignore(no_any)
-type MapStoryFn = (story: any) -> (props: StoryProps) -> any
--- #197 tracks removing this ignore.
--- lute-lint-ignore(no_any)
-type MapDefinitionFn = (story: any) -> any
+type MapStoryFn = (story: unknown) -> (props: StoryProps) -> unknown
+type MapDefinitionFn = (story: unknown) -> unknown
 
 export type Storybook = {
 	storyRoots: { Instance },
@@ -174,6 +168,36 @@ export type LoadedStory<T> = {
 	summary: string?,
 	controls: StoryControlsSchema?,
 	props: ExtraStoryProps?,
+}
+
+export type StoryRequest = {
+	storyModule: ModuleScript,
+	storybook: LoadedStorybook,
+	-- Queued Interactive requests load ahead of Background ones, for a module
+	-- someone is waiting to see. `requestStoryModule` defaults to Background.
+	priority: StoryModuleRequestPriority?,
+}
+
+export type LoadedStoryModule = {
+	status: "Loaded",
+	name: string,
+	stories: { LoadedStory<unknown> },
+}
+
+export type UnavailableStoryModule = {
+	status: "Unavailable",
+	problem: string,
+}
+
+export type StoryModuleRecord = LoadedStoryModule | UnavailableStoryModule
+
+-- Records are grouped by Storybook source, then keyed by Story module. Each
+-- pairing has its own record because a loaded Story carries its Storybook and
+-- can take its packages from there.
+export type StoryModuleRecords = {
+	[ModuleScript]: {
+		[ModuleScript]: StoryModuleRecord,
+	},
 }
 
 return types

@@ -1,6 +1,5 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
-local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local types = require("@root/types")
 
@@ -32,26 +31,7 @@ local function loadStoryModule<T>(
 	storybook: LoadedStorybook,
 	providedLoader: ModuleLoader?
 ): LoadedStory<T>
-	local story = loadStoryModuleData(storyModule, storybook, providedLoader).stories[1]
-
-	if story.packages then
-		--[[
-			Hosts keep loaded stories in Charm state, which deep-freezes
-			everything it can reach in Studio, but skips tables that have a
-			metatable. The story's packages are foreign module exports that
-			must stay mutable, so freezing has to stop here
-			(flipbook-labs/storyteller#100).
-
-			The clone matters: `packages` can be the storybook's table, which
-			belongs to the author's module and may be shared, so we must not
-			attach a metatable in place.
-		]]
-		local packages = table.clone(story.packages)
-		excludeFromCharmFreeze(packages)
-		story.packages = packages
-	end
-
-	return story
+	return loadStoryModuleData(storyModule, storybook, providedLoader).stories[1]
 end
 
 return loadStoryModule

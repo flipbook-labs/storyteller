@@ -5,6 +5,7 @@ local JestGlobals = require("@pkg/JestGlobals")
 local ControlTypes = require("@root/controls/ControlTypes")
 local createStory = require("@root/test-utils/createStory")
 local render = require("@root/render")
+local types = require("@root/types")
 
 local beforeEach = JestGlobals.beforeEach
 local expect = JestGlobals.expect
@@ -13,6 +14,8 @@ local describe = JestGlobals.describe
 
 type StoryControlsSchema = ControlTypes.StoryControlsSchema
 type StoryControls = ControlTypes.StoryControls
+type LoadedStory<T> = types.LoadedStory<T>
+type StoryProps = types.StoryProps
 
 local container: Folder
 
@@ -158,8 +161,9 @@ describe("Fusion 0.3.0", function()
 		} :: StoryControlsSchema
 
 		story.storybook.mapStory = function(originalStory)
+			local storyFn = originalStory :: (props: StoryProps) -> Instance
 			return function(props)
-				local instance = originalStory(props)
+				local instance = storyFn(props)
 				instance.Name = "Mapped"
 				return instance
 			end
@@ -194,7 +198,7 @@ describe("Fusion 0.3.0", function()
 
 		story.storybook.mapDefinition = function(storyDefinition)
 			applications += 1
-			return table.clone(storyDefinition)
+			return table.clone(storyDefinition :: LoadedStory<unknown>)
 		end
 
 		local lifecycle = render(container, story)
@@ -220,7 +224,7 @@ describe("Fusion 0.3.0", function()
 		local story = createFusionStory(TextStory)
 
 		story.storybook.mapDefinition = function(storyDefinition)
-			local mapped = table.clone(storyDefinition)
+			local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 			mapped.story = function()
 				return scope:New("TextLabel")({
 					Text = "Replaced",
@@ -369,8 +373,9 @@ describe("Fusion 0.2.0", function()
 		local story = createFusionStory(TextStory)
 
 		story.storybook.mapStory = function(originalStory)
+			local storyFn = originalStory :: (props: StoryProps) -> Instance
 			return function(props)
-				local instance = originalStory(props)
+				local instance = storyFn(props)
 				instance.Name = "Mapped"
 				return instance
 			end
@@ -392,7 +397,7 @@ describe("Fusion 0.2.0", function()
 
 		story.storybook.mapDefinition = function(storyDefinition)
 			applications += 1
-			return table.clone(storyDefinition)
+			return table.clone(storyDefinition :: LoadedStory<unknown>)
 		end
 
 		local lifecycle = render(container, story)
@@ -418,7 +423,7 @@ describe("Fusion 0.2.0", function()
 		local story = createFusionStory(TextStory)
 
 		story.storybook.mapDefinition = function(storyDefinition)
-			local mapped = table.clone(storyDefinition)
+			local mapped = table.clone(storyDefinition :: LoadedStory<unknown>)
 			mapped.story = function()
 				return New("TextLabel")({
 					Text = "Replaced",
