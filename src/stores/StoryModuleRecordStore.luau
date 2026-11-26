@@ -45,8 +45,9 @@ type RequestEntry = {
 	reloadLoader: ModuleLoader.ModuleLoader?,
 	-- Watches the reload loader for dependency changes after a reload.
 	reloadConnection: RBXScriptConnection?,
-	-- Waits out the quiet period after the latest change to the module or a
-	-- dependency, then reloads. Each new change restarts it.
+	-- Started by a change to the module or one of its dependencies. When it
+	-- runs out after RELOAD_QUIET_PERIOD_SECONDS, it invalidates the entry,
+	-- which queues a reload. Each new change restarts it.
 	reloadTimer: thread?,
 	-- Watches the Story module's own Source for direct edits.
 	sourceConnection: RBXScriptConnection?,
@@ -83,7 +84,9 @@ local WORK_BUDGET_MS = 4
 	Studio changes a module's Source on every keystroke, and each reload
 	evaluates the Story and everything it requires. Waiting until changes stop
 	for this long turns a burst of typing into one reload, instead of one per
-	keystroke.
+	keystroke. It's longer than the gap between keystrokes at an ordinary
+	typing pace of about 4 a second, and short enough that the Story still
+	updates soon after typing stops.
 ]]
 local RELOAD_QUIET_PERIOD_SECONDS = 0.3
 

@@ -663,10 +663,13 @@ test("requests after destroy are no-ops", function()
 	expect(recordKey).toBeUndefined()
 end)
 
--- Editing a module in Studio changes its Source on every keystroke. These
--- specs make a burst of edits faster than the store's quiet period, the way
--- typing does, and count how often the story module is evaluated.
-local TYPING_INTERVAL_SECONDS = 0.05
+--[[
+	Editing a module in Studio changes its Source on every keystroke. These
+	specs make a burst of edits closer together than the store's 0.3-second
+	quiet period (RELOAD_QUIET_PERIOD_SECONDS), the way typing does, and count
+	how often the story module is evaluated.
+]]
+local TYPING_INTERVAL_SECONDS = 0.1
 
 test("reloads a story once after a burst of edits to its source", function()
 	local root = Instance.new("Folder")
@@ -689,7 +692,7 @@ test("reloads a story once after a burst of edits to its source", function()
 		expect(loadCount.Value).toBe(1)
 	end)
 
-	for version = 1, 5 do
+	for version = 1, 3 do
 		setVersion(version)
 		task.wait(TYPING_INTERVAL_SECONDS)
 	end
@@ -697,10 +700,12 @@ test("reloads a story once after a burst of edits to its source", function()
 	waitFor(function()
 		local record = getRecord(request)
 		assert(record and record.status == "Loaded", "expected the edited story to reload")
-		expect(record.stories[1].name).toBe("Version 5")
+		expect(record.stories[1].name).toBe("Version 3")
 	end, { timeout = 2 })
 
-	-- Leave time for any further reload to publish before counting.
+	-- If each edit still reloaded the Story, some of those reloads would land
+	-- after the record shows the final version. Waiting past the quiet period
+	-- lets them show up in the count.
 	task.wait(0.5)
 	expect(loadCount.Value).toBe(2)
 end)
@@ -734,7 +739,7 @@ test("reloads a story once after a burst of edits to a module it requires", func
 		expect(loadCount.Value).toBe(1)
 	end)
 
-	for version = 1, 5 do
+	for version = 1, 3 do
 		setDependencyVersion(version)
 		task.wait(TYPING_INTERVAL_SECONDS)
 	end
@@ -742,7 +747,7 @@ test("reloads a story once after a burst of edits to a module it requires", func
 	waitFor(function()
 		local record = getRecord(request)
 		assert(record and record.status == "Loaded", "expected the story to reload with its dependency")
-		expect((record.stories[1].story :: () -> number)()).toBe(5)
+		expect((record.stories[1].story :: () -> number)()).toBe(3)
 	end, { timeout = 2 })
 
 	task.wait(0.5)

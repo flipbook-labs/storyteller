@@ -178,8 +178,9 @@ test("re-renders on module changes", function()
 		}
 	]]
 
-	-- The store reloads once edits stop for its quiet period, so wait that out
-	-- inside `act` for the reload to reach the hook.
+	-- The store starts a reload 0.3 seconds after the last edit
+	-- (RELOAD_QUIET_PERIOD_SECONDS). Waiting inside `act` lets that reload
+	-- start while React flushes the updates it causes.
 	act(function()
 		task.wait(0.5)
 	end)
@@ -217,8 +218,9 @@ test("reloads on dependency changes", function()
 		return Component
 	]]
 
-	-- The store reloads once edits stop for its quiet period, so wait that out
-	-- inside `act` for the reload to reach the hook.
+	-- The store starts a reload 0.3 seconds after the last edit
+	-- (RELOAD_QUIET_PERIOD_SECONDS). Waiting inside `act` lets that reload
+	-- start while React flushes the updates it causes.
 	act(function()
 		task.wait(0.5)
 	end)
