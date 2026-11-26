@@ -182,6 +182,9 @@ export type LoadedStoryModule = {
 	status: "Loaded",
 	name: string,
 	stories: { LoadedStory<unknown> },
+	-- Set when the module, or a module it requires, fails to load after an
+	-- edit. The stories are then from the last version that loaded.
+	problem: string?,
 }
 
 export type UnavailableStoryModule = {

@@ -16,6 +16,7 @@ local waitFor = require("@root/test-utils/waitFor")
 
 local expect = JestGlobals.expect
 local test = JestGlobals.test
+local describe = JestGlobals.describe
 local afterEach = JestGlobals.afterEach
 
 type StoryRequest = StoryModuleRecordStore.StoryRequest
@@ -661,4 +662,308 @@ test("requests after destroy are no-ops", function()
 	task.wait()
 	local recordKey = next(recordStore.getRecords())
 	expect(recordKey).toBeUndefined()
+end)
+
+--[[
+	Editing a module in Studio changes its Source on every keystroke. These
+	specs make a burst of edits closer together than the store's 0.3-second
+	quiet period (RELOAD_QUIET_PERIOD_SECONDS), the way typing does, and count
+	how often the story module is evaluated.
+]]
+local TYPING_INTERVAL_SECONDS = 0.1
+
+test("reloads once when a replacement storybook arrives during the quiet period", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("ReplacedWhileTyping")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	local replacementStorybook: types.LoadedStorybook = {
+		name = "Replacement",
+		source = request.storybook.source,
+		storyRoots = {},
+	}
+
+	-- The short wait lets the edit start its quiet-period timer before the
+	-- replacement arrives.
+	setVersion(1)
+	task.wait(0.05)
+	recordStore.request(StoryModuleRequestPriority.Interactive, {
+		storyModule = request.storyModule,
+		storybook = replacementStorybook,
+	})
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload")
+		expect(record.stories[1].name).toBe("Version 1")
+		expect(record.stories[1].storybook).toBe(replacementStorybook)
+	end)
+
+	-- Waiting past the quiet period lets a reload from the edit's timer show
+	-- up in the count.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+test("reloads a story once after a burst of edits to its source", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("Typed")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 3 do
+		setVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the edited story to reload")
+		expect(record.stories[1].name).toBe("Version 3")
+	end, { timeout = 5 })
+
+	-- If each edit still reloaded the Story, some of those reloads would land
+	-- after the record shows the final version. Waiting past the quiet period
+	-- lets them show up in the count.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+test("reloads a story once after a burst of edits to a module it requires", function()
+	local root = Instance.new("Folder")
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Parent = root
+	local function setDependencyVersion(version: number)
+		dependency.Source = `return {version}`
+	end
+	setDependencyVersion(0)
+
+	local request = createRequest("UsesDependency")
+	request.storyModule.Parent = root
+	request.storyModule.Source = [[
+		script.Parent.LoadCount.Value += 1
+		local version = require(script.Parent.Dependency)
+		return { name = "UsesDependency", story = function() return version end }
+	]]
+
+	recordStore = StoryModuleRecordStore.new()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 3 do
+		setDependencyVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload with its dependency")
+		expect((record.stories[1].story :: () -> number)()).toBe(3)
+	end, { timeout = 5 })
+
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+describe("a module that stops loading after it loaded once", function()
+	local function loadWorkingStory(name: string)
+		local root = Instance.new("Folder")
+		local request = createRequest(name)
+		request.storyModule.Parent = root
+		request.storyModule.Source = `return \{ name = "Working", story = function() end \}`
+
+		recordStore = StoryModuleRecordStore.new()
+		recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+		local workingRecord: types.LoadedStoryModule
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the working story to load")
+			workingRecord = record
+		end)
+
+		return request, workingRecord, root
+	end
+
+	test("keeps the last working stories and reports a syntax error", function()
+		local request, workingRecord = loadWorkingStory("SyntaxError")
+
+		request.storyModule.Source = `return \{ name = "Working", story = function() end`
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+			expect(record.stories[1].name).toBe("Working")
+			expect(record.stories).toBe(workingRecord.stories)
+		end, { timeout = 5 })
+	end)
+
+	test("keeps the last working stories when the module throws while it runs", function()
+		local request, workingRecord = loadWorkingStory("Throws")
+
+		request.storyModule.Source = "local value = nil\nreturn { name = value.name, story = function() end }"
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+			expect(record.stories).toBe(workingRecord.stories)
+		end, { timeout = 5 })
+	end)
+
+	test("clears the problem once the module loads again", function()
+		local request = loadWorkingStory("Recovers")
+
+		request.storyModule.Source = `return \{ name = "Working", story = function() end`
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+		end, { timeout = 5 })
+
+		request.storyModule.Source = `return \{ name = "Fixed", story = function() end \}`
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the fixed story to load")
+			expect(record.stories[1].name).toBe("Fixed")
+			expect(record.problem).toBeUndefined()
+		end, { timeout = 5 })
+	end)
+
+	test("reloads once a broken dependency is fixed", function()
+		local root = Instance.new("Folder")
+		local dependency = Instance.new("ModuleScript")
+		dependency.Name = "Dependency"
+		dependency.Source = "return 1"
+		dependency.Parent = root
+
+		local request = createRequest("BrokenDependency")
+		request.storyModule.Parent = root
+		request.storyModule.Source = [[
+			local version = require(script.Parent.Dependency)
+			return { name = "Version " .. version, story = function() end }
+		]]
+
+		recordStore = StoryModuleRecordStore.new()
+		recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to load")
+			expect(record.stories[1].name).toBe("Version 1")
+		end)
+
+		dependency.Source = "return ("
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+			expect(record.stories[1].name).toBe("Version 1")
+		end, { timeout = 5 })
+
+		dependency.Source = "return 2"
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to reload with the fixed dependency")
+			expect(record.stories[1].name).toBe("Version 2")
+			expect(record.problem).toBeUndefined()
+		end, { timeout = 5 })
+	end)
+
+	test("reloads once a broken dependency is fixed after an edit has loaded", function()
+		local root = Instance.new("Folder")
+		local dependency = Instance.new("ModuleScript")
+		dependency.Name = "Dependency"
+		dependency.Source = "return 1"
+		dependency.Parent = root
+
+		local request = createRequest("BrokenDependencyAfterEdit")
+		request.storyModule.Parent = root
+		request.storyModule.Source = [[
+			local version = require(script.Parent.Dependency)
+			return { name = "Version " .. version, story = function() end }
+		]]
+
+		recordStore = StoryModuleRecordStore.new()
+		recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to load")
+			expect(record.stories[1].name).toBe("Version 1")
+		end)
+
+		request.storyModule.Source = [[
+			local version = require(script.Parent.Dependency)
+			return { name = "Edited " .. version, story = function() end }
+		]]
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the edited story to load")
+			expect(record.stories[1].name).toBe("Edited 1")
+		end, { timeout = 5 })
+
+		dependency.Source = "return ("
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the last working stories to stay loaded")
+			expect(record.problem).toEqual(expect.any("string"))
+			expect(record.stories[1].name).toBe("Edited 1")
+		end, { timeout = 5 })
+
+		dependency.Source = "return 2"
+
+		waitFor(function()
+			local record = getRecord(request)
+			assert(record and record.status == "Loaded", "expected the story to reload with the fixed dependency")
+			expect(record.stories[1].name).toBe("Edited 2")
+			expect(record.problem).toBeUndefined()
+		end, { timeout = 5 })
+	end)
 end)

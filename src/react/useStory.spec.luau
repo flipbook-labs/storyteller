@@ -178,9 +178,11 @@ test("re-renders on module changes", function()
 		}
 	]]
 
-	-- Wait for engine events
+	-- The store starts a reload 0.3 seconds after the last edit
+	-- (RELOAD_QUIET_PERIOD_SECONDS). Waiting inside `act` lets that reload
+	-- start while React flushes the updates it causes.
 	act(function()
-		task.wait()
+		task.wait(0.5)
 	end)
 
 	waitFor(function()
@@ -216,9 +218,11 @@ test("reloads on dependency changes", function()
 		return Component
 	]]
 
-	-- Wait for engine events
+	-- The store starts a reload 0.3 seconds after the last edit
+	-- (RELOAD_QUIET_PERIOD_SECONDS). Waiting inside `act` lets that reload
+	-- start while React flushes the updates it causes.
 	act(function()
-		task.wait()
+		task.wait(0.5)
 	end)
 
 	waitFor(function()
