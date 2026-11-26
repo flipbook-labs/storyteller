@@ -79,12 +79,19 @@ local function StoryContainer(props: {
 			this also runs when one Story replaces another, and the host would
 			then show an error in place of the new Story for a failure in the
 			old one.
+
+			A throwing teardown also stops the lifecycle before it clears the
+			container, so the container is cleared here. Otherwise the old
+			Story's instances would stay next to the next Story's.
 		]]
 		local success, result = xpcall(function()
 			previousLifecycle.unmount()
 		end, debug.traceback)
 		if not success then
 			logger.warn("failed to unmount story", result)
+			if ref.current then
+				ref.current:ClearAllChildren()
+			end
 		end
 	end, {})
 

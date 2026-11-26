@@ -488,6 +488,7 @@ describe("a story whose teardown throws", function()
 		end).never.toThrow()
 
 		expect(container:FindFirstChild("NextStoryFrame", true)).toBeDefined()
+		expect(container:FindFirstChild("BrokenStoryFrame", true)).toBeUndefined()
 		expect(mockOnError).never.toHaveBeenCalled()
 	end)
 
