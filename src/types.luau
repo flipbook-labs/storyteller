@@ -3,8 +3,11 @@ local gt = require("@pkg/GreenTea")
 local t = require("@pkg/t")
 
 local ControlTypes = require("@root/controls/ControlTypes")
+local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 
 type ModuleLoader = ModuleLoader.ModuleLoader
+
+export type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
 
 export type StoryControlsSchema = ControlTypes.StoryControlsSchema
 export type StoryControls = ControlTypes.StoryControls
@@ -179,6 +182,9 @@ export type LoadedStory<T> = {
 export type StoryRequest = {
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
+	-- Queued Interactive requests load ahead of Background ones, for a module
+	-- someone is waiting to see. `requestStoryModule` defaults to Background.
+	priority: StoryModuleRequestPriority?,
 }
 
 export type LoadedStoryModule = {
