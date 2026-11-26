@@ -9,10 +9,10 @@ Complete every step below before you write any code, tests, changelog entries, o
 1. Install the toolchain and dependencies:
 
    ```sh
-   rokit install && lute run install
+   rokit install && lute run install && npm ci
    ```
 
-   `rokit install` puts `lute`, `luau-lsp`, and `stylua` on PATH. `lute run install` copies the Lute tooling dependencies declared in [`pkg.luau`](pkg.luau) into `.lpm/`, one `<key>@<rev>` folder each, and installs the Roblox runtime dependencies from Wally into `Packages/`. The shared skills library is a dev dependency, so it lands in `.lpm/` for you to read but is not shipped with the package. Without this step the skills are not on disk.
+   `rokit install` puts `lute`, `luau-lsp`, and `stylua` on PATH. `lute run install` copies the Lute tooling dependencies declared in [`pkg.luau`](pkg.luau) into `.lpm/`, one `<key>@<rev>` folder each, and installs the Roblox runtime dependencies from Wally into `Packages/`. The shared skills library is a dev dependency, so it lands in `.lpm/` for you to read but is not shipped with the package. `npm ci` uses Node.js 24 to install the pinned Prettier development dependency. Without these steps the skills and formatter are not on disk.
 
 2. Find the skills folder: it's `.lpm/agent-skills@<rev>`, where `<rev>` is the `agent-skills` rev in [`pkg.luau`](pkg.luau). `ls -d .lpm/agent-skills@*` prints it. Use that path wherever `<skills>` appears below.
 
@@ -35,10 +35,15 @@ Never assume a subagent will discover the skills on its own.
 
 Skills are living documents. When your work here contradicts a skill (a renamed symbol, a changed value, a fixed bug it still calls known), fix it in the agent-skills repo with a `.changes/` entry in the same effort. The fix reaches this repo on its next `rev` bump. The `org/review-pass` skill folds this check into closing out a task, so it fires without you having to remember it.
 
+## Repository skills
+
+- `.agents/skills/test-storyteller-in-flipbook/SKILL.md`: Build the current Storyteller checkout into an exact Flipbook checkout and validate it through AgentGateway and Studio MCP. Use when a Storyteller change needs end-to-end Flipbook verification.
+
 ## Repo specifics
 
 - Toolchain is managed with [Rokit](https://github.com/rojo-rbx/rokit). Run `rokit install` once to get `lute`, `luau-lsp`, and `stylua` on PATH.
 - `lute run --list` shows the available scripts: `install`, `build` (`--channel dev`/`prod`), `lint`, `analyze`, `test`, and `serve-docs`.
+- Markdown uses Prettier with soft wrapping. `npm run format:markdown` formats Markdown at the repository root and under `.agents`, `.changes`, `docs`, and `src`. `lute run lint` checks the same set.
 - Tests are `*.spec.luau` files alongside the code they cover. Run the suite with `lute run test`.
 - The build copies `src/` to `dist/` and runs [CodeQuality](https://github.com/flipbook-labs/code-quality)'s code mods over the copy with `lute transform`. `convertRequire` rewrites string requires into Roblox instance paths, and the rest fold constants and remove code that can never run. Wally publishes from `dist/`. Never edit `dist/` by hand.
 - Releases are handled by the [Changewrite](https://github.com/flipbook-labs/changewrite) action. Unreleased entries live as partials in [`.changes/`](.changes) and are assembled into [`CHANGELOG.md`](CHANGELOG.md) at release time. Add a `.changes/` entry for any user-facing change.

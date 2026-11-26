@@ -38,6 +38,9 @@ run("stylua", {
 	table.unpack(project.FOLDERS_TO_LINT),
 })
 
+logger.info("checking Markdown formatting with prettier")
+run("npm", { "run", "format:markdown:check" })
+
 logger.info("linting with CodeQuality")
 CodeQuality.lint(project.FOLDERS_TO_LINT)
 

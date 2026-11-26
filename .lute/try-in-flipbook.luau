@@ -5,8 +5,10 @@
 ]]
 
 local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
 local path = require("@std/path")
+local process = require("@std/process")
 
 local logger = require("@repo/.lute/lib/logger")
 
@@ -16,23 +18,6 @@ local find = FlipbookBatteries.find
 
 local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
 local BUNDLE_DIR_NAME = "dist"
-
-local function resolveScriptPath(scriptPath: string): path.Path
-	--[[
-        Lute's script paths are inconsistent depending on how you invoke them.
-        With `lute run <scriptName>`, scriptPath is exactly `scriptName`. As
-        such we need to manually resolve the path to the script.
-
-        Track progress here: https://github.com/luau-lang/lute/issues/852
-    ]]
-	if scriptPath == path.basename(scriptPath) then
-		return path.resolve(`.lute/{scriptPath}.luau`)
-	end
-
-	return path.parse(scriptPath)
-end
-
-local args = { ... }
 
 local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	local dir = startDir
@@ -49,17 +34,59 @@ local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	end
 end
 
-local scriptPath = resolveScriptPath(args[1])
-local repoRoot = path.dirname(path.dirname(scriptPath))
-local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
-local flipbookRoot = findFlipbookRoot(path.dirname(repoRoot))
+local function prepareFlipbookPackageInstallation(
+	repoRoot: path.Path,
+	flipbookRoot: path.Path,
+	packageInstallation: path.Path
+)
+	local packageVersionRoot = path.dirname(packageInstallation)
+	local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
+	local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
+	local moduleLoaderLink = fs.readFileToString(sourceModuleLoaderLink)
+		:gsub("script%.Parent%._Index", "script.Parent.Parent")
+	fs.writeStringToFile(targetModuleLoaderLink, moduleLoaderLink)
+	fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
 
-if flipbookRoot then
+	local packageLink = path.join(flipbookRoot, "Packages/Storyteller.lua")
+	if not fs.exists(packageLink) then
+		return
+	end
+
+	local typeExports = {}
+	for line in fs.readFileToString(path.join(repoRoot, "src/init.luau")):gmatch("[^\n]+") do
+		local typeName, generics = line:match("^export type ([%w_]+)(%b<>)")
+		typeName = typeName or line:match("^export type ([%w_]+)")
+		if typeName then
+			local params = if generics then generics:gsub("%s*=[^,>]*", "") else ""
+			table.insert(typeExports, `export type {typeName}{params} = REQUIRED_MODULE.{typeName}{params}`)
+		end
+	end
+
+	local packageRequire = fs.readFileToString(packageLink):match("require%b()")
+	assert(packageRequire, `expected a require in {packageLink}`)
+	fs.writeStringToFile(
+		packageLink,
+		`local REQUIRED_MODULE = {packageRequire}\n{table.concat(typeExports, "\n")}\nreturn REQUIRED_MODULE\n`
+	)
+end
+
+local args = cli.parser()
+args:add("flipbook", "option", {
+	help = "path to the Flipbook checkout to receive the development build",
+})
+args:parse({ ... })
+
+local repoRoot = path.resolve(process.cwd())
+local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
+local requestedFlipbookRoot = args:get("flipbook")
+local flipbookRoot = if requestedFlipbookRoot
+	then path.resolve(requestedFlipbookRoot)
+	else findFlipbookRoot(path.dirname(repoRoot))
+
+if flipbookRoot and fs.exists(flipbookRoot) then
 	logger.info(`using Flipbook at {flipbookRoot}`)
 else
-	error(
-		`could not find Flipbook directory by traversing up from {repoRoot}. Make sure your checkout is in the same tree as the Flipbook repo`
-	)
+	error(`could not find Flipbook at {flipbookRoot}. Pass an explicit checkout with --flipbook <path>`)
 end
 flipbookRoot = path.resolve(flipbookRoot :: path.Path)
 
@@ -78,7 +105,13 @@ fs.removeDirectory(dest, {
 })
 
 logger.info("building Storyteller")
-run("lute", { "run", "build" })
+run("lute", {
+	"run",
+	"build",
+	"--channel",
+	"dev",
+})
 copyInto(src, dest)
+prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
 
 logger.info(`successfully installed to {dest}`)
