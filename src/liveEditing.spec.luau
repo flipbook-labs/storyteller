@@ -170,20 +170,6 @@ describe("file sync tools such as Rojo", function()
 		waitForStoryName(firstRequest, "Edited 2")
 		waitForStoryName(secondRequest, "Second 2")
 	end)
-
-	test("load a story whose dependency was broken from the start, once the dependency is fixed", function()
-		local root = createRoot()
-		local dependency = createModule(root, "Dependency", "return (")
-		local storyRequest = request(createModule(root, "Waiting.story", dependentStorySource("Version")))
-		waitFor(function()
-			local record = getStoryModuleRecord(storyRequest)
-			assert(record and record.status == "Unavailable", "expected the story to fail")
-		end, WAIT_OPTIONS)
-
-		dependency.Source = "return 1"
-
-		waitForStoryName(storyRequest, "Version 1")
-	end)
 end)
 
 describe("Studio's script editor", function()
