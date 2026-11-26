@@ -376,12 +376,13 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		local loader = entry.reloadLoader or loaderEntry.loader
 
 		--[[
-			The module is required here first, with the loader
-			`loadStoryModuleData` uses next. When it fails, the caller gets
-			ModuleLoader's LoadError, whose message is the error alone, without
-			ModuleLoader's traceback or the "Failed to load story" text that
-			`loadStoryModuleData` adds. When it loads, the loader has it cached,
-			so `loadStoryModuleData` doesn't run it again.
+			The module is required here first, with the same loader
+			`loadStoryModuleData` uses next. When that require fails, the error
+			is ModuleLoader's LoadError, and `problem` below takes its message:
+			the error alone, without ModuleLoader's traceback or the "Failed to
+			load story" text that `loadStoryModuleData` adds to its own errors.
+			When the require succeeds, the loader has the module cached, so
+			`loadStoryModuleData` doesn't run it again.
 		]]
 		local success, result = pcall(function()
 			loader:require(entry.request.storyModule)
