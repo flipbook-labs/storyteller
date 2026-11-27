@@ -2,6 +2,7 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
+local describeLoadError = require("@root/describeLoadError")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local loadStorybookModule = require("@root/loadStorybookModule")
@@ -264,7 +265,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			return existing
 		end
 
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 		local loaderEntry: LoaderEntry
 		loaderEntry = {
 			loader = loader,
@@ -308,10 +309,10 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			entry.currentConnection:Disconnect()
 		end
 		if entry.reloadLoader then
-			entry.reloadLoader:clear()
+			entry.reloadLoader.clear()
 		end
 		if entry.currentLoader then
-			entry.currentLoader:clear()
+			entry.currentLoader.clear()
 		end
 		entry.reloadConnection = nil
 		entry.reloadLoader = nil
@@ -324,7 +325,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		if loaderEntry and next(loaderEntry.requests) == nil then
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
-			loaderEntry.loader:clear()
+			loaderEntry.loader.clear()
 			table.clear(loaderEntry.requests)
 			loaderEntries[storybookSource] = nil
 		end
@@ -369,7 +370,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			entry.currentConnection:Disconnect()
 		end
 		if entry.currentLoader then
-			entry.currentLoader:clear()
+			entry.currentLoader.clear()
 		end
 		entry.currentLoader = entry.reloadLoader
 		entry.currentConnection = entry.reloadConnection
@@ -383,10 +384,11 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		--[[
 			The story module is required here first, with the same loader
 			`loadStoryModuleData` uses next. When that require fails, `problem`
-			below is ModuleLoader's error as it raised it: the error's message
-			on the first line, then the traceback ModuleLoader adds. That leaves
-			out the "Failed to load story" text `loadStoryModuleData` puts in
-			front of its own errors, so a host can show the first line alone.
+			below is the error's message on the first line, then the stack at
+			the point the module failed. ModuleLoader raises the message on its
+			own and keeps the stack for `getLastError`. That leaves out the
+			"Failed to load story" text `loadStoryModuleData` puts in front of
+			its own errors, so a host can show the first line alone.
 			When the require succeeds, the loader has the module cached, so
 			`loadStoryModuleData` doesn't run it again.
 
@@ -402,12 +404,12 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			storybook = loadStorybookModule(storybook.source, loader)
 		end)
 		local success, result = pcall(function()
-			loader:require(entry.request.storyModule)
+			loader.require(entry.request.storyModule)
 			return loadStoryModuleData(entry.request.storyModule, storybook, loader, true)
 		end)
 
 		if not success then
-			local problem = tostring(result)
+			local problem = describeLoadError(loader, result)
 
 			--[[
 				While someone types in a module, many of the versions along the
@@ -530,11 +532,11 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 				entry.reloadConnection:Disconnect()
 			end
 			if entry.reloadLoader then
-				entry.reloadLoader:clear()
+				entry.reloadLoader.clear()
 			end
 		end
 
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 		entry.reloadLoader = loader
 		entry.reloadConnection = loader.loadedModuleChanged:Connect(function(changedModule)
 			scheduleReload(entry, changedModule)
@@ -671,7 +673,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			end
 			loaderEntry.connection:Disconnect()
 			loaderEntry.destroyingConnection:Disconnect()
-			loaderEntry.loader:clear()
+			loaderEntry.loader.clear()
 			table.clear(loaderEntry.requests)
 		end
 		table.clear(loaderEntries)

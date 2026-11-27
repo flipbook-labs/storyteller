@@ -137,7 +137,7 @@ function StorytellerStore.new(root: Instance): StorytellerStore
 	end
 
 	local function loadStorybook(storybookModule: ModuleScript)
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 
 		local storybook: LoadedStorybook?
 		local success, result = pcall(function()
