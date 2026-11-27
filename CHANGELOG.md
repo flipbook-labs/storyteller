@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.15.0
+
+Features 1 · Changes 1 · Fixes 1 · Internal 2
+
+### Features
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Keep a Story's last working version loaded when an edit stops it loading, and report the error in the record's new `problem` field. ([#237](https://github.com/flipbook-labs/storyteller/pull/237))
+
+<details>
+<summary>Details</summary>
+
+A record's `problem`, on Loaded and Unavailable records alike, starts with the error's message, without a "Failed to load story" prefix. ModuleLoader's traceback follows on the next lines.
+
+</details>
+
+### Changes
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Reload a Story once typing stops for 300 ms when its module or a dependency is open in the script editor, instead of on every keystroke. ([#236](https://github.com/flipbook-labs/storyteller/pull/236))
+
+### Fixes
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-react-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-react-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-react-light.png" alt="React" height="18" align="texttop" /></picture> Keep `StoryContainer` mounted when a Story's teardown throws, and log the error instead of passing it to the host. ([#235](https://github.com/flipbook-labs/storyteller/pull/235))
+
+### Internal
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Add regression tests for how Rojo syncs, Studio edits, and Storybooks reload a Story. ([#240](https://github.com/flipbook-labs/storyteller/pull/240))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Run a Storybook module that throws once per story load, not twice. ([#244](https://github.com/flipbook-labs/storyteller/pull/244))
+
 ## v1.14.0
 
 Features 1 · Changes 4 · Fixes 1 · Internal 3
