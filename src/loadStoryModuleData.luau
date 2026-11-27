@@ -209,18 +209,32 @@ local function normalizeStoryModule(requiredStory: unknown, storyModule: ModuleS
 	}
 end
 
+--[[
+	Loads the Storybook module, then the story module, through the same
+	loader. Modules loaded through one loader share its `_G`, so the story
+	sees whatever the Storybook set up there. When the Storybook fails to
+	load, its error is dropped, and the stories get `storybook` as the caller
+	passed it.
+
+	A caller that has already loaded the Storybook through `providedLoader`
+	passes `storybookLoaded`, and `storybook` is then used as it is.
+	ModuleLoader doesn't cache a module that throws, so loading a broken
+	Storybook again here would run it a second time.
+]]
 local function loadStoryModuleData<T>(
 	storyModule: ModuleScript,
 	storybook: LoadedStorybook,
-	providedLoader: ModuleLoader?
+	providedLoader: ModuleLoader?,
+	storybookLoaded: boolean?
 ): LoadedStoryModuleData<T>
 	local loader = providedLoader or ModuleLoader.new()
 
-	local freshStorybook: LoadedStorybook?
-	pcall(function()
-		freshStorybook = loadStorybookModule(storybook.source, loader)
-	end)
-	local loadedStorybook = freshStorybook or storybook
+	local loadedStorybook = storybook
+	if not storybookLoaded then
+		pcall(function()
+			loadedStorybook = loadStorybookModule(storybook.source, loader)
+		end)
+	end
 
 	local requiredStory: unknown
 	local success, err = pcall(function()
