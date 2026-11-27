@@ -23,9 +23,28 @@ type StoryRequest = StoryModuleRecordStore.StoryRequest
 local recordStore: StoryModuleRecordStore.StoryModuleRecordStore
 local wasCharmFrozen = Charm.flags.frozen
 
+--[[
+	Story modules in these specs find their siblings through `script.Parent`.
+	Their root folders aren't in the DataModel, so once nothing references a
+	root, it can be collected, and its children's Parent becomes nil. A reload
+	after that fails to find the siblings. Roots made by `createRoot` stay
+	referenced until the test ends.
+]]
+local roots: { Instance } = {}
+
+local function createRoot(): Folder
+	local root = Instance.new("Folder")
+	table.insert(roots, root)
+	return root
+end
+
 afterEach(function()
 	recordStore.destroy()
 	Charm.flags.frozen = wasCharmFrozen
+	for _, root in roots do
+		root:Destroy()
+	end
+	table.clear(roots)
 end)
 
 local function createRequest(name: string): StoryRequest
@@ -50,7 +69,7 @@ end
 -- Builds a batch of story modules that stamp the order they were evaluated in,
 -- so queue-ordering behavior is observable without timing assumptions.
 local function createOrderedRequests(count: number, storybook: types.LoadedStorybook): { StoryRequest }
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local counter = Instance.new("IntValue")
 	counter.Name = "Counter"
 	counter.Parent = root
@@ -253,7 +272,7 @@ end)
 test("evaluates the storybook and story through the same loader", function()
 	recordStore = StoryModuleRecordStore.new()
 
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local marker = Instance.new("ModuleScript")
 	marker.Name = "Marker"
 	marker.Source = "return {}"
@@ -343,7 +362,7 @@ test("reuses the cached record across overlapping requests", function()
 end)
 
 test("does not reload sibling stories when one story source changes", function()
-	local root = Instance.new("Folder")
+	local root = createRoot()
 	local firstLoadCount = Instance.new("IntValue")
 	firstLoadCount.Name = "FirstLoadCount"
 	firstLoadCount.Parent = root
@@ -661,4 +680,223 @@ test("requests after destroy are no-ops", function()
 	task.wait()
 	local recordKey = next(recordStore.getRecords())
 	expect(recordKey).toBeUndefined()
+end)
+
+--[[
+	Editing a module in Studio changes its Source on every keystroke. These
+	specs make a burst of edits closer together than the store's 0.3-second
+	quiet period (RELOAD_QUIET_PERIOD_SECONDS), the way typing does, and count
+	how often the story module is evaluated.
+
+	The store only waits for modules open in the script editor, and nothing is
+	open outside Studio, so these specs create a store that treats every module
+	as open.
+]]
+local TYPING_INTERVAL_SECONDS = 0.1
+
+local function createTypingRecordStore()
+	return StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function()
+			return true
+		end,
+	})
+end
+
+test("reloads once when a replacement storybook arrives during the quiet period", function()
+	local root = createRoot()
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("ReplacedWhileTyping")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = createTypingRecordStore()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	local replacementStorybook: types.LoadedStorybook = {
+		name = "Replacement",
+		source = request.storybook.source,
+		storyRoots = {},
+	}
+
+	-- The short wait lets the edit start its quiet-period timer before the
+	-- replacement arrives.
+	setVersion(1)
+	task.wait(0.05)
+	recordStore.request(StoryModuleRequestPriority.Interactive, {
+		storyModule = request.storyModule,
+		storybook = replacementStorybook,
+	})
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload")
+		expect(record.stories[1].name).toBe("Version 1")
+		expect(record.stories[1].storybook).toBe(replacementStorybook)
+	end)
+
+	-- Waiting past the quiet period lets a reload from the edit's timer show
+	-- up in the count.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+test("reloads a story once after a burst of edits to its source", function()
+	local root = createRoot()
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local request = createRequest("Typed")
+	request.storyModule.Parent = root
+	local function setVersion(version: number)
+		request.storyModule.Source = "script.Parent.LoadCount.Value += 1\n"
+			.. `return \{ name = "Version {version}", story = function() end \}`
+	end
+	setVersion(0)
+
+	recordStore = createTypingRecordStore()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 3 do
+		setVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the edited story to reload")
+		expect(record.stories[1].name).toBe("Version 3")
+	end, { timeout = 5 })
+
+	-- If each edit still reloaded the Story, some of those reloads would land
+	-- after the record shows the final version. Waiting past the quiet period
+	-- lets them show up in the count.
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+test("reloads a story once after a burst of edits to a module it requires", function()
+	local root = createRoot()
+	local loadCount = Instance.new("IntValue")
+	loadCount.Name = "LoadCount"
+	loadCount.Parent = root
+
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Parent = root
+	local function setDependencyVersion(version: number)
+		dependency.Source = `return {version}`
+	end
+	setDependencyVersion(0)
+
+	local request = createRequest("UsesDependency")
+	request.storyModule.Parent = root
+	request.storyModule.Source = [[
+		script.Parent.LoadCount.Value += 1
+		local version = require(script.Parent.Dependency)
+		return { name = "UsesDependency", story = function() return version end }
+	]]
+
+	recordStore = createTypingRecordStore()
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		expect(loadCount.Value).toBe(1)
+	end)
+
+	for version = 1, 3 do
+		setDependencyVersion(version)
+		task.wait(TYPING_INTERVAL_SECONDS)
+	end
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload with its dependency")
+		expect((record.stories[1].story :: () -> number)()).toBe(3)
+	end, { timeout = 5 })
+
+	task.wait(0.5)
+	expect(loadCount.Value).toBe(2)
+end)
+
+--[[
+	A module that isn't open in the script editor changes when a tool such as
+	Rojo syncs a saved file. These specs check that the reload starts right
+	away, well inside the quiet period.
+]]
+local NOT_WAITING_TIMEOUT_SECONDS = 0.2
+
+test("reloads right away when a story module that isn't open in the script editor changes", function()
+	local request = createRequest("Synced")
+
+	recordStore = StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function()
+			return false
+		end,
+	})
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to load")
+	end)
+
+	request.storyModule.Source = `return \{ name = "Saved", story = function() end \}`
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the saved story to load")
+		expect(record.stories[1].name).toBe("Saved")
+	end, { timeout = NOT_WAITING_TIMEOUT_SECONDS })
+end)
+
+test("reloads right away when a dependency that isn't open changes, even while the story is open", function()
+	local root = createRoot()
+	local dependency = Instance.new("ModuleScript")
+	dependency.Name = "Dependency"
+	dependency.Source = "return 1"
+	dependency.Parent = root
+
+	local request = createRequest("OpenStory")
+	request.storyModule.Parent = root
+	request.storyModule.Source = [[
+		local version = require(script.Parent.Dependency)
+		return { name = "Version " .. version, story = function() end }
+	]]
+
+	recordStore = StoryModuleRecordStore.new({
+		isOpenInScriptEditor = function(module)
+			return module == request.storyModule
+		end,
+	})
+	recordStore.request(StoryModuleRequestPriority.Interactive, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to load")
+		expect(record.stories[1].name).toBe("Version 1")
+	end)
+
+	dependency.Source = "return 2"
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story to reload with the saved dependency")
+		expect(record.stories[1].name).toBe("Version 2")
+	end, { timeout = NOT_WAITING_TIMEOUT_SECONDS })
 end)
