@@ -385,10 +385,9 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			`loadStoryModuleData` uses next. When that require fails, `problem`
 			below is the error's message on the first line, then the stack at
 			the point the module failed. ModuleLoader raises the message on its
-			own and leaves the failing module on the stack, so the handler
-			reads the stack before it unwinds. That leaves out the "Failed to
-			load story" text `loadStoryModuleData` puts in front of its own
-			errors, so a host can show the first line alone.
+			own and keeps the stack for `getLastError`. That leaves out the
+			"Failed to load story" text `loadStoryModuleData` puts in front of
+			its own errors, so a host can show the first line alone.
 			When the require succeeds, the loader has the module cached, so
 			`loadStoryModuleData` doesn't run it again.
 
@@ -403,15 +402,17 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		pcall(function()
 			storybook = loadStorybookModule(storybook.source, loader)
 		end)
-		local success, result = xpcall(function()
+		local success, result = pcall(function()
 			loader.require(entry.request.storyModule)
 			return loadStoryModuleData(entry.request.storyModule, storybook, loader, true)
-		end, function(err: unknown): string
-			return debug.traceback(tostring(err), 2)
 		end)
 
 		if not success then
 			local problem = tostring(result)
+			local lastError = loader.getLastError()
+			if lastError and rawequal(lastError.err, result) then
+				problem = `{problem}\n{lastError.traceback}`
+			end
 
 			--[[
 				While someone types in a module, many of the versions along the
