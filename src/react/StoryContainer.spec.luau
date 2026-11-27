@@ -435,3 +435,78 @@ test("onError is called when a story experiences an error during mount", functio
 
 	expect(mockOnError).toHaveBeenCalled()
 end)
+
+describe("a story whose teardown throws", function()
+	local function createStoryWithFailingTeardown(frameName: string)
+		return createStory({
+			story = function(storyContainer: Instance, _props: types.StoryProps)
+				local frame = Instance.new("Frame")
+				frame.Name = frameName
+				frame.Parent = storyContainer
+
+				return function()
+					error("teardown failed")
+				end
+			end,
+		})
+	end
+
+	test("mounts the next story without the error escaping", function()
+		local mockOnError = jest.fn()
+		local brokenStory = createStoryWithFailingTeardown("BrokenStoryFrame")
+		local nextStory = createStory({
+			story = function()
+				local frame = Instance.new("Frame")
+				frame.Name = "NextStoryFrame"
+
+				return frame
+			end,
+		})
+
+		local setStory: (story: LoadedStory<unknown>) -> ()
+
+		local function Wrapper()
+			local story: LoadedStory<unknown>
+			story, setStory = React.useState(brokenStory :: LoadedStory<unknown>)
+
+			return React.createElement(StoryContainer, {
+				story = story,
+				onError = mockOnError,
+			})
+		end
+
+		act(function()
+			root:render(React.createElement(Wrapper))
+		end)
+
+		expect(container:FindFirstChild("BrokenStoryFrame", true)).toBeDefined()
+
+		expect(function()
+			act(function()
+				setStory(nextStory :: LoadedStory<unknown>)
+			end)
+		end).never.toThrow()
+
+		expect(container:FindFirstChild("NextStoryFrame", true)).toBeDefined()
+		expect(container:FindFirstChild("BrokenStoryFrame", true)).toBeUndefined()
+		expect(mockOnError).never.toHaveBeenCalled()
+	end)
+
+	test("unmounts without the error escaping", function()
+		local story = createStoryWithFailingTeardown("BrokenStoryFrame")
+
+		act(function()
+			root:render(React.createElement(StoryContainer, {
+				story = story,
+			}))
+		end)
+
+		expect(container:FindFirstChild("BrokenStoryFrame", true)).toBeDefined()
+
+		expect(function()
+			act(function()
+				root:unmount()
+			end)
+		end).never.toThrow()
+	end)
+end)
