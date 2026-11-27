@@ -109,9 +109,8 @@ local function isOpenInScriptEditor(module: Instance): boolean
 	if not ScriptEditorService then
 		return false
 	end
-	local service = ScriptEditorService
 	local ok, document = pcall(function()
-		return service:FindScriptDocument(module :: LuaSourceContainer)
+		return ScriptEditorService:FindScriptDocument(module :: LuaSourceContainer)
 	end)
 	return ok and typeof(document) == "Instance"
 end
