@@ -342,6 +342,23 @@ test("reports a story module load problem", function()
 	end)
 end)
 
+test("runs the Storybook module before the story module", function()
+	recordStore = StoryModuleRecordStore.new()
+	local request = createRequest("NeedsSetup")
+	-- Modules loaded through one loader share its `_G`, so the story sees
+	-- this value only if the Storybook module ran first.
+	request.storybook.source.Source = '_G.storybookSetUp = "ready"\nreturn { storyRoots = {} }'
+	request.storyModule.Source = "return { name = tostring(_G.storybookSetUp), story = function() end }"
+
+	recordStore.request(StoryModuleRequestPriority.Background, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story module to load")
+		expect(record.stories[1].name).toBe("ready")
+	end)
+end)
+
 test("reuses the cached record across overlapping requests", function()
 	recordStore = StoryModuleRecordStore.new()
 	local request = createRequest("Shared")
