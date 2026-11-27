@@ -376,7 +376,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		local loader = entry.reloadLoader or loaderEntry.loader
 
 		--[[
-			The module is required here first, with the same loader
+			The story module is required here first, with the same loader
 			`loadStoryModuleData` uses next. When that require fails, `problem`
 			below is ModuleLoader's error as it raised it: the error's message
 			on the first line, then the traceback ModuleLoader adds. That leaves
@@ -384,7 +384,16 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			front of its own errors, so a host can show the first line alone.
 			When the require succeeds, the loader has the module cached, so
 			`loadStoryModuleData` doesn't run it again.
+
+			A story can depend on what its Storybook module sets up when it
+			runs, such as a value on the loader's `_G`. `loadStoryModuleData`
+			runs the Storybook module before the story, so it runs here first
+			too. Like there, a Storybook that fails to load doesn't stop the
+			story from loading.
 		]]
+		pcall(function()
+			loader:require(entry.request.storybook.source)
+		end)
 		local success, result = pcall(function()
 			loader:require(entry.request.storyModule)
 			return loadStoryModuleData(entry.request.storyModule, entry.request.storybook, loader)
