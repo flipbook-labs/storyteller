@@ -101,6 +101,7 @@ local function build()
 		logger.debug("pruning test and story files from the prod build")
 		rmdir(`{project.BUILD_PATH}/test-utils`)
 		rmdir(`{project.BUILD_PATH}/e2e`)
+		rmdir(`{project.BUILD_PATH}/user-journeys`)
 
 		for _, prunedFilePattern in PRUNED_FILE_PATTERNS do
 			local prunedFiles = find(project.BUILD_PATH, prunedFilePattern)
