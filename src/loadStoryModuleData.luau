@@ -2,6 +2,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local Sift = require("@pkg/Sift")
 
 local constants = require("@root/constants")
+local describeLoadError = require("@root/describeLoadError")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStorybookModule = require("@root/loadStorybookModule")
 local migrateControlsSchema = require("@root/controls/migrateControlsSchema")
@@ -241,7 +242,7 @@ local function loadStoryModuleData<T>(
 		requiredStory = loader.require(storyModule)
 	end)
 	if not success then
-		error(`Failed to load story {storyModule:GetFullName()}. Error: {err}`)
+		error(`Failed to load story {storyModule:GetFullName()}. Error: {describeLoadError(loader, err)}`)
 	end
 
 	local storyModuleData = normalizeStoryModule(requiredStory, storyModule)

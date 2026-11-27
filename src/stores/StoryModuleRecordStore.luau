@@ -2,6 +2,7 @@ local Charm = require("@pkg/Charm")
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
+local describeLoadError = require("@root/describeLoadError")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
 local loadStorybookModule = require("@root/loadStorybookModule")
@@ -408,11 +409,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		end)
 
 		if not success then
-			local problem = tostring(result)
-			local lastError = loader.getLastError()
-			if lastError and rawequal(lastError.err, result) then
-				problem = `{problem}\n{lastError.traceback}`
-			end
+			local problem = describeLoadError(loader, result)
 
 			--[[
 				While someone types in a module, many of the versions along the

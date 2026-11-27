@@ -79,6 +79,39 @@ test("generic failures for storybook", function()
 	expect(result).toMatch("failed to load storybook")
 end)
 
+test("a failed storybook's error includes the stack through its dependencies", function()
+	local loader = ModuleLoader.createModuleLoader()
+	local root = Instance.new("Folder")
+
+	local inner = Instance.new("ModuleScript")
+	inner.Name = "Inner"
+	inner.Source = [[error("boom")]]
+	inner.Parent = root
+
+	local middle = Instance.new("ModuleScript")
+	middle.Name = "Middle"
+	middle.Source = [[return require(script.Parent.Inner)]]
+	middle.Parent = root
+
+	local storybookModule = createMockStorybookModule([[
+		require(script.Parent.Middle)
+		return { storyRoots = {} }
+	]])
+	storybookModule.Parent = root
+
+	local success, result = pcall(function()
+		return loadStorybookModule(storybookModule, loader)
+	end)
+
+	expect(success).toBeFalsy()
+	-- Inner raises the error, and Middle is the module that required it. The
+	-- message names only Inner, so Middle appears only through the stack.
+	expect(result).toMatch("boom")
+	expect(result).toMatch("Middle")
+
+	root:Destroy()
+end)
+
 test("malformed storybook", function()
 	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[

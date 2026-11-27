@@ -1,6 +1,7 @@
 local ModuleLoader = require("@pkg/ModuleLoader")
 
 local constants = require("@root/constants")
+local describeLoadError = require("@root/describeLoadError")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local migrateLegacyPackages = require("@root/migrateLegacyPackages")
 local types = require("@root/types")
@@ -30,7 +31,9 @@ local function loadStorybookModule(module: ModuleScript, providedLoader: ModuleL
 		result = loader.require(module) :: { [string]: unknown }
 	end)
 
-	assert(wasRequired, `failed to load storybook {module:GetFullName()}: {err}`)
+	if not wasRequired then
+		error(`failed to load storybook {module:GetFullName()}: {describeLoadError(loader, err)}`, 0)
+	end
 
 	-- The loader caches this table, and a story loaded with the same loader can
 	-- require the storybook module too. The edits below go on a copy so that
