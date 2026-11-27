@@ -46,17 +46,22 @@ type RequestEntry = {
 	-- Watches the reload loader for dependency changes after a reload.
 	reloadConnection: RBXScriptConnection?,
 	--[[
-		The reload loader from the last reload that succeeded, and its watch.
-		A ModuleLoader only watches the modules that loaded through it. When a
-		dependency breaks, the reload that follows fails before that loader
-		reaches it, so the loader from the last successful reload is the one
-		still watching it. Keeping that loader until another reload succeeds
-		means fixing the dependency triggers a reload. This stays nil until
-		the first reload succeeds, and until then the shared Storybook loader
-		watches the entry's modules instead.
+		The loader that loaded the version of the Story on screen now, and the
+		connection that watches it. It's the reload loader from the last
+		reload that succeeded, and it changes only when another one succeeds.
+
+		It's kept because a ModuleLoader only watches the modules that loaded
+		through it. Say an edit breaks one of the Story's dependencies. The
+		reload that follows stops at the error, so its new loader never
+		finishes loading that dependency and can't see the fix. This loader
+		loaded the dependency while it still worked, so it's the one that
+		sees the fix and starts the next reload.
+
+		Both are nil until the first reload succeeds. Until then, the shared
+		Storybook loader watches the entry's modules.
 	]]
-	loadedLoader: ModuleLoader.ModuleLoader?,
-	loadedConnection: RBXScriptConnection?,
+	currentLoader: ModuleLoader.ModuleLoader?,
+	currentConnection: RBXScriptConnection?,
 	--[[
 		Started by a change to a module open in Studio's script editor, either
 		the Story module or one of its dependencies. When it runs out after
@@ -121,9 +126,8 @@ local function isOpenInScriptEditor(module: Instance): boolean
 	if not ScriptEditorService then
 		return false
 	end
-	local service = ScriptEditorService
 	local ok, document = pcall(function()
-		return service:FindScriptDocument(module :: LuaSourceContainer)
+		return ScriptEditorService:FindScriptDocument(module :: LuaSourceContainer)
 	end)
 	return ok and typeof(document) == "Instance"
 end
@@ -266,7 +270,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			connection = loader.loadedModuleChanged:Connect(function(changedModule)
 				local changedEntry = loaderEntry.requests[changedModule]
 				if changedEntry then
-					if not changedEntry.loadedLoader then
+					if not changedEntry.currentLoader then
 						scheduleReload(changedEntry, changedModule)
 					end
 					-- Story source changes have a dedicated connection. Only shared
@@ -275,7 +279,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 				end
 
 				for _, entry in loaderEntry.requests do
-					if not entry.loadedLoader then
+					if not entry.currentLoader then
 						scheduleReload(entry, changedModule)
 					end
 				end
@@ -299,19 +303,19 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 		if entry.reloadConnection then
 			entry.reloadConnection:Disconnect()
 		end
-		if entry.loadedConnection then
-			entry.loadedConnection:Disconnect()
+		if entry.currentConnection then
+			entry.currentConnection:Disconnect()
 		end
 		if entry.reloadLoader then
 			entry.reloadLoader:clear()
 		end
-		if entry.loadedLoader then
-			entry.loadedLoader:clear()
+		if entry.currentLoader then
+			entry.currentLoader:clear()
 		end
 		entry.reloadConnection = nil
 		entry.reloadLoader = nil
-		entry.loadedConnection = nil
-		entry.loadedLoader = nil
+		entry.currentConnection = nil
+		entry.currentLoader = nil
 	end
 
 	local function cleanupLoaderEntry(storybookSource: ModuleScript)
@@ -356,18 +360,18 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 	end
 
 	local function promoteReloadLoader(entry: RequestEntry)
-		if entry.loadedLoader == entry.reloadLoader then
+		if entry.currentLoader == entry.reloadLoader then
 			return
 		end
 
-		if entry.loadedConnection then
-			entry.loadedConnection:Disconnect()
+		if entry.currentConnection then
+			entry.currentConnection:Disconnect()
 		end
-		if entry.loadedLoader then
-			entry.loadedLoader:clear()
+		if entry.currentLoader then
+			entry.currentLoader:clear()
 		end
-		entry.loadedLoader = entry.reloadLoader
-		entry.loadedConnection = entry.reloadConnection
+		entry.currentLoader = entry.reloadLoader
+		entry.currentConnection = entry.reloadConnection
 	end
 
 	local function createRecord(entry: RequestEntry): StoryModuleRecord
@@ -518,7 +522,7 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			entry.reloadTimer = nil
 		end
 
-		if entry.reloadLoader ~= entry.loadedLoader then
+		if entry.reloadLoader ~= entry.currentLoader then
 			if entry.reloadConnection then
 				entry.reloadConnection:Disconnect()
 			end
@@ -581,8 +585,8 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 				queuedPriority = nil,
 				reloadLoader = nil,
 				reloadConnection = nil,
-				loadedLoader = nil,
-				loadedConnection = nil,
+				currentLoader = nil,
+				currentConnection = nil,
 				reloadTimer = nil,
 				sourceConnection = nil,
 				destroyingConnection = nil,
