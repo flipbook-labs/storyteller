@@ -22,11 +22,11 @@ test("exposes Storyteller discovery state", function()
 end)
 
 test("Storyteller can be required in a ModuleLoader context", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 
 	local Storyteller: unknown
 	expect(function()
-		Storyteller = loader:require(script.Parent)
+		Storyteller = loader.require(script.Parent)
 	end).never.toThrow()
 
 	expect(Storyteller).toBeDefined()

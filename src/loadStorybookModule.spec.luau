@@ -20,7 +20,7 @@ local function createMockStorybookModule(source: string): ModuleScript
 end
 
 test("load a storybook module as a table", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 			return {
 				name = "Sample",
@@ -37,7 +37,7 @@ test("load a storybook module as a table", function()
 end)
 
 test("use the name of the storybook module by default", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			storyRoots = {}
@@ -51,7 +51,7 @@ test("use the name of the storybook module by default", function()
 end)
 
 test("nameless storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			storyRoots = {}
@@ -65,7 +65,7 @@ test("nameless storybook", function()
 end)
 
 test("generic failures for storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 		}
@@ -80,7 +80,7 @@ test("generic failures for storybook", function()
 end)
 
 test("malformed storybook", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			name = false,
@@ -98,7 +98,7 @@ end)
 
 describe("legacy support", function()
 	test("packages attached to the storybook get grouped in `packages` object", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 
 		local storybookModule = createMockStorybookModule([[
 			return {
@@ -123,7 +123,7 @@ describe("legacy support", function()
 end)
 
 test("leaves the table the storybook module returns untouched", function()
-	local loader = ModuleLoader.new()
+	local loader = ModuleLoader.createModuleLoader()
 	local storybookModule = createMockStorybookModule([[
 		return {
 			storyRoots = {},
@@ -134,7 +134,7 @@ test("leaves the table the storybook module returns untouched", function()
 
 	loadStorybookModule(storybookModule, loader)
 
-	local source = loader:require(storybookModule) :: { [string]: unknown }
+	local source = loader.require(storybookModule) :: { [string]: unknown }
 	expect(source.react).toBeDefined()
 	expect(source.packages).toBeUndefined()
 end)
@@ -153,7 +153,7 @@ describe("roblox internal", function()
 	end)
 
 	test("grouping storybooks", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 
 		local storybookModule = createMockStorybookModule([[
 			return {
@@ -187,7 +187,7 @@ describe("frozen Charm state (Studio behavior)", function()
 	end)
 
 	test("a loaded storybook's packages survive being stored in Charm state", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 		local storybookModule = createMockStorybookModule([[
 			return {
 				storyRoots = {},
@@ -213,7 +213,7 @@ describe("frozen Charm state (Studio behavior)", function()
 	end)
 
 	test("a legacy storybook's library survives being stored in Charm state", function()
-		local loader = ModuleLoader.new()
+		local loader = ModuleLoader.createModuleLoader()
 		local storybookModule = createMockStorybookModule([[
 			return {
 				storyRoots = {},
