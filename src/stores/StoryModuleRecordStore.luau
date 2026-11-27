@@ -4,6 +4,7 @@ local ModuleLoader = require("@pkg/ModuleLoader")
 local StoryModuleRequestPriority = require("@root/stores/enums/StoryModuleRequestPriority")
 local excludeFromCharmFreeze = require("@root/stores/excludeFromCharmFreeze")
 local loadStoryModuleData = require("@root/loadStoryModuleData")
+local loadStorybookModule = require("@root/loadStorybookModule")
 local types = require("@root/types")
 
 type StoryModuleRequestPriority = StoryModuleRequestPriority.StoryModuleRequestPriority
@@ -390,17 +391,19 @@ function StoryModuleRecordStore.new(options: Options?): StoryModuleRecordStore
 			`loadStoryModuleData` doesn't run it again.
 
 			A story can depend on what its Storybook module sets up when it
-			runs, such as a value on the loader's `_G`. `loadStoryModuleData`
-			runs the Storybook module before the story, so it runs here first
-			too. Like there, a Storybook that fails to load doesn't stop the
-			story from loading.
+			runs, such as a value on the loader's `_G`, so the Storybook is
+			loaded here before the story. A Storybook that fails to load doesn't
+			stop the story from loading, and its stories get the request's
+			Storybook instead. `loadStoryModuleData` is told the Storybook is
+			already loaded, so it doesn't run it again.
 		]]
+		local storybook = entry.request.storybook
 		pcall(function()
-			loader:require(entry.request.storybook.source)
+			storybook = loadStorybookModule(storybook.source, loader)
 		end)
 		local success, result = pcall(function()
 			loader:require(entry.request.storyModule)
-			return loadStoryModuleData(entry.request.storyModule, entry.request.storybook, loader)
+			return loadStoryModuleData(entry.request.storyModule, storybook, loader, true)
 		end)
 
 		if not success then

@@ -359,6 +359,24 @@ test("runs the Storybook module before the story module", function()
 	end)
 end)
 
+test("runs a Storybook module that throws only once per load", function()
+	recordStore = StoryModuleRecordStore.new()
+	local request = createRequest("AfterBrokenSetup")
+	-- ModuleLoader doesn't cache a module that throws, so each require of
+	-- this Storybook runs it again and adds to the count.
+	local storybookModule = request.storybook.source
+	storybookModule.Source =
+		'script:SetAttribute("runs", (script:GetAttribute("runs") or 0) + 1)\nerror("setup failed")'
+
+	recordStore.request(StoryModuleRequestPriority.Background, request)
+
+	waitFor(function()
+		local record = getRecord(request)
+		assert(record and record.status == "Loaded", "expected the story module to load")
+	end)
+	expect(storybookModule:GetAttribute("runs")).toBe(1)
+end)
+
 test("reuses the cached record across overlapping requests", function()
 	recordStore = StoryModuleRecordStore.new()
 	local request = createRequest("Shared")
