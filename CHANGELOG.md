@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.16.0
+
+Changes 1 · Internal 2
+
+### Changes
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-loading-light.png" alt="Loading" height="18" align="texttop" /></picture> Upgrade to ModuleLoader 1.0, so a loader passed to Storyteller's load functions must come from `createModuleLoader`. ([#245](https://github.com/flipbook-labs/storyteller/pull/245))
+
+<details>
+<summary>Details</summary>
+
+`loadStorybookModule`, `loadStoryModule` and `loadStoriesFromModule` take an optional loader, and Storyteller now calls it with ModuleLoader 1.0's functions, such as `loader.require(module)`. A loader made with `ModuleLoader.new()` from 0.13 no longer works there. Make one with `ModuleLoader.createModuleLoader()` instead.
+
+When a Storybook or story module fails to load, the error from `loadStorybookModule` or `loadStoryModule` and a story record's `problem` still include the stack after the message. ModuleLoader 1.0 raises the message on its own, so Storyteller now reads the stack from `getLastError`.
+
+</details>
+
+### Internal
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-release-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-release-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-release-light.png" alt="Release" height="18" align="texttop" /></picture> Record each Wally publish as a deployment to the `wally` environment. ([#246](https://github.com/flipbook-labs/storyteller/pull/246))
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.svg" /><img src="https://raw.githubusercontent.com/flipbook-labs/storyteller/main/.changes/assets/kind-tooling-light.png" alt="Tooling" height="18" align="texttop" /></picture> Overlay Storyteller into Flipbook with flipbook-batteries, which rewrites every link to it and adds links for new dependencies. ([#248](https://github.com/flipbook-labs/storyteller/pull/248))
+
 ## v1.15.0
 
 Features 1 · Changes 1 · Fixes 1 · Internal 2
