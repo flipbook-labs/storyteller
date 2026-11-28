@@ -1,29 +1,23 @@
 --[[
-	This script is solely for taking our dev build of Storyteller and overlaying
-	it on Flipbook's install. This is only needed because Wally doesn't support
-	path/git dependencies, so we have to make our own shim.
+	Builds Storyteller and copies the build over the Storyteller that a
+	Flipbook checkout installs, so Flipbook can try unreleased changes. Wally
+	can't install path or git dependencies, so this stands in for one. The
+	next `lute run install` in Flipbook puts the released packages back.
 ]]
 
-local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.14.0")
 local cli = require("@lpm/batteries@v1.0.1-nightly.20261115/cli")
 local fs = require("@std/fs")
-local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
 local logger = require("@repo/.lute/lib/logger")
 
+local overlayWallyPackage = FlipbookBatteries.overlayWallyPackage
 local run = FlipbookBatteries.run
-local copyInto = FlipbookBatteries.copyInto
-local find = FlipbookBatteries.find
 
-local WALLY_PACKAGE_NAME_PATTERN = "^storyteller$"
-local BUNDLE_DIR_NAME = "dist"
-local PACKAGES_DIR_NAME = "Packages"
-local SOURCEMAP_FILE_NAME = "sourcemap.json"
-local SOURCEMAP_PROJECT_FILE_NAME = "sourcemap.project.json"
-local TYPE_LINK_BUILD_DIR_NAME = "storyteller-package-types"
-
+-- Without --flipbook, this looks for a `flipbook` folder beside this
+-- checkout or beside one of its parent folders.
 local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	local dir = startDir
 	while true do
@@ -39,70 +33,6 @@ local function findFlipbookRoot(startDir: path.Pathlike): path.Path?
 	end
 end
 
-local function prepareFlipbookPackageInstallation(
-	repoRoot: path.Path,
-	flipbookRoot: path.Path,
-	packageInstallation: path.Path
-)
-	local packageVersionRoot = path.dirname(packageInstallation)
-	local sourceModuleLoaderLink = path.join(flipbookRoot, "Packages/ModuleLoader.lua")
-	local targetModuleLoaderLink = path.join(packageVersionRoot, "ModuleLoader.lua")
-	local moduleLoaderLink = fs.readFileToString(sourceModuleLoaderLink)
-		:gsub("script%.Parent%._Index", "script.Parent.Parent")
-	fs.writeStringToFile(targetModuleLoaderLink, moduleLoaderLink)
-	fs.copy(path.join(repoRoot, ".build/wally/wally.toml"), path.join(packageInstallation, "wally.toml"))
-end
-
-local function refreshFlipbookPackageTypes(flipbookRoot: path.Path, packageInstallation: path.Path)
-	local packageVersionRoot = path.dirname(packageInstallation)
-	local packageVersionDirName = path.basename(packageVersionRoot) :: string
-	local packageInstallationDirName = path.basename(packageInstallation) :: string
-	local typeLinkBuildRoot = path.join(flipbookRoot, "build", TYPE_LINK_BUILD_DIR_NAME)
-	local typeLinkPackagesRoot = path.join(typeLinkBuildRoot, PACKAGES_DIR_NAME)
-	local typeLinkPackageInstallation =
-		path.join(typeLinkPackagesRoot, "_Index", packageVersionDirName, packageInstallationDirName)
-
-	if fs.exists(typeLinkBuildRoot) then
-		fs.removeDirectory(typeLinkBuildRoot, {
-			recursive = true,
-		})
-	end
-
-	copyInto(packageInstallation, typeLinkPackageInstallation)
-	fs.writeStringToFile(
-		path.join(typeLinkPackagesRoot, "Storyteller.lua"),
-		`return require(script.Parent._Index["{packageVersionDirName}"]["{packageInstallationDirName}"])`
-	)
-	fs.writeStringToFile(
-		path.join(typeLinkBuildRoot, SOURCEMAP_PROJECT_FILE_NAME),
-		json.serialize({
-			name = "StorytellerPackageTypes",
-			tree = {
-				["$path"] = PACKAGES_DIR_NAME,
-			},
-		}, true)
-	)
-
-	run("rojo", {
-		"sourcemap",
-		SOURCEMAP_PROJECT_FILE_NAME,
-		"-o",
-		SOURCEMAP_FILE_NAME,
-	}, {
-		cwd = typeLinkBuildRoot,
-	})
-	run("wally-package-types", { "--sourcemap", SOURCEMAP_FILE_NAME, PACKAGES_DIR_NAME }, {
-		cwd = typeLinkBuildRoot,
-	})
-	fs.copy(
-		path.join(typeLinkPackagesRoot, "Storyteller.lua"),
-		path.join(flipbookRoot, PACKAGES_DIR_NAME, "Storyteller.lua")
-	)
-	fs.removeDirectory(typeLinkBuildRoot, {
-		recursive = true,
-	})
-end
-
 local args = cli.parser()
 args:add("flipbook", "option", {
 	help = "path to the Flipbook checkout to receive the development build",
@@ -110,32 +40,17 @@ args:add("flipbook", "option", {
 args:parse({ ... })
 
 local repoRoot = path.resolve(process.cwd())
-local src = path.resolve(path.join("./", BUNDLE_DIR_NAME))
 local requestedFlipbookRoot = args:get("flipbook")
 local flipbookRoot = if requestedFlipbookRoot
 	then path.resolve(requestedFlipbookRoot)
 	else findFlipbookRoot(path.dirname(repoRoot))
 
-if flipbookRoot and fs.exists(flipbookRoot) then
-	logger.info(`using Flipbook at {flipbookRoot}`)
-else
-	error(`could not find Flipbook at {flipbookRoot}. Pass an explicit checkout with --flipbook <path>`)
+if not flipbookRoot then
+	error(`could not find a flipbook folder beside {repoRoot} or its parents. Pass a checkout with --flipbook <path>`)
+elseif not fs.exists(flipbookRoot) then
+	error(`could not find Flipbook at {flipbookRoot}. Pass a checkout with --flipbook <path>`)
 end
-flipbookRoot = path.resolve(flipbookRoot :: path.Path)
-
-local flipbookPackageIndex = path.join(flipbookRoot, PACKAGES_DIR_NAME, "_Index")
-local packageInstallation = find(flipbookPackageIndex, WALLY_PACKAGE_NAME_PATTERN)[1]
-
-if not packageInstallation or not fs.exists(packageInstallation) then
-	error("could not find an installation of this package in Flipbook's package index")
-end
-
-local dest = path.join(packageInstallation, BUNDLE_DIR_NAME)
-
-logger.debug(`removing the existing install at {dest}`)
-fs.removeDirectory(dest, {
-	recursive = true,
-})
+logger.info(`using Flipbook at {flipbookRoot}`)
 
 logger.info("building Storyteller")
 run("lute", {
@@ -144,8 +59,10 @@ run("lute", {
 	"--channel",
 	"dev",
 })
-copyInto(src, dest)
-prepareFlipbookPackageInstallation(repoRoot, flipbookRoot, packageInstallation)
-refreshFlipbookPackageTypes(flipbookRoot, packageInstallation)
 
-logger.info(`successfully installed to {dest}`)
+overlayWallyPackage({
+	package = "flipbook-labs/storyteller",
+	build = path.join(repoRoot, "dist"),
+	manifest = path.join(repoRoot, "wally.toml"),
+	target = flipbookRoot,
+})

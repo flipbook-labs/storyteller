@@ -1,5 +1,5 @@
 local Archivist = require("@lpm/archivist@v0.3.1")
-local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.13.1")
+local FlipbookBatteries = require("@lpm/flipbook-batteries@v0.14.0")
 
 --[[
 	This module creates the scripts' logger as soon as a script requires it, and
