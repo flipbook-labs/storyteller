@@ -10,14 +10,14 @@ With Wally:
 
 ```toml
 [dependencies]
-Storyteller = "flipbook-labs/storyteller@1.15.0"
+Storyteller = "flipbook-labs/storyteller@1.16.0"
 ```
 
 With Lute, add this to `pkg.luau` and run `lute pkg install --vendor`:
 
 ```luau
 storyteller = {
-	rev = "v1.15.0",
+	rev = "v1.16.0",
 	sourceKind = "github",
 	source = "https://github.com/flipbook-labs/storyteller",
 },
