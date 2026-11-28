@@ -17,7 +17,9 @@ lute run install
 lute run try-in-flipbook --flipbook /absolute/path/to/flipbook-worktree
 ```
 
-The overlay script updates the installed package contents, applies Storyteller's development package metadata, and regenerates Storyteller's Wally type link from the overlaid build. Run it again after reinstalling Flipbook dependencies because `wally install` replaces the package overlay.
+The overlay script builds Storyteller with the dev channel and copies the build over Flipbook's installed Storyteller. It then rewrites the Wally link files that point at it, such as Flipbook's `Packages/Storyteller.lua`, so their type re-exports match the build. It also adds links for dependencies the build has that the installed version didn't. Run it again after reinstalling Flipbook dependencies because `wally install` replaces the package overlay.
+
+To try an unreleased ModuleLoader in the same pass, run `lute run try-in --storyteller <this checkout> --flipbook <flipbook worktree>` from the ModuleLoader repo instead. It overlays ModuleLoader into both checkouts, then runs this script.
 
 From the target Flipbook worktree, run local checks and build the Studio artifacts:
 
